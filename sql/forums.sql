@@ -57,7 +57,9 @@ CREATE TABLE banned_users(
 # Table that contains available forum types on server
 CREATE TABLE forum_types(
   id         INT(11)      PRIMARY KEY AUTO_INCREMENT,
-  forum_type VARCHAR(100) NOT NULL
+  forum_type VARCHAR(100) NOT NULL,
+
+  UNIQUE KEY forum_type(forum_type)
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 INSERT INTO forum_types (forum_type) VALUES('MODERATED');
 INSERT INTO forum_types (forum_type) VALUES('UNMODERATED');
@@ -70,6 +72,7 @@ CREATE TABLE forums(
   readonly   BOOLEAN      NOT NULL,
   created_at TIMESTAMP    DEFAULT NOW(),
 
+  UNIQUE KEY name(name),
   FOREIGN KEY (type_id)  REFERENCES forum_types(id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id) REFERENCES users(id)       ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
@@ -84,3 +87,42 @@ CREATE TABLE message_priorities(
 INSERT INTO message_priorities (priority_name) VALUES('LOW');
 INSERT INTO message_priorities (priority_name) VALUES('NORMAL');
 INSERT INTO message_priorities (priority_name) VALUES('HIGH');
+
+# Table that contains possible stages of post in forum
+CREATE TABLE post_states(
+  id         INT(11)     PRIMARY KEY AUTO_INCREMENT,
+  state_name VARCHAR(50) NOT NULL,
+
+  UNIQUE KEY state_name(state_name)
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+INSERT INTO post_states (state_name) VALUES('PUBLISHED');
+INSERT INTO post_states (state_name) VALUES('UNPUBLISHED');
+
+CREATE TABLE posts(
+  id          INT(11)       PRIMARY KEY AUTO_INCREMENT,
+  subject     VARCHAR(256)  NULL,
+  body        VARCHAR(4096) NULL,
+  rating      INT(2)        NOT NULL,
+  priority_id INT(11)       NOT NULL,
+  state_id    INT(11)       NOT NULL,
+
+  KEY subject(subject),
+  FOREIGN KEY (priority_id) REFERENCES message_priorities(id) ON DELETE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+
+# Table that contains all created tags for posts on server
+CREATE TABLE available_tags(
+  id       INT(11)     PRIMARY KEY AUTO_INCREMENT,
+  tag_name VARCHAR(50) NOT NULL,
+
+  UNIQUE KEY tag_name(tag_name)
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+
+# Table that connects posts with tags
+CREATE TABLE post_tags(
+  tag_id  INT(11) NOT NULL,
+  post_id INT(11) NOT NULL,
+
+  FOREIGN KEY (tag_id)  REFERENCES available_tags(id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES posts(id)          ON DELETE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
