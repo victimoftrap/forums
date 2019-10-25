@@ -71,7 +71,7 @@ CREATE TABLE available_tags(
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 # Table that connects posts with tags
-CREATE TABLE post_tags(
+CREATE TABLE message_tags(
   tag_id     INT(11) NOT NULL,
   message_id INT(11) NOT NULL,
 
