@@ -100,13 +100,22 @@ INSERT INTO post_states (state_name) VALUES('UNPUBLISHED');
 
 CREATE TABLE posts(
   id          INT(11)       PRIMARY KEY AUTO_INCREMENT,
-  subject     VARCHAR(256)  NULL,
-  body        VARCHAR(4096) NULL,
-  rating      INT(2)        NOT NULL,
-  priority_id INT(11)       NOT NULL,
+  forum_id    INT(11)       NOT NULL,
+  owner_id    INT(11)       NOT NULL,
+  refer_to    INT(11)       NULL,
   state_id    INT(11)       NOT NULL,
+  priority_id INT(11)       NULL,
+  subject     VARCHAR(256)  NULL,
+  body        VARCHAR(4096) NOT NULL,
+  rating      INT(2)        NOT NULL,
+  created_at  TIMESTAMP     DEFAULT NOW(),
+  updated_at  TIMESTAMP     DEFAULT NOW(),
 
   KEY subject(subject),
+  KEY rating(rating),
+  FOREIGN KEY (forum_id)    REFERENCES forum(id)              ON DELETE CASCADE,
+  FOREIGN KEY (owner_id)    REFERENCES users(id)              ON DELETE CASCADE,
+  FOREIGN KEY (state_id)    REFERENCES post_states(id)        ON DELETE CASCADE,
   FOREIGN KEY (priority_id) REFERENCES message_priorities(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
