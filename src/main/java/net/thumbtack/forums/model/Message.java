@@ -6,15 +6,15 @@ import java.util.Objects;
 public class Message {
     private Integer id;
     private User owner;
-    private String state;
-    private String priority;
+    private MessageStates state;
+    private MessagePriorities priority;
     private String subject;
     private String body;
     private Integer rating;
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
-    public Message(Integer id, User owner, String state, String priority,
+    public Message(Integer id, User owner, MessageStates state, MessagePriorities priority,
                    String subject, String body, Integer rating,
                    Timestamp createdAt, Timestamp updatedAt) {
         this.id = id;
@@ -28,7 +28,7 @@ public class Message {
         this.updatedAt = updatedAt;
     }
 
-    public Message(User owner, String state, String priority,
+    public Message(User owner, MessageStates state, MessagePriorities priority,
                    String subject, String body, Integer rating,
                    Timestamp createdAt, Timestamp updatedAt) {
         this(0, owner, state, priority, subject, body, rating, createdAt, updatedAt);
@@ -50,19 +50,19 @@ public class Message {
         this.owner = owner;
     }
 
-    public String getState() {
+    public MessageStates getState() {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(MessageStates state) {
         this.state = state;
     }
 
-    public String getPriority() {
+    public MessagePriorities getPriority() {
         return priority;
     }
 
-    public void setPriority(String priority) {
+    public void setPriority(MessagePriorities priority) {
         this.priority = priority;
     }
 
@@ -124,6 +124,9 @@ public class Message {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getOwner(), getState(), getPriority(), getSubject(), getBody(), getRating(), getCreatedAt(), getUpdatedAt());
+        return Objects.hash(getId(), getOwner(), getState(), getPriority(),
+                getSubject(), getBody(), getRating(),
+                getCreatedAt(), getUpdatedAt()
+        );
     }
 }

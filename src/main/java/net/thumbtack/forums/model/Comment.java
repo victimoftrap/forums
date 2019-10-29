@@ -122,6 +122,9 @@ public class Comment {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getReferredToMessage(), getOwner(), getState(), getPriority(), getBody(), getRating(), getCreatedAt(), getUpdatedAt());
+        return Objects.hash(getId(), getReferredToMessage(), getOwner(), getState(),
+                getPriority(), getBody(), getRating(),
+                getCreatedAt(), getUpdatedAt()
+        );
     }
 }
