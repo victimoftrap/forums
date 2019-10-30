@@ -14,7 +14,7 @@ public interface UserMapper {
                     ")"
     )
     @Options(useGeneratedKeys = true, keyProperty = "user.id")
-    User save(@Param("user") User user);
+    Integer save(@Param("user") User user);
 
     @Select(
             "SELECT id, role, username, email, password, registered_at, " +
@@ -44,4 +44,9 @@ public interface UserMapper {
             "DELETE FROM users WHERE id = #{id}"
     )
     void deleteById(@Param("id") Integer id);
+
+    @Delete(
+            "DELETE FROM users"
+    )
+    void deleteAll();
 }

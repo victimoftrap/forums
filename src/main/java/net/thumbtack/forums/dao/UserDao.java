@@ -10,4 +10,6 @@ public interface UserDao {
     void update(User user);
 
     void deleteById(Integer id);
+
+    void deleteAll();
 }
