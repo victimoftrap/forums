@@ -1,56 +1,56 @@
 package net.thumbtack.forums.daoimpl;
 
-import net.thumbtack.forums.model.User;
-import net.thumbtack.forums.dao.UserDao;
+import net.thumbtack.forums.model.Message;
+import net.thumbtack.forums.dao.MessageDao;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UserDaoImpl extends MapperCreatorDao implements UserDao {
-    private static final Logger LOGGER = LoggerFactory.getLogger(UserDaoImpl.class);
+public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessageDaoImpl.class);
 
     @Override
-    public User save(User user) {
-        LOGGER.debug("Saving new user {}", user);
+    public Message save(Message message) {
+        LOGGER.debug("Saving new message {}", message);
 
         try (SqlSession session = MyBatisConnectionUtils.getSession()) {
             try {
-                getUserMapper(session).save(user);
+                getMessageMapper(session).save(message);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to save user {}, {}", user, e);
+                LOGGER.error("Unable to save message {} in database {}", message, e);
                 session.rollback();
                 throw e;
             }
             session.commit();
         }
-        return user;
+        return message;
     }
 
     @Override
-    public User findById(Integer id) {
-        LOGGER.debug("Getting user by ID {}", id);
+    public Message findById(Integer id) {
+        LOGGER.debug("Getting message by ID {}", id);
 
         try (SqlSession session = MyBatisConnectionUtils.getSession()) {
             try {
-                return getUserMapper(session).findById(id);
+                return getMessageMapper(session).findById(id);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to find user by ID {} {}", id, e);
+                LOGGER.error("Unable to find message by ID {} {}", id, e);
                 throw e;
             }
         }
     }
 
     @Override
-    public void update(User user) {
-        LOGGER.debug("Updating user to {}", user);
+    public void update(Message message) {
+        LOGGER.debug("Updating message to {}", message);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getUserMapper(sqlSession).update(user);
+                getMessageMapper(sqlSession).update(message);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to update user with ID {} {}", user.getId(), e);
+                LOGGER.error("Unable to update message with ID {} {}", message.getId(), e);
                 sqlSession.rollback();
                 throw e;
             }
@@ -60,13 +60,13 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
     @Override
     public void deleteById(Integer id) {
-        LOGGER.debug("Deleting user by ID {}", id);
+        LOGGER.debug("Deleting message by ID {}", id);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getUserMapper(sqlSession).deleteById(id);
+                getMessageMapper(sqlSession).deleteById(id);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to delete user by ID {} {}", id, e);
+                LOGGER.error("Unable to delete message by ID {} {}", id, e);
                 sqlSession.rollback();
                 throw e;
             }
@@ -76,13 +76,13 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
     @Override
     public void deleteAll() {
-        LOGGER.debug("Deleting all users");
+        LOGGER.debug("Deleting all messages");
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getUserMapper(sqlSession).deleteAll();
+                getMessageMapper(sqlSession).deleteAll();
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to delete all users", e);
+                LOGGER.error("Unable to delete all messages from database", e);
                 sqlSession.rollback();
                 throw e;
             }

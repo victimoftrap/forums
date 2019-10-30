@@ -5,6 +5,7 @@ import java.util.Objects;
 
 public class Message {
     private Integer id;
+    private Forum forum;
     private User owner;
     private MessageStates state;
     private MessagePriorities priority;
@@ -14,10 +15,12 @@ public class Message {
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
-    public Message(Integer id, User owner, MessageStates state, MessagePriorities priority,
+    public Message(Integer id, Forum forum, User owner,
+                   MessageStates state, MessagePriorities priority,
                    String subject, String body, Integer rating,
                    Timestamp createdAt, Timestamp updatedAt) {
         this.id = id;
+        this.forum = forum;
         this.owner = owner;
         this.state = state;
         this.priority = priority;
@@ -28,10 +31,11 @@ public class Message {
         this.updatedAt = updatedAt;
     }
 
-    public Message(User owner, MessageStates state, MessagePriorities priority,
+    public Message(Forum forum, User owner,
+                   MessageStates state, MessagePriorities priority,
                    String subject, String body, Integer rating,
                    Timestamp createdAt, Timestamp updatedAt) {
-        this(0, owner, state, priority, subject, body, rating, createdAt, updatedAt);
+        this(0, forum, owner, state, priority, subject, body, rating, createdAt, updatedAt);
     }
 
     public Integer getId() {
@@ -40,6 +44,14 @@ public class Message {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public Forum getForum() {
+        return forum;
+    }
+
+    public void setForum(Forum forum) {
+        this.forum = forum;
     }
 
     public User getOwner() {
@@ -112,6 +124,7 @@ public class Message {
         if (!(o instanceof Message)) return false;
         Message message = (Message) o;
         return Objects.equals(getId(), message.getId()) &&
+                Objects.equals(getForum(), message.getForum()) &&
                 Objects.equals(getOwner(), message.getOwner()) &&
                 Objects.equals(getState(), message.getState()) &&
                 Objects.equals(getPriority(), message.getPriority()) &&
@@ -124,7 +137,8 @@ public class Message {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getOwner(), getState(), getPriority(),
+        return Objects.hash(getId(), getForum(), getOwner(),
+                getState(), getPriority(),
                 getSubject(), getBody(), getRating(),
                 getCreatedAt(), getUpdatedAt()
         );

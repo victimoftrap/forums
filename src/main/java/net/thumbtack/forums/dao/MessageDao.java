@@ -10,4 +10,6 @@ public interface MessageDao {
     void update(Message message);
 
     void deleteById(Integer id);
+
+    void deleteAll();
 }

@@ -40,13 +40,9 @@ public interface UserMapper {
     )
     void update(@Param("upd") User user);
 
-    @Delete(
-            "DELETE FROM users WHERE id = #{id}"
-    )
+    @Delete("DELETE FROM users WHERE id = #{id}")
     void deleteById(@Param("id") Integer id);
 
-    @Delete(
-            "DELETE FROM users"
-    )
+    @Delete("DELETE FROM users")
     void deleteAll();
 }
