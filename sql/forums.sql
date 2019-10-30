@@ -11,7 +11,7 @@ CREATE TABLE users(
   password      VARCHAR(256) NOT NULL,
   registered_at TIMESTAMP    DEFAULT NOW(),
 
-  banned_until  TIMESTAMP    NOT NULL,
+  banned_until  TIMESTAMP    NULL,
   ban_count     INT(3)       NOT NULL,
   permanent     BOOLEAN      NOT NULL,
 
@@ -50,7 +50,7 @@ CREATE TABLE forum_messages(
   refer_to   INT(11)       NULL,
   state      ENUM('UNPUBLISHED', 'PUBLISHED'),
   priority   ENUM('LOW', 'NORMAL', 'HIGH'),
-  subject    VARCHAR(256)  NULL,
+  subject  VARCHAR(256)  NULL,
   body       VARCHAR(4096) NOT NULL,
   rating     INT(2)        NOT NULL,
   created_at TIMESTAMP     DEFAULT NOW(),
@@ -58,8 +58,8 @@ CREATE TABLE forum_messages(
 
   KEY subject(subject),
   KEY rating(rating),
-  FOREIGN KEY (forum_id) REFERENCES forum(id) ON DELETE CASCADE,
-  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (forum_id) REFERENCES forums(id) ON DELETE CASCADE,
+  FOREIGN KEY (owner_id) REFERENCES users(id)  ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 # Table that contains all created tags for posts on server
