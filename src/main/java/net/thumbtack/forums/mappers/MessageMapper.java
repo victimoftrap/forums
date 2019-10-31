@@ -12,8 +12,7 @@ public interface MessageMapper {
             "INSERT INTO forum_messages (forum_id, owner_id, refer_to, " +
                     "state, priority, subject, body, rating, created_at, updated_at) " +
                     "VALUES(#{msg.forum.id}, #{msg.owner.id}, NULL, #{msg.state.name}, #{msg.priority.name}, " +
-                    "#{msg.subject}, #{msg.body}, #{msg.rating}, " +
-                    "#{msg.createdAt}, #{msg.updatedAt}" +
+                    "#{msg.subject}, #{msg.body}, #{msg.rating}, #{msg.createdAt}, #{msg.updatedAt}" +
                     ")"
     )
     @Options(useGeneratedKeys = true, keyProperty = "msg.id")

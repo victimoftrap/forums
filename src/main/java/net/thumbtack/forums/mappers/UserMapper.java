@@ -6,6 +6,7 @@ import net.thumbtack.forums.model.UserRoles;
 import org.apache.ibatis.annotations.*;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 public interface UserMapper {
     @Insert(
@@ -33,6 +34,23 @@ public interface UserMapper {
             @Result(property = "arePermanent", column = "permanent", javaType = Boolean.class)
     })
     User findById(@Param("id") Integer id);
+
+    @Select(
+            "SELECT id, role, username, email, password, registered_at, " +
+                    "banned_until, ban_count, permanent FROM users"
+    )
+    @Results({
+            @Result(property = "id", column = "id", javaType = Integer.class),
+            @Result(property = "role", column = "role", javaType = UserRoles.class),
+            @Result(property = "userName", column = "username", javaType = String.class),
+            @Result(property = "email", column = "email", javaType = String.class),
+            @Result(property = "password", column = "password", javaType = String.class),
+            @Result(property = "registeredAt", column = "registered_at", javaType = Timestamp.class),
+            @Result(property = "bannedUntil", column = "banned_until", javaType = Timestamp.class),
+            @Result(property = "banCount", column = "ban_count", javaType = Integer.class),
+            @Result(property = "arePermanent", column = "permanent", javaType = Boolean.class)
+    })
+    List<User> findAll();
 
     @Update(
             "UPDATE users SET " +

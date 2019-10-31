@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.mapping.FetchType;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 public interface ForumMapper {
     @Insert(
@@ -18,9 +19,7 @@ public interface ForumMapper {
     @Options(useGeneratedKeys = true, keyProperty = "forum.id")
     Integer save(@Param("forum") Forum forum);
 
-    @Select(
-            "SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums WHERE id = #{id}"
-    )
+    @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums WHERE id = #{id}")
     @Results({
             @Result(property = "id", column = "id", javaType = Integer.class),
             @Result(property = "type", column = "forum_type", javaType = ForumTypes.class),
@@ -36,9 +35,17 @@ public interface ForumMapper {
     })
     Forum findById(@Param("id") Integer id);
 
-    @Update(
-            "UPDATE forums SET forum_type = #{forum.type.name}, name = #{forum.name}, readonly = #{forum.readonly}"
-    )
+    @Select("SELECT id, forum_type, name, readonly, created_at FROM forums")
+    @Results({
+            @Result(property = "id", column = "id", javaType = Integer.class),
+            @Result(property = "type", column = "forum_type", javaType = ForumTypes.class),
+            @Result(property = "name", column = "name", javaType = String.class),
+            @Result(property = "readonly", column = "readonly", javaType = Boolean.class),
+            @Result(property = "createdAt", column = "created_at", javaType = Timestamp.class)
+    })
+    List<Forum> findAll();
+
+    @Update("UPDATE forums SET name = #{forum.name}, readonly = #{forum.readonly}")
     void update(@Param("forum") Forum forum);
 
     @Delete("DELETE FROM forums WHERE id = #{id}")
