@@ -14,8 +14,8 @@ public class Forum {
     private Boolean readonly;
     private List<Message> messages;
 
-    public Forum(Integer id, ForumTypes type, User owner,
-                 String name, Timestamp createdAt, Boolean readonly, List<Message> messages) {
+    public Forum(Integer id, ForumTypes type, User owner, String name,
+                 Timestamp createdAt, Boolean readonly, List<Message> messages) {
         this.id = id;
         this.type = type;
         this.owner = owner;
@@ -25,14 +25,24 @@ public class Forum {
         this.messages = messages;
     }
 
-    public Forum(ForumTypes type, User owner, String name,
+    public Forum(Integer id, String type, User owner,
+                 String name, Timestamp createdAt, Boolean readonly, List<Message> messages) {
+        this(id, ForumTypes.valueOf(type), owner, name, createdAt, readonly, messages);
+    }
+
+    public Forum(String type, User owner, String name,
                  Timestamp createdAt, Boolean readonly, List<Message> messages) {
         this(0, type, owner, name, createdAt, readonly, messages);
     }
 
-    public Forum(ForumTypes type, User owner, String name,
+    public Forum(Integer id, String type, User owner, String name,
                  Timestamp createdAt, Boolean readonly) {
-        this(0, type, owner, name, createdAt, readonly, new ArrayList<Message>());
+        this(id, type, owner, name, createdAt, readonly, new ArrayList<>());
+    }
+
+    public Forum(String type, User owner, String name,
+                 Timestamp createdAt, Boolean readonly) {
+        this(0, type, owner, name, createdAt, readonly, new ArrayList<>());
     }
 
     public Integer getId() {
@@ -83,6 +93,14 @@ public class Forum {
         this.readonly = readonly;
     }
 
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -93,13 +111,14 @@ public class Forum {
                 Objects.equals(getOwner(), forum.getOwner()) &&
                 Objects.equals(getName(), forum.getName()) &&
                 Objects.equals(getCreatedAt(), forum.getCreatedAt()) &&
-                Objects.equals(getReadonly(), forum.getReadonly());
+                Objects.equals(getReadonly(), forum.getReadonly()) &&
+                Objects.equals(getMessages(), forum.getMessages());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getType(), getOwner(),
-                getName(), getCreatedAt(), getReadonly()
+        return Objects.hash(getId(), getType(), getOwner(), getName(),
+                getCreatedAt(), getReadonly(), getMessages()
         );
     }
 }

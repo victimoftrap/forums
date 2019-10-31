@@ -1,6 +1,8 @@
 package net.thumbtack.forums.model;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class Message {
@@ -14,11 +16,12 @@ public class Message {
     private Integer rating;
     private Timestamp createdAt;
     private Timestamp updatedAt;
+    private List<Tag> tags;
+    private List<Comment> comments;
 
-    public Message(Integer id, Forum forum, User owner,
-                   MessageStates state, MessagePriorities priority,
-                   String subject, String body, Integer rating,
-                   Timestamp createdAt, Timestamp updatedAt) {
+    public Message(Integer id, Forum forum, User owner, MessageStates state, MessagePriorities priority,
+                   String subject, String body, Integer rating, Timestamp createdAt, Timestamp updatedAt,
+                   List<Tag> tags, List<Comment> comments) {
         this.id = id;
         this.forum = forum;
         this.owner = owner;
@@ -29,13 +32,35 @@ public class Message {
         this.rating = rating;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.tags = tags;
+        this.comments = comments;
     }
 
-    public Message(Forum forum, User owner,
-                   MessageStates state, MessagePriorities priority,
+    public Message(Integer id, Forum forum, User owner, String state, String priority,
+                   String subject, String body, Integer rating,
+                   Timestamp createdAt, Timestamp updatedAt,
+                   List<Tag> tags, List<Comment> comments) {
+        this(id, forum, owner, MessageStates.valueOf(state), MessagePriorities.valueOf(priority),
+                subject, body, rating, createdAt, updatedAt, tags, comments
+        );
+    }
+
+    public Message(Forum forum, User owner, String state, String priority,
+                   String subject, String body, Integer rating,
+                   Timestamp createdAt, Timestamp updatedAt,
+                   List<Tag> tags, List<Comment> comments) {
+        this(0, forum, owner, state, priority,
+                subject, body, rating, createdAt, updatedAt, tags, comments
+        );
+    }
+
+    public Message(Integer id, Forum forum, User owner, String state, String priority,
                    String subject, String body, Integer rating,
                    Timestamp createdAt, Timestamp updatedAt) {
-        this(0, forum, owner, state, priority, subject, body, rating, createdAt, updatedAt);
+        this(id, forum, owner, state, priority,
+                subject, body, rating, createdAt, updatedAt,
+                new ArrayList<>(), new ArrayList<>()
+        );
     }
 
     public Integer getId() {
@@ -118,6 +143,22 @@ public class Message {
         this.updatedAt = updatedAt;
     }
 
+    public List<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<Tag> tags) {
+        this.tags = tags;
+    }
+
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<Comment> comments) {
+        this.comments = comments;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -126,21 +167,23 @@ public class Message {
         return Objects.equals(getId(), message.getId()) &&
                 Objects.equals(getForum(), message.getForum()) &&
                 Objects.equals(getOwner(), message.getOwner()) &&
-                Objects.equals(getState(), message.getState()) &&
-                Objects.equals(getPriority(), message.getPriority()) &&
+                getState() == message.getState() &&
+                getPriority() == message.getPriority() &&
                 Objects.equals(getSubject(), message.getSubject()) &&
                 Objects.equals(getBody(), message.getBody()) &&
                 Objects.equals(getRating(), message.getRating()) &&
                 Objects.equals(getCreatedAt(), message.getCreatedAt()) &&
-                Objects.equals(getUpdatedAt(), message.getUpdatedAt());
+                Objects.equals(getUpdatedAt(), message.getUpdatedAt()) &&
+                Objects.equals(getTags(), message.getTags()) &&
+                Objects.equals(getComments(), message.getComments());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getForum(), getOwner(),
-                getState(), getPriority(),
-                getSubject(), getBody(), getRating(),
-                getCreatedAt(), getUpdatedAt()
+        return Objects.hash(
+                getId(), getForum(), getOwner(), getState(), getPriority(),
+                getSubject(), getBody(), getRating(), getCreatedAt(), getUpdatedAt(),
+                getTags(), getComments()
         );
     }
 }

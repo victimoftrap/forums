@@ -8,14 +8,14 @@ public class Comment {
     private Forum forum;
     private User owner;
     private Message referredMessage;
-    private String state;
+    private MessageStates state;
     private String body;
     private Integer rating;
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
     public Comment(Integer id, Forum forum, User owner, Message referredMessage,
-                   String state, String body, Integer rating,
+                   MessageStates state, String body, Integer rating,
                    Timestamp createdAt, Timestamp updatedAt) {
         this.id = id;
         this.forum = forum;
@@ -26,6 +26,14 @@ public class Comment {
         this.rating = rating;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    public Comment(Integer id, Forum forum, User owner, Message referredMessage,
+                   String state, String body, Integer rating,
+                   Timestamp createdAt, Timestamp updatedAt) {
+        this(id, forum, owner, referredMessage, MessageStates.valueOf(state),
+                body, rating, createdAt, updatedAt
+        );
     }
 
     public Comment(Forum forum, User owner, Message referredMessage,
@@ -66,11 +74,11 @@ public class Comment {
         this.referredMessage = referredMessage;
     }
 
-    public String getState() {
+    public MessageStates getState() {
         return state;
     }
 
-    public void setState(String state) {
+    public void setState(MessageStates state) {
         this.state = state;
     }
 
@@ -115,7 +123,7 @@ public class Comment {
                 Objects.equals(getForum(), comment.getForum()) &&
                 Objects.equals(getOwner(), comment.getOwner()) &&
                 Objects.equals(getReferredMessage(), comment.getReferredMessage()) &&
-                Objects.equals(getState(), comment.getState()) &&
+                getState() == comment.getState() &&
                 Objects.equals(getBody(), comment.getBody()) &&
                 Objects.equals(getRating(), comment.getRating()) &&
                 Objects.equals(getCreatedAt(), comment.getCreatedAt()) &&
@@ -125,8 +133,7 @@ public class Comment {
     @Override
     public int hashCode() {
         return Objects.hash(getId(), getForum(), getOwner(), getReferredMessage(),
-                getState(), getBody(), getRating(),
-                getCreatedAt(), getUpdatedAt()
+                getState(), getBody(), getRating(), getCreatedAt(), getUpdatedAt()
         );
     }
 }

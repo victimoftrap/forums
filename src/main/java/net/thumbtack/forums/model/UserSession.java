@@ -3,20 +3,20 @@ package net.thumbtack.forums.model;
 import java.util.Objects;
 
 public class UserSession {
-    private Integer id;
+    private Integer userId;
     private String token;
 
-    public UserSession(Integer id, String token) {
-        this.id = id;
+    public UserSession(Integer userId, String token) {
+        this.userId = userId;
         this.token = token;
     }
 
-    public Integer getId() {
-        return id;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setId(Integer id) {
-        this.id = id;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getToken() {
@@ -32,12 +32,12 @@ public class UserSession {
         if (this == o) return true;
         if (!(o instanceof UserSession)) return false;
         UserSession that = (UserSession) o;
-        return Objects.equals(getId(), that.getId()) &&
+        return Objects.equals(getUserId(), that.getUserId()) &&
                 Objects.equals(getToken(), that.getToken());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getToken());
+        return Objects.hash(getUserId(), getToken());
     }
 }

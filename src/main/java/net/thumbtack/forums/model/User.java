@@ -14,49 +14,43 @@ public class User {
     private Integer banCount;
     private Boolean arePermanent;
 
+    public User(Integer id, UserRoles role, String userName, String email, String password,
+                Timestamp registeredAt, Timestamp bannedUntil, Integer banCount, Boolean arePermanent) {
+        this.id = id;
+        this.role = role;
+        this.userName = userName;
+        this.email = email;
+        this.password = password;
+        this.registeredAt = registeredAt;
+        this.bannedUntil = bannedUntil;
+        this.banCount = banCount;
+        this.arePermanent = arePermanent;
+    }
+
     public User(Integer id, String role, String username, String email, String password,
                 Timestamp registeredAt, Timestamp bannedUntil,
                 Integer banCount, Boolean arePermanent) {
-        this.id = id;
-        this.role = UserRoles.valueOf(role);
-        this.userName = username;
-        this.email = email;
-        this.password = password;
-        this.registeredAt = registeredAt;
-        this.bannedUntil = bannedUntil;
-        this.banCount = banCount;
-        this.arePermanent = arePermanent;
+        this(id, UserRoles.valueOf(role), username, email, password,
+                registeredAt, bannedUntil, banCount, arePermanent
+        );
     }
 
-    public User(Integer id, UserRoles role, String username, String email, String password,
+    public User(String role, String username, String email, String password,
                 Timestamp registeredAt, Timestamp bannedUntil,
                 Integer banCount, Boolean arePermanent) {
-        this.id = id;
-        this.role = role;
-        this.userName = username;
-        this.email = email;
-        this.password = password;
-        this.registeredAt = registeredAt;
-        this.bannedUntil = bannedUntil;
-        this.banCount = banCount;
-        this.arePermanent = arePermanent;
-    }
-
-    public User(UserRoles role, String username, String email, String password, Timestamp registeredAt,
-                Timestamp bannedUntil, Integer banCount, Boolean arePermanent) {
         this(0, role, username, email, password,
                 registeredAt, bannedUntil, banCount, arePermanent
         );
     }
 
-    public User(Integer id, UserRoles role, String username, String email,
+    public User(Integer id, String role, String username, String email,
                 String password, Timestamp registeredAt) {
         this(id, role, username, email, password,
                 registeredAt, null, 0, false
         );
     }
 
-    public User(UserRoles role, String username, String email,
+    public User(String role, String username, String email,
                 String password, Timestamp registeredAt) {
         this(0, role, username, email, password,
                 registeredAt, null, 0, false
