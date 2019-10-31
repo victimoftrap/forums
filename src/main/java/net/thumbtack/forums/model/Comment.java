@@ -5,31 +5,33 @@ import java.util.Objects;
 
 public class Comment {
     private Integer id;
-    private Integer referredToMessage;
+    private Forum forum;
     private User owner;
+    private Message referredMessage;
     private String state;
-    private String priority;
     private String body;
     private Integer rating;
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
-    public Comment(Integer id, Integer referredToMessage, User owner, String state, String priority,
-                   String body, Integer rating, Timestamp createdAt, Timestamp updatedAt) {
+    public Comment(Integer id, Forum forum, User owner, Message referredMessage,
+                   String state, String body, Integer rating,
+                   Timestamp createdAt, Timestamp updatedAt) {
         this.id = id;
-        this.referredToMessage = referredToMessage;
+        this.forum = forum;
         this.owner = owner;
+        this.referredMessage = referredMessage;
         this.state = state;
-        this.priority = priority;
         this.body = body;
         this.rating = rating;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
-    public Comment(Integer referredToMessage, User owner, String state, String priority,
-                   String body, Integer rating, Timestamp createdAt, Timestamp updatedAt) {
-        this(0, referredToMessage, owner, state, priority, body, rating, createdAt, updatedAt);
+    public Comment(Forum forum, User owner, Message referredMessage,
+                   String state, String body, Integer rating,
+                   Timestamp createdAt, Timestamp updatedAt) {
+        this(0, forum, owner, referredMessage, state, body, rating, createdAt, updatedAt);
     }
 
     public Integer getId() {
@@ -40,12 +42,12 @@ public class Comment {
         this.id = id;
     }
 
-    public Integer getReferredToMessage() {
-        return referredToMessage;
+    public Forum getForum() {
+        return forum;
     }
 
-    public void setReferredToMessage(Integer referredToMessage) {
-        this.referredToMessage = referredToMessage;
+    public void setForum(Forum forum) {
+        this.forum = forum;
     }
 
     public User getOwner() {
@@ -56,20 +58,20 @@ public class Comment {
         this.owner = owner;
     }
 
+    public Message getReferredMessage() {
+        return referredMessage;
+    }
+
+    public void setReferredMessage(Message referredMessage) {
+        this.referredMessage = referredMessage;
+    }
+
     public String getState() {
         return state;
     }
 
     public void setState(String state) {
         this.state = state;
-    }
-
-    public String getPriority() {
-        return priority;
-    }
-
-    public void setPriority(String priority) {
-        this.priority = priority;
     }
 
     public String getBody() {
@@ -110,10 +112,10 @@ public class Comment {
         if (!(o instanceof Comment)) return false;
         Comment comment = (Comment) o;
         return Objects.equals(getId(), comment.getId()) &&
-                Objects.equals(getReferredToMessage(), comment.getReferredToMessage()) &&
+                Objects.equals(getForum(), comment.getForum()) &&
                 Objects.equals(getOwner(), comment.getOwner()) &&
+                Objects.equals(getReferredMessage(), comment.getReferredMessage()) &&
                 Objects.equals(getState(), comment.getState()) &&
-                Objects.equals(getPriority(), comment.getPriority()) &&
                 Objects.equals(getBody(), comment.getBody()) &&
                 Objects.equals(getRating(), comment.getRating()) &&
                 Objects.equals(getCreatedAt(), comment.getCreatedAt()) &&
@@ -122,8 +124,8 @@ public class Comment {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getReferredToMessage(), getOwner(), getState(),
-                getPriority(), getBody(), getRating(),
+        return Objects.hash(getId(), getForum(), getOwner(), getReferredMessage(),
+                getState(), getBody(), getRating(),
                 getCreatedAt(), getUpdatedAt()
         );
     }

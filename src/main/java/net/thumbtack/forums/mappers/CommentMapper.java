@@ -7,20 +7,20 @@ import org.apache.ibatis.mapping.FetchType;
 
 import java.sql.Timestamp;
 
-public interface MessageMapper {
+public interface CommentMapper {
     @Insert(
             "INSERT INTO forum_messages (forum_id, owner_id, refer_to, " +
                     "state, priority, subject, body, rating, created_at, updated_at) " +
-                    "VALUES(#{msg.forum.id}, #{msg.owner.id}, NULL, #{msg.state.name}, #{msg.priority.name}, " +
-                    "#{msg.subject}, #{msg.body}, #{msg.rating}, " +
-                    "#{msg.createdAt}, #{msg.updatedAt}" +
+                    "VALUES(#{com.forum.id}, #{com.owner.id}, #{com.referredMessage.id}, " +
+                    "#{com.state}, NULL, NULL, #{com.body}, #{com.rating}, " +
+                    "#{com.createdAt}, #{com.updatedAt}" +
                     ")"
     )
-    @Options(useGeneratedKeys = true, keyProperty = "msg.id")
-    Integer save(@Param("msg") Message message);
+    @Options(useGeneratedKeys = true, keyProperty = "com.id")
+    Integer save(@Param("com") Comment comment);
 
     @Select(
-            "SELECT id, forum_id, owner_id, state, priority, subject, body, rating, created_at, updated_at " +
+            "SELECT id, forum_id, owner_id, refer_to, state, body, rating, created_at, updated_at " +
                     "FROM forum_messages WHERE id = #{id}"
     )
     @Results({
@@ -37,26 +37,26 @@ public interface MessageMapper {
                             fetchType = FetchType.LAZY
                     )
             ),
-            @Result(property = "state", column = "state", javaType = MessageStates.class),
-            @Result(property = "priority", column = "priority", javaType = MessagePriorities.class),
-            @Result(property = "subject", column = "subject", javaType = String.class),
+            @Result(property = "referredMessage", column = "refer_to", javaType = Message.class,
+                    one = @One(
+                            select = "net.thumbtack.forums.mappers.MessageMapper.findById",
+                            fetchType = FetchType.LAZY
+                    )
+            ),
+            @Result(property = "state", column = "state", javaType = String.class),
             @Result(property = "body", column = "body", javaType = String.class),
             @Result(property = "rating", column = "rating", javaType = Integer.class),
             @Result(property = "createdAt", column = "created_at", javaType = Timestamp.class),
             @Result(property = "updatedAt", column = "updated_at", javaType = Timestamp.class),
     })
-    Message findById(@Param("id") Integer id);
+    Comment findById(@Param("id") Integer id);
 
     @Update(
-            "UPDATE forum_messages SET state = #{upd.state.name}, priority = #{upd.priority.name}, " +
-                    "body = #{upd.body}, rating = #{upd.rating}, updated_at = #{upd.updatedAt} " +
-                    "WHERE id = #{upd.id}"
+            "UPDATE forum_messages SET state = #{upd.state}, body = #{upd.body}, " +
+                    "rating = #{upd.rating}, updated_at = #{upd.updatedAt} WHERE id = #{upd.id}"
     )
-    void update(@Param("upd") Message message);
+    void update(@Param("upd") Comment comment);
 
     @Delete("DELETE FROM forum_messages WHERE id = #{id}")
-    void deleteById(@Param("id") Integer id);
-
-    @Delete("DELETE FROM forum_messages")
-    void deleteAll();
+    void delete(@Param("id") Integer id);
 }
