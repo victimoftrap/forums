@@ -1,6 +1,7 @@
 package net.thumbtack.forums.mappers;
 
 import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.UserRoles;
 
 import org.apache.ibatis.annotations.*;
 
@@ -22,6 +23,7 @@ public interface UserMapper {
     )
     @Results({
             @Result(property = "id", column = "id", javaType = Integer.class),
+            @Result(property = "role", column = "role", javaType = UserRoles.class),
             @Result(property = "userName", column = "username", javaType = String.class),
             @Result(property = "email", column = "email", javaType = String.class),
             @Result(property = "password", column = "password", javaType = String.class),
@@ -34,11 +36,11 @@ public interface UserMapper {
 
     @Update(
             "UPDATE users SET " +
-                    "role = #{upd.role.name}, email = #{upd.email}, password = #{upd.password}, " +
-                    "banned_until = #{user.bannedUntil}, ban_count = #{user.banCount}" +
-                    "permanent = #{user.arePermanent} WHERE id = #{upd.id}"
+                    "role = #{user.role.name}, email = #{user.email}, password = #{user.password}, " +
+                    "banned_until = #{user.bannedUntil}, ban_count = #{user.banCount}, " +
+                    "permanent = #{user.arePermanent} WHERE id = #{user.id}"
     )
-    void update(@Param("upd") User user);
+    void update(@Param("user") User user);
 
     @Delete("DELETE FROM users WHERE id = #{id}")
     void deleteById(@Param("id") Integer id);

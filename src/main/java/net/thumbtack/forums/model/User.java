@@ -14,6 +14,20 @@ public class User {
     private Integer banCount;
     private Boolean arePermanent;
 
+    public User(Integer id, String role, String username, String email, String password,
+                Timestamp registeredAt, Timestamp bannedUntil,
+                Integer banCount, Boolean arePermanent) {
+        this.id = id;
+        this.role = UserRoles.valueOf(role);
+        this.userName = username;
+        this.email = email;
+        this.password = password;
+        this.registeredAt = registeredAt;
+        this.bannedUntil = bannedUntil;
+        this.banCount = banCount;
+        this.arePermanent = arePermanent;
+    }
+
     public User(Integer id, UserRoles role, String username, String email, String password,
                 Timestamp registeredAt, Timestamp bannedUntil,
                 Integer banCount, Boolean arePermanent) {
@@ -139,8 +153,7 @@ public class User {
 
     @Override
     public int hashCode() {
-        return Objects.hash(
-                getId(), getRole(), getUserName(), getEmail(), getPassword(),
+        return Objects.hash(getId(), getRole(), getUserName(), getEmail(), getPassword(),
                 getRegisteredAt(), getBannedUntil(), getBanCount(), getArePermanent()
         );
     }

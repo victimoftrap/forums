@@ -19,7 +19,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
             try {
                 getUserMapper(session).save(user);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to save user {}, {}", user, e);
+                LOGGER.error("Unable to save user {}", user, e);
                 session.rollback();
                 throw e;
             }
@@ -36,7 +36,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
             try {
                 return getUserMapper(session).findById(id);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to find user by ID {} {}", id, e);
+                LOGGER.error("Unable to find user by ID {}", id, e);
                 throw e;
             }
         }
@@ -50,7 +50,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
             try {
                 getUserMapper(sqlSession).update(user);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to update user with ID {} {}", user.getId(), e);
+                LOGGER.error("Unable to update user with ID {}", user.getId(), e);
                 sqlSession.rollback();
                 throw e;
             }
@@ -66,7 +66,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
             try {
                 getUserMapper(sqlSession).deleteById(id);
             } catch (RuntimeException e) {
-                LOGGER.error("Unable to delete user by ID {} {}", id, e);
+                LOGGER.error("Unable to delete user by ID {}", id, e);
                 sqlSession.rollback();
                 throw e;
             }
