@@ -3,10 +3,10 @@ package net.thumbtack.forums.model;
 import java.util.Objects;
 
 public class Tag {
-    private Integer id;
+    private int id;
     private String name;
 
-    public Tag(Integer id, String name) {
+    public Tag(int id, String name) {
         this.id = id;
         this.name = name;
     }
@@ -15,11 +15,11 @@ public class Tag {
         this(0, name);
     }
 
-    public Integer getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -36,7 +36,7 @@ public class Tag {
         if (this == o) return true;
         if (!(o instanceof Tag)) return false;
         Tag tag = (Tag) o;
-        return Objects.equals(getId(), tag.getId()) &&
+        return getId() == tag.getId() &&
                 Objects.equals(getName(), tag.getName());
     }
 

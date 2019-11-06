@@ -1,21 +1,21 @@
 package net.thumbtack.forums.model;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class Forum {
-    private Integer id;
+    private int id;
     private ForumTypes type;
     private User owner;
     private String name;
     private Timestamp createdAt;
-    private Boolean readonly;
+    private boolean readonly;
     private List<Message> messages;
 
-    public Forum(Integer id, ForumTypes type, User owner, String name,
-                 Timestamp createdAt, Boolean readonly, List<Message> messages) {
+    public Forum(int id, ForumTypes type, User owner, String name,
+                 Timestamp createdAt, boolean readonly, List<Message> messages) {
         this.id = id;
         this.type = type;
         this.owner = owner;
@@ -25,31 +25,29 @@ public class Forum {
         this.messages = messages;
     }
 
-    public Forum(Integer id, String type, User owner,
-                 String name, Timestamp createdAt, Boolean readonly, List<Message> messages) {
+    public Forum(int id, String type, User owner, String name,
+                 Timestamp createdAt, boolean readonly, List<Message> messages) {
         this(id, ForumTypes.valueOf(type), owner, name, createdAt, readonly, messages);
     }
 
     public Forum(String type, User owner, String name,
-                 Timestamp createdAt, Boolean readonly, List<Message> messages) {
+                 Timestamp createdAt, boolean readonly, List<Message> messages) {
         this(0, type, owner, name, createdAt, readonly, messages);
     }
 
-    public Forum(Integer id, String type, User owner, String name,
-                 Timestamp createdAt, Boolean readonly) {
+    public Forum(int id, String type, User owner, String name, Timestamp createdAt, boolean readonly) {
         this(id, type, owner, name, createdAt, readonly, new ArrayList<>());
     }
 
-    public Forum(String type, User owner, String name,
-                 Timestamp createdAt, Boolean readonly) {
+    public Forum(String type, User owner, String name, Timestamp createdAt, boolean readonly) {
         this(0, type, owner, name, createdAt, readonly, new ArrayList<>());
     }
 
-    public Integer getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -85,11 +83,11 @@ public class Forum {
         this.createdAt = createdAt;
     }
 
-    public Boolean getReadonly() {
+    public boolean getReadonly() {
         return readonly;
     }
 
-    public void setReadonly(Boolean readonly) {
+    public void setReadonly(boolean readonly) {
         this.readonly = readonly;
     }
 
@@ -106,19 +104,19 @@ public class Forum {
         if (this == o) return true;
         if (!(o instanceof Forum)) return false;
         Forum forum = (Forum) o;
-        return Objects.equals(getId(), forum.getId()) &&
+        return getId() == forum.getId() &&
+                getReadonly() == forum.getReadonly() &&
                 getType() == forum.getType() &&
                 Objects.equals(getOwner(), forum.getOwner()) &&
                 Objects.equals(getName(), forum.getName()) &&
                 Objects.equals(getCreatedAt(), forum.getCreatedAt()) &&
-                Objects.equals(getReadonly(), forum.getReadonly()) &&
                 Objects.equals(getMessages(), forum.getMessages());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getType(), getOwner(), getName(),
-                getCreatedAt(), getReadonly(), getMessages()
+        return Objects.hash(getId(), getType(), getOwner(),
+                getName(), getCreatedAt(), getReadonly(), getMessages()
         );
     }
 }

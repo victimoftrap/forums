@@ -4,18 +4,18 @@ import java.sql.Timestamp;
 import java.util.Objects;
 
 public class User {
-    private Integer id;
+    private int id;
     private UserRoles role;
     private String userName;
     private String email;
     private String password;
     private Timestamp registeredAt;
     private Timestamp bannedUntil;
-    private Integer banCount;
-    private Boolean arePermanent;
+    private int banCount;
+    private boolean arePermanent;
 
-    public User(Integer id, UserRoles role, String userName, String email, String password,
-                Timestamp registeredAt, Timestamp bannedUntil, Integer banCount, Boolean arePermanent) {
+    public User(int id, UserRoles role, String userName, String email, String password,
+                Timestamp registeredAt, Timestamp bannedUntil, int banCount, boolean arePermanent) {
         this.id = id;
         this.role = role;
         this.userName = userName;
@@ -27,41 +27,37 @@ public class User {
         this.arePermanent = arePermanent;
     }
 
-    public User(Integer id, String role, String username, String email, String password,
-                Timestamp registeredAt, Timestamp bannedUntil,
-                Integer banCount, Boolean arePermanent) {
-        this(id, UserRoles.valueOf(role), username, email, password,
-                registeredAt, bannedUntil, banCount, arePermanent
+    public User(int id, String role, String username, String email, String password,
+                Timestamp registeredAt, Timestamp bannedUntil, int banCount, boolean arePermanent) {
+        this(id, UserRoles.valueOf(role), username, email, password, registeredAt,
+                bannedUntil, banCount, arePermanent
         );
     }
 
     public User(String role, String username, String email, String password,
-                Timestamp registeredAt, Timestamp bannedUntil,
-                Integer banCount, Boolean arePermanent) {
-        this(0, role, username, email, password,
-                registeredAt, bannedUntil, banCount, arePermanent
+                Timestamp registeredAt, Timestamp bannedUntil, int banCount, boolean arePermanent) {
+        this(0, role, username, email, password, registeredAt,
+                bannedUntil, banCount, arePermanent
         );
     }
 
-    public User(Integer id, String role, String username, String email,
-                String password, Timestamp registeredAt) {
-        this(id, role, username, email, password,
-                registeredAt, null, 0, false
+    public User(int id, String role, String username, String email, String password, Timestamp registeredAt) {
+        this(id, role, username, email, password, registeredAt,
+                null, 0, false
         );
     }
 
-    public User(String role, String username, String email,
-                String password, Timestamp registeredAt) {
-        this(0, role, username, email, password,
-                registeredAt, null, 0, false
+    public User(String role, String username, String email, String password, Timestamp registeredAt) {
+        this(0, role, username, email, password, registeredAt,
+                null, 0, false
         );
     }
 
-    public Integer getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -113,19 +109,19 @@ public class User {
         this.bannedUntil = bannedUntil;
     }
 
-    public Integer getBanCount() {
+    public int getBanCount() {
         return banCount;
     }
 
-    public void setBanCount(Integer banCount) {
+    public void setBanCount(int banCount) {
         this.banCount = banCount;
     }
 
-    public Boolean getArePermanent() {
+    public boolean isArePermanent() {
         return arePermanent;
     }
 
-    public void setArePermanent(Boolean arePermanent) {
+    public void setArePermanent(boolean arePermanent) {
         this.arePermanent = arePermanent;
     }
 
@@ -134,21 +130,21 @@ public class User {
         if (this == o) return true;
         if (!(o instanceof User)) return false;
         User user = (User) o;
-        return Objects.equals(getId(), user.getId()) &&
+        return getId() == user.getId() &&
+                getBanCount() == user.getBanCount() &&
+                isArePermanent() == user.isArePermanent() &&
                 getRole() == user.getRole() &&
                 Objects.equals(getUserName(), user.getUserName()) &&
                 Objects.equals(getEmail(), user.getEmail()) &&
                 Objects.equals(getPassword(), user.getPassword()) &&
                 Objects.equals(getRegisteredAt(), user.getRegisteredAt()) &&
-                Objects.equals(getBannedUntil(), user.getBannedUntil()) &&
-                Objects.equals(getBanCount(), user.getBanCount()) &&
-                Objects.equals(getArePermanent(), user.getArePermanent());
+                Objects.equals(getBannedUntil(), user.getBannedUntil());
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(getId(), getRole(), getUserName(), getEmail(), getPassword(),
-                getRegisteredAt(), getBannedUntil(), getBanCount(), getArePermanent()
+                getRegisteredAt(), getBannedUntil(), getBanCount(), isArePermanent()
         );
     }
 }
