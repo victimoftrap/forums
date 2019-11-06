@@ -2,7 +2,6 @@ DROP DATABASE IF EXISTS forums;
 CREATE DATABASE forums;
 USE forums;
 
-# Table that contains user data
 CREATE TABLE users(
   id            INT(11)      PRIMARY KEY AUTO_INCREMENT,
   role          ENUM('USER', 'SUPERUSER'),
@@ -43,26 +42,45 @@ CREATE TABLE forums(
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE forum_messages(
-  id         INT(11)       PRIMARY KEY AUTO_INCREMENT,
-  forum_id   INT(11)       NOT NULL,
-  owner_id   INT(11)       NOT NULL,
+  id                       INT(11)       PRIMARY KEY AUTO_INCREMENT,
+  forum_id                 INT(11)       NOT NULL,
+  owner_id                 INT(11)       NOT NULL,
+  parent_message           INT(11)       NULL,
 
-  refer_to   INT(11)       NULL,
-  state      ENUM('UNPUBLISHED', 'PUBLISHED'),
-  priority   ENUM('LOW', 'NORMAL', 'HIGH'),
-  subject  VARCHAR(256)  NULL,
-  body       VARCHAR(4096) NOT NULL,
-  rating     INT(2)        NOT NULL,
+  state                    ENUM('UNPUBLISHED', 'PUBLISHED'),
+  priority                 ENUM('LOW', 'NORMAL', 'HIGH'),
+  subject                  VARCHAR(256)  NULL,
+  body                     VARCHAR(4096) NOT NULL,
+  edited_premoderated_body VARCHAR(4096) NULL,
   created_at TIMESTAMP     DEFAULT NOW(),
   updated_at TIMESTAMP     DEFAULT NOW(),
 
+  KEY state(state),
+  KEY priority(priority),
   KEY subject(subject),
-  KEY rating(rating),
   FOREIGN KEY (forum_id) REFERENCES forums(id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id) REFERENCES users(id)  ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
-# Table that contains all created tags for posts on server
+CREATE TABLE message_ratings(
+  msg_id  INT(11) NOT NULL,
+  user_id INT(11) NOT NULL,
+  rating  INT(2)  NOT NULL,
+  
+  PRIMARY KEY (msg_id, user_id),
+  FOREIGN KEY (msg_id)  REFERENCES forum_messages(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id)          ON DELETE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+
+CREATE TABLE message_history(
+  id         INT(11)       PRIMARY KEY AUTO_INCREMENT,
+  msg_id     INT(11)       NOT NULL,
+  body       VARCHAR(4096) NOT NULL,
+  updated_at TIMESTAMP DEFAULT NOW(),
+  
+  FOREIGN KEY (msg_id) REFERENCES forum_messages(id) ON DELETE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+
 CREATE TABLE available_tags(
   id       INT(11)     PRIMARY KEY AUTO_INCREMENT,
   tag_name VARCHAR(50) NOT NULL,
@@ -70,7 +88,6 @@ CREATE TABLE available_tags(
   UNIQUE KEY tag_name(tag_name)
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
-# Table that connects posts with tags
 CREATE TABLE message_tags(
   tag_id     INT(11) NOT NULL,
   message_id INT(11) NOT NULL,
