@@ -3,16 +3,16 @@ CREATE DATABASE forums;
 USE forums;
 
 CREATE TABLE users(
-  id            INT(11)      PRIMARY KEY AUTO_INCREMENT,
+  id            INT(11) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   role          ENUM('USER', 'SUPERUSER'),
-  username      VARCHAR(256) NOT NULL,
-  email         VARCHAR(256) NOT NULL,
-  password      VARCHAR(256) NOT NULL,
-  registered_at TIMESTAMP    DEFAULT NOW(),
+  username      VARCHAR(256)     NOT NULL,
+  email         VARCHAR(256)     NOT NULL,
+  password      VARCHAR(256)     NOT NULL,
+  registered_at TIMESTAMP        DEFAULT NOW(),
 
-  banned_until  TIMESTAMP    NULL,
-  ban_count     INT(3)       NOT NULL,
-  permanent     BOOLEAN      NOT NULL,
+  banned_until  TIMESTAMP        NULL,
+  ban_count     INT(3)           NOT NULL,
+  permanent     BOOLEAN          NOT NULL,
 
   UNIQUE KEY username(username),
   KEY        email(email),
@@ -21,76 +21,74 @@ CREATE TABLE users(
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE users_sessions(
-  user_id       INT(11)  NOT NULL,
-  session_token CHAR(36) NOT NULL,
+  user_id       INT(11) UNSIGNED NOT NULL,
+  session_token CHAR(36)         NOT NULL,
 
   PRIMARY KEY (user_id, session_token),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE forums(
-  id         INT(11)      PRIMARY KEY AUTO_INCREMENT,
+  id         INT(11) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   forum_type ENUM('MODERATED', 'UNMODERATED'),
-  owner_id   INT(11)      NOT NULL,
+  owner_id   INT(11) UNSIGNED NOT NULL,
 
-  name       VARCHAR(256) NOT NULL,
-  readonly   BOOLEAN      NOT NULL,
-  created_at TIMESTAMP    DEFAULT NOW(),
+  name       VARCHAR(256)     NOT NULL,
+  readonly   BOOLEAN          NOT NULL,
+  created_at TIMESTAMP        DEFAULT NOW(),
 
   UNIQUE KEY name(name),
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE forum_messages(
-  id                       INT(11)       PRIMARY KEY AUTO_INCREMENT,
-  forum_id                 INT(11)       NOT NULL,
-  owner_id                 INT(11)       NOT NULL,
-  parent_message           INT(11)       NULL,
+  id             INT(11) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  forum_id       INT(11) UNSIGNED NOT NULL,
+  owner_id       INT(11) UNSIGNED NOT NULL,
+  parent_message INT(11) UNSIGNED NULL,
 
-  state                    ENUM('UNPUBLISHED', 'PUBLISHED'),
-  priority                 ENUM('LOW', 'NORMAL', 'HIGH'),
-  subject                  VARCHAR(256)  NULL,
-  body                     VARCHAR(4096) NOT NULL,
-  edited_premoderated_body VARCHAR(4096) NULL,
-  created_at TIMESTAMP     DEFAULT NOW(),
-  updated_at TIMESTAMP     DEFAULT NOW(),
+  message_state  ENUM('UNPUBLISHED', 'PUBLISHED'),
+  priority       ENUM('LOW', 'NORMAL', 'HIGH'),
+  subject        VARCHAR(256)     NULL,
+  created_at     TIMESTAMP DEFAULT NOW(),
+  updated_at     TIMESTAMP DEFAULT NOW(),
 
-  KEY state(state),
   KEY priority(priority),
   KEY subject(subject),
   FOREIGN KEY (forum_id) REFERENCES forums(id) ON DELETE CASCADE,
   FOREIGN KEY (owner_id) REFERENCES users(id)  ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
+CREATE TABLE message_history(
+  msg_id     INT(11) UNSIGNED NOT NULL,
+  body       VARCHAR(4096)    NOT NULL,
+  
+  body_state ENUM('UNPUBLISHED', 'PUBLISHED'),
+  created_at TIMESTAMP DEFAULT NOW(),
+  
+  FOREIGN KEY (msg_id) REFERENCES forum_messages(id) ON DELETE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+
 CREATE TABLE message_ratings(
-  msg_id  INT(11) NOT NULL,
-  user_id INT(11) NOT NULL,
-  rating  INT(2)  NOT NULL,
+  msg_id  INT(11) UNSIGNED NOT NULL,
+  user_id INT(11) UNSIGNED NOT NULL,
+  rating  INT(2)           NOT NULL,
   
   PRIMARY KEY (msg_id, user_id),
   FOREIGN KEY (msg_id)  REFERENCES forum_messages(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id)          ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
-CREATE TABLE message_history(
-  id         INT(11)       PRIMARY KEY AUTO_INCREMENT,
-  msg_id     INT(11)       NOT NULL,
-  body       VARCHAR(4096) NOT NULL,
-  updated_at TIMESTAMP DEFAULT NOW(),
-  
-  FOREIGN KEY (msg_id) REFERENCES forum_messages(id) ON DELETE CASCADE
-) ENGINE = INNODB DEFAULT CHARSET = utf8;
-
 CREATE TABLE available_tags(
-  id       INT(11)     PRIMARY KEY AUTO_INCREMENT,
-  tag_name VARCHAR(50) NOT NULL,
+  id       INT(11) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  tag_name VARCHAR(50)      NOT NULL,
 
   UNIQUE KEY tag_name(tag_name)
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE message_tags(
-  tag_id     INT(11) NOT NULL,
-  message_id INT(11) NOT NULL,
+  tag_id     INT(11) UNSIGNED NOT NULL,
+  message_id INT(11) UNSIGNED NOT NULL,
 
   FOREIGN KEY (tag_id)     REFERENCES available_tags(id) ON DELETE CASCADE,
   FOREIGN KEY (message_id) REFERENCES forum_messages(id) ON DELETE CASCADE
