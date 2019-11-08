@@ -10,6 +10,7 @@ public class Forum {
     private ForumTypes type;
     private User owner;
     private String name;
+    // REVU Лучше LocalDateTime
     private Timestamp createdAt;
     private boolean readonly;
     private List<Message> messages;

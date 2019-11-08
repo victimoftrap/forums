@@ -4,6 +4,8 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 
+// REVU а нужно ли вообще 2 класса Comment и Message ?
+// Это же почти одно и то же
 public class Comment extends ForumMessage {
     private Message referredMessage;
 

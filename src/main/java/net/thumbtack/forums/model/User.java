@@ -12,6 +12,7 @@ public class User {
     private Timestamp registeredAt;
     private Timestamp bannedUntil;
     private int banCount;
+    // REVU do not understand what is it. rename
     private boolean arePermanent;
 
     public User(int id, UserRoles role, String userName, String email, String password,
