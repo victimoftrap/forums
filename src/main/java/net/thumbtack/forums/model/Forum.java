@@ -1,46 +1,37 @@
 package net.thumbtack.forums.model;
 
-import java.sql.Timestamp;
-import java.util.List;
-import java.util.ArrayList;
+import net.thumbtack.forums.model.enums.ForumType;
+
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Forum {
     private int id;
-    private ForumTypes type;
+    private ForumType type;
     private User owner;
     private String name;
-    private Timestamp createdAt;
+    private LocalDateTime createdAt;
     private boolean readonly;
-    private List<Message> messages;
 
-    public Forum(int id, ForumTypes type, User owner, String name,
-                 Timestamp createdAt, boolean readonly, List<Message> messages) {
+    public Forum(int id, ForumType type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
         this.id = id;
         this.type = type;
         this.owner = owner;
         this.name = name;
         this.createdAt = createdAt;
         this.readonly = readonly;
-        this.messages = messages;
     }
 
-    public Forum(int id, String type, User owner, String name,
-                 Timestamp createdAt, boolean readonly, List<Message> messages) {
-        this(id, ForumTypes.valueOf(type), owner, name, createdAt, readonly, messages);
+    public Forum(ForumType type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
+        this(0, type, owner, name, createdAt, readonly);
     }
 
-    public Forum(String type, User owner, String name,
-                 Timestamp createdAt, boolean readonly, List<Message> messages) {
-        this(0, type, owner, name, createdAt, readonly, messages);
+    public Forum(int id, String type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
+        this(id, ForumType.valueOf(type), owner, name, createdAt, readonly);
     }
 
-    public Forum(int id, String type, User owner, String name, Timestamp createdAt, boolean readonly) {
-        this(id, type, owner, name, createdAt, readonly, new ArrayList<>());
-    }
-
-    public Forum(String type, User owner, String name, Timestamp createdAt, boolean readonly) {
-        this(0, type, owner, name, createdAt, readonly, new ArrayList<>());
+    public Forum(String type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
+        this(0, ForumType.valueOf(type), owner, name, createdAt, readonly);
     }
 
     public int getId() {
@@ -51,11 +42,11 @@ public class Forum {
         this.id = id;
     }
 
-    public ForumTypes getType() {
+    public ForumType getType() {
         return type;
     }
 
-    public void setType(ForumTypes type) {
+    public void setType(ForumType type) {
         this.type = type;
     }
 
@@ -75,28 +66,20 @@ public class Forum {
         this.name = name;
     }
 
-    public Timestamp getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Timestamp createdAt) {
+    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    public boolean getReadonly() {
+    public boolean isReadonly() {
         return readonly;
     }
 
     public void setReadonly(boolean readonly) {
         this.readonly = readonly;
-    }
-
-    public List<Message> getMessages() {
-        return messages;
-    }
-
-    public void setMessages(List<Message> messages) {
-        this.messages = messages;
     }
 
     @Override
@@ -105,18 +88,15 @@ public class Forum {
         if (!(o instanceof Forum)) return false;
         Forum forum = (Forum) o;
         return getId() == forum.getId() &&
-                getReadonly() == forum.getReadonly() &&
+                isReadonly() == forum.isReadonly() &&
                 getType() == forum.getType() &&
                 Objects.equals(getOwner(), forum.getOwner()) &&
                 Objects.equals(getName(), forum.getName()) &&
-                Objects.equals(getCreatedAt(), forum.getCreatedAt()) &&
-                Objects.equals(getMessages(), forum.getMessages());
+                Objects.equals(getCreatedAt(), forum.getCreatedAt());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getType(), getOwner(),
-                getName(), getCreatedAt(), getReadonly(), getMessages()
-        );
+        return Objects.hash(getId(), getType(), getOwner(), getName(), getCreatedAt(), isReadonly());
     }
 }

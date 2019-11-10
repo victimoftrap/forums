@@ -9,6 +9,7 @@ CREATE TABLE users(
   email         VARCHAR(256)     NOT NULL,
   password      VARCHAR(256)     NOT NULL,
   registered_at TIMESTAMP        DEFAULT NOW(),
+  deleted       BOOLEAN          NOT NULL,
 
   banned_until  TIMESTAMP        NULL,
   ban_count     INT(3)           NOT NULL,
@@ -41,32 +42,37 @@ CREATE TABLE forums(
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
-CREATE TABLE forum_messages(
+CREATE TABLE messages(
   id             INT(11) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  forum_id       INT(11) UNSIGNED NOT NULL,
   owner_id       INT(11) UNSIGNED NOT NULL,
   parent_message INT(11) UNSIGNED NULL,
-
-  message_state  ENUM('UNPUBLISHED', 'PUBLISHED'),
-  priority       ENUM('LOW', 'NORMAL', 'HIGH'),
-  subject        VARCHAR(256)     NULL,
   created_at     TIMESTAMP DEFAULT NOW(),
   updated_at     TIMESTAMP DEFAULT NOW(),
+  
+  FOREIGN KEY (owner_id)       REFERENCES users(id)    ON DELETE CASCADE,
+  FOREIGN KEY (parent_message) REFERENCES messages(id) ON DELETE CASCADE
+) ENGINE = INNODB DEFAULT CHARSET = utf8;
+
+CREATE TABLE messages_tree(
+  id           INT(11) UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  forum_id     INT(11) UNSIGNED NOT NULL,
+  root_message INT(11) UNSIGNED NOT NULL,
+  subject      VARCHAR(256)     NOT NULL,
+  priority     ENUM('LOW', 'NORMAL', 'HIGH'),
 
   KEY priority(priority),
   KEY subject(subject),
-  FOREIGN KEY (forum_id) REFERENCES forums(id) ON DELETE CASCADE,
-  FOREIGN KEY (owner_id) REFERENCES users(id)  ON DELETE CASCADE
+  FOREIGN KEY (forum_id)     REFERENCES forums(id)   ON DELETE CASCADE,
+  FOREIGN KEY (root_message) REFERENCES messages(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE message_history(
-  msg_id     INT(11) UNSIGNED NOT NULL,
+  message_id INT(11) UNSIGNED NOT NULL,
   body       VARCHAR(4096)    NOT NULL,
-  
   body_state ENUM('UNPUBLISHED', 'PUBLISHED'),
   created_at TIMESTAMP DEFAULT NOW(),
   
-  FOREIGN KEY (msg_id) REFERENCES forum_messages(id) ON DELETE CASCADE
+  FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE message_ratings(
@@ -75,8 +81,8 @@ CREATE TABLE message_ratings(
   rating  INT(2)           NOT NULL,
   
   PRIMARY KEY (msg_id, user_id),
-  FOREIGN KEY (msg_id)  REFERENCES forum_messages(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id)          ON DELETE CASCADE
+  FOREIGN KEY (msg_id)  REFERENCES messages(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id)    ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE available_tags(
@@ -91,5 +97,5 @@ CREATE TABLE message_tags(
   message_id INT(11) UNSIGNED NOT NULL,
 
   FOREIGN KEY (tag_id)     REFERENCES available_tags(id) ON DELETE CASCADE,
-  FOREIGN KEY (message_id) REFERENCES forum_messages(id) ON DELETE CASCADE
+  FOREIGN KEY (message_id) REFERENCES messages(id)       ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
