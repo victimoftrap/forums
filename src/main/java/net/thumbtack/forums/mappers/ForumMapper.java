@@ -1,12 +1,12 @@
 package net.thumbtack.forums.mappers;
 
 import net.thumbtack.forums.model.Forum;
-import net.thumbtack.forums.model.ForumTypes;
+import net.thumbtack.forums.model.enums.ForumType;
 
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.mapping.FetchType;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ForumMapper {
@@ -22,7 +22,7 @@ public interface ForumMapper {
     @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums WHERE id = #{id}")
     @Results({
             @Result(property = "id", column = "id", javaType = Integer.class),
-            @Result(property = "type", column = "forum_type", javaType = ForumTypes.class),
+            @Result(property = "type", column = "forum_type", javaType = ForumType.class),
             @Result(property = "owner", column = "owner_id", javaType = Forum.class,
                     one = @One(
                             select = "net.thumbtack.forums.mappers.UserMapper.findById",
@@ -31,17 +31,17 @@ public interface ForumMapper {
             ),
             @Result(property = "name", column = "name", javaType = String.class),
             @Result(property = "readonly", column = "readonly", javaType = Boolean.class),
-            @Result(property = "createdAt", column = "created_at", javaType = Timestamp.class)
+            @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
     })
-    Forum findById(@Param("id") Integer id);
+    Forum findById(@Param("id") int id);
 
     @Select("SELECT id, forum_type, name, readonly, created_at FROM forums")
     @Results({
             @Result(property = "id", column = "id", javaType = Integer.class),
-            @Result(property = "type", column = "forum_type", javaType = ForumTypes.class),
+            @Result(property = "type", column = "forum_type", javaType = ForumType.class),
             @Result(property = "name", column = "name", javaType = String.class),
             @Result(property = "readonly", column = "readonly", javaType = Boolean.class),
-            @Result(property = "createdAt", column = "created_at", javaType = Timestamp.class)
+            @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
     })
     List<Forum> findAll();
 
@@ -49,7 +49,7 @@ public interface ForumMapper {
     void update(@Param("forum") Forum forum);
 
     @Delete("DELETE FROM forums WHERE id = #{id}")
-    void deleteById(@Param("id") Integer id);
+    void deleteById(@Param("id") int id);
 
     @Delete("DELETE FROM forums")
     void deleteAll();
