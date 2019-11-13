@@ -6,13 +6,13 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class HistoryItem {
-    private int id;
+    private int messageId;
     private String body;
     private MessageState state;
     private LocalDateTime createdAt;
 
-    public HistoryItem(int id, String body, MessageState state, LocalDateTime createdAt) {
-        this.id = id;
+    public HistoryItem(int messageId, String body, MessageState state, LocalDateTime createdAt) {
+        this.messageId = messageId;
         this.body = body;
         this.state = state;
         this.createdAt = createdAt;
@@ -22,20 +22,20 @@ public class HistoryItem {
         this(0, body, state, createdAt);
     }
 
-    public HistoryItem(int id, String body, String state, LocalDateTime createdAt) {
-        this(id, body, MessageState.valueOf(state), createdAt);
+    public HistoryItem(int messageId, String body, String state, LocalDateTime createdAt) {
+        this(messageId, body, MessageState.valueOf(state), createdAt);
     }
 
     public HistoryItem(String body, String state, LocalDateTime createdAt) {
         this(0, body, MessageState.valueOf(state), createdAt);
     }
 
-    public int getId() {
-        return id;
+    public int getMessageId() {
+        return messageId;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
     }
 
     public String getBody() {
@@ -67,7 +67,7 @@ public class HistoryItem {
         if (this == o) return true;
         if (!(o instanceof HistoryItem)) return false;
         HistoryItem that = (HistoryItem) o;
-        return getId() == that.getId() &&
+        return getMessageId() == that.getMessageId() &&
                 Objects.equals(getBody(), that.getBody()) &&
                 getState() == that.getState() &&
                 Objects.equals(getCreatedAt(), that.getCreatedAt());
@@ -75,6 +75,6 @@ public class HistoryItem {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getBody(), getState(), getCreatedAt());
+        return Objects.hash(getMessageId(), getBody(), getState(), getCreatedAt());
     }
 }

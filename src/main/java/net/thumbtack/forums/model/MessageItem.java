@@ -9,20 +9,20 @@ public class MessageItem {
     private User owner;
     private MessageTree messageTree;
     private MessageItem parentMessage;
-    private List<MessageItem> childrenMessages;
+    private List<MessageItem> childrenComments;
     private List<HistoryItem> history;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private int rating;
 
     public MessageItem(int id, User owner, MessageTree messageTree, MessageItem parentMessage,
-                       List<MessageItem> childrenMessages, List<HistoryItem> history,
+                       List<MessageItem> childrenComments, List<HistoryItem> history,
                        LocalDateTime createdAt, LocalDateTime updatedAt, int rating) {
         this.id = id;
         this.owner = owner;
         this.messageTree = messageTree;
         this.parentMessage = parentMessage;
-        this.childrenMessages = childrenMessages;
+        this.childrenComments = childrenComments;
         this.history = history;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -30,10 +30,10 @@ public class MessageItem {
     }
 
     public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
-                       List<MessageItem> childrenMessages, List<HistoryItem> history,
+                       List<MessageItem> childrenComments, List<HistoryItem> history,
                        LocalDateTime createdAt, LocalDateTime updatedAt, int rating) {
         this(0, owner, messageTree, parentMessage,
-                childrenMessages, history, createdAt, updatedAt, rating
+                childrenComments, history, createdAt, updatedAt, rating
         );
     }
 
@@ -69,12 +69,12 @@ public class MessageItem {
         this.parentMessage = parentMessage;
     }
 
-    public List<MessageItem> getChildrenMessages() {
-        return childrenMessages;
+    public List<MessageItem> getChildrenComments() {
+        return childrenComments;
     }
 
-    public void setChildrenMessages(List<MessageItem> childrenMessages) {
-        this.childrenMessages = childrenMessages;
+    public void setChildrenComments(List<MessageItem> childrenComments) {
+        this.childrenComments = childrenComments;
     }
 
     public List<HistoryItem> getHistory() {
@@ -119,7 +119,7 @@ public class MessageItem {
                 Objects.equals(getOwner(), that.getOwner()) &&
                 Objects.equals(getMessageTree(), that.getMessageTree()) &&
                 Objects.equals(getParentMessage(), that.getParentMessage()) &&
-                Objects.equals(getChildrenMessages(), that.getChildrenMessages()) &&
+                Objects.equals(getChildrenComments(), that.getChildrenComments()) &&
                 Objects.equals(getHistory(), that.getHistory()) &&
                 Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
                 Objects.equals(getUpdatedAt(), that.getUpdatedAt());
@@ -128,7 +128,7 @@ public class MessageItem {
     @Override
     public int hashCode() {
         return Objects.hash(getId(), getOwner(), getMessageTree(), getParentMessage(),
-                getChildrenMessages(), getHistory(), getCreatedAt(), getUpdatedAt(), getRating()
+                getChildrenComments(), getHistory(), getCreatedAt(), getUpdatedAt(), getRating()
         );
     }
 }

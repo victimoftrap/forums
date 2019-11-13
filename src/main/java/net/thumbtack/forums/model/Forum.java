@@ -12,26 +12,34 @@ public class Forum {
     private String name;
     private LocalDateTime createdAt;
     private boolean readonly;
+    private int messageCount;
+    private int commentCount;
 
-    public Forum(int id, ForumType type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
+    public Forum(int id, ForumType type, User owner, String name, LocalDateTime createdAt,
+                 boolean readonly, int messageCount, int commentCount) {
         this.id = id;
         this.type = type;
         this.owner = owner;
         this.name = name;
         this.createdAt = createdAt;
         this.readonly = readonly;
+        this.messageCount = messageCount;
+        this.commentCount = commentCount;
     }
 
-    public Forum(ForumType type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
-        this(0, type, owner, name, createdAt, readonly);
+    public Forum(ForumType type, User owner, String name, LocalDateTime createdAt,
+                 boolean readonly, int messageCount, int commentCount) {
+        this(0, type, owner, name, createdAt, readonly, messageCount, commentCount);
     }
 
-    public Forum(int id, String type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
-        this(id, ForumType.valueOf(type), owner, name, createdAt, readonly);
+    public Forum(int id, String type, User owner, String name, LocalDateTime createdAt,
+                 boolean readonly, int messageCount, int commentCount) {
+        this(id, ForumType.valueOf(type), owner, name, createdAt, readonly, messageCount, commentCount);
     }
 
-    public Forum(String type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
-        this(0, ForumType.valueOf(type), owner, name, createdAt, readonly);
+    public Forum(String type, User owner, String name, LocalDateTime createdAt,
+                 boolean readonly, int messageCount, int commentCount) {
+        this(0, ForumType.valueOf(type), owner, name, createdAt, readonly, messageCount, commentCount);
     }
 
     public int getId() {
@@ -82,6 +90,22 @@ public class Forum {
         this.readonly = readonly;
     }
 
+    public int getMessageCount() {
+        return messageCount;
+    }
+
+    public void setMessageCount(int messageCount) {
+        this.messageCount = messageCount;
+    }
+
+    public int getCommentCount() {
+        return commentCount;
+    }
+
+    public void setCommentCount(int commentCount) {
+        this.commentCount = commentCount;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -89,6 +113,8 @@ public class Forum {
         Forum forum = (Forum) o;
         return getId() == forum.getId() &&
                 isReadonly() == forum.isReadonly() &&
+                getMessageCount() == forum.getMessageCount() &&
+                getCommentCount() == forum.getCommentCount() &&
                 getType() == forum.getType() &&
                 Objects.equals(getOwner(), forum.getOwner()) &&
                 Objects.equals(getName(), forum.getName()) &&
@@ -97,6 +123,8 @@ public class Forum {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getType(), getOwner(), getName(), getCreatedAt(), isReadonly());
+        return Objects.hash(getId(), getType(), getOwner(), getName(),
+                getCreatedAt(), isReadonly(), getMessageCount(), getCommentCount()
+        );
     }
 }
