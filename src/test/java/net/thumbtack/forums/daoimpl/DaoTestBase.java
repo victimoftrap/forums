@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 
 public class DaoTestBase {
     protected final UserDao userDao = new UserDaoImpl();
-    protected final MessageDao messageDao = new MessageDaoImpl();
 
     @BeforeAll
     static void setupDatabase() {
@@ -19,6 +18,5 @@ public class DaoTestBase {
     @BeforeEach
     void clearDatabase() {
         userDao.deleteAll();
-        messageDao.deleteAll();
     }
 }
