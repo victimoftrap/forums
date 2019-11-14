@@ -2,6 +2,7 @@ package net.thumbtack.forums.model;
 
 import net.thumbtack.forums.model.enums.UserRole;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -11,13 +12,16 @@ public class User {
     private String username;
     private String email;
     private String password;
-    private boolean areDeleted;
     private LocalDateTime registeredAt;
+    private boolean areDeleted;
     private LocalDateTime bannedUntil;
     private int banCount;
 
+    public User() {
+    }
+
     public User(int id, UserRole role, String username, String email, String password,
-                boolean areDeleted, LocalDateTime registeredAt, LocalDateTime bannedUntil, int banCount) {
+                LocalDateTime registeredAt, boolean areDeleted, LocalDateTime bannedUntil, int banCount) {
         this.id = id;
         this.role = role;
         this.username = username;
@@ -30,26 +34,25 @@ public class User {
     }
 
     public User(UserRole role, String username, String email, String password,
-                boolean areDeleted, LocalDateTime registeredAt, LocalDateTime bannedUntil, int banCount) {
-        this(0, role, username, email, password, areDeleted, registeredAt, bannedUntil, banCount);
+                LocalDateTime registeredAt, boolean areDeleted, LocalDateTime bannedUntil, int banCount) {
+        this(0, role, username, email, password, registeredAt, areDeleted, bannedUntil, banCount);
     }
 
     public User(int id, UserRole role, String username,
-                String email, String password, boolean areDeleted, LocalDateTime registeredAt) {
-        this(id, role, username, email, password, areDeleted, registeredAt, null, 0);
+                String email, String password, LocalDateTime registeredAt, boolean areDeleted) {
+        this(id, role, username, email, password, registeredAt, areDeleted, null, 0);
     }
 
-    public User(int id, String role, String username, String email, String password,
-                boolean areDeleted, LocalDateTime registeredAt, LocalDateTime bannedUntil, int banCount) {
-        this(id, UserRole.valueOf(role), username, email, password,
-                areDeleted, registeredAt, bannedUntil, banCount
-        );
+    public User(UserRole role, String username,
+                String email, String password, LocalDateTime registeredAt, boolean areDeleted) {
+        this(0, role, username, email, password, registeredAt, areDeleted, null, 0);
     }
 
-    public User(String role, String username, String email, String password,
-                boolean areDeleted, LocalDateTime registeredAt, LocalDateTime bannedUntil, int banCount) {
-        this(0, UserRole.valueOf(role), username, email, password,
-                areDeleted, registeredAt, bannedUntil, banCount
+    public User(int id, UserRole role, String username, String email, String password,
+                Timestamp registeredAt, boolean areDeleted, Timestamp bannedUntil, int banCount) {
+        this(id, role, username, email, password,
+                registeredAt.toLocalDateTime(), areDeleted,
+                bannedUntil.toLocalDateTime(), banCount
         );
     }
 

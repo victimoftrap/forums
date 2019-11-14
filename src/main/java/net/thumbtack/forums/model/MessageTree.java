@@ -13,6 +13,9 @@ public class MessageTree {
     private MessagePriority priority;
     private List<Tag> tags;
 
+    public MessageTree() {
+    }
+
     public MessageTree(int id, Forum forum, String subject, MessageItem rootMessage,
                        MessagePriority priority, List<Tag> tags) {
         this.id = id;

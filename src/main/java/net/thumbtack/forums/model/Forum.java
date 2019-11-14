@@ -15,6 +15,9 @@ public class Forum {
     private int messageCount;
     private int commentCount;
 
+    public Forum() {
+    }
+
     public Forum(int id, ForumType type, User owner, String name, LocalDateTime createdAt,
                  boolean readonly, int messageCount, int commentCount) {
         this.id = id;

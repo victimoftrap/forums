@@ -11,6 +11,9 @@ public class HistoryItem {
     private MessageState state;
     private LocalDateTime createdAt;
 
+    public HistoryItem() {
+    }
+
     public HistoryItem(int messageId, String body, MessageState state, LocalDateTime createdAt) {
         this.messageId = messageId;
         this.body = body;

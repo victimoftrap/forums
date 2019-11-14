@@ -15,6 +15,9 @@ public class MessageItem {
     private LocalDateTime updatedAt;
     private int rating;
 
+    public MessageItem() {
+    }
+
     public MessageItem(int id, User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
                        LocalDateTime createdAt, LocalDateTime updatedAt, int rating) {

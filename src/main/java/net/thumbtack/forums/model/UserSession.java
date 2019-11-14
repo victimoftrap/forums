@@ -6,6 +6,9 @@ public class UserSession {
     private User user;
     private String token;
 
+    public UserSession() {
+    }
+
     public UserSession(User user, String token) {
         this.user = user;
         this.token = token;
