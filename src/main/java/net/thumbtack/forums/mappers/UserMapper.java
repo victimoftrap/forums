@@ -1,71 +1,121 @@
 package net.thumbtack.forums.mappers;
 
 import net.thumbtack.forums.model.User;
-import net.thumbtack.forums.model.enums.UserRole;
 
+import net.thumbtack.forums.model.enums.UserRole;
 import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface UserMapper {
-    @Insert(
-            "INSERT INTO users " +
-                    "(role, username, email, password, registered_at, deleted, banned_until, ban_count, permanent) " +
-                    "VALUES(#{user.role.name}, #{user.userName}, #{user.email}, #{user.password}, " +
-                    "#{user.registeredAt}, #{user.areDeleted} #{user.bannedUntil}, " +
-                    "#{user.banCount}, #{user.arePermanent}" +
-                    ")"
+    @Insert("INSERT INTO users " +
+            "(role, username, email, password, registered_at, deleted, banned_until, ban_count) " +
+            "VALUES(" +
+            "#{user.role.name}, #{user.username}, " +
+            "#{user.email}, #{user.password}, " +
+            "#{user.registeredAt}, #{user.areDeleted}, " +
+            "#{user.bannedUntil}, #{user.banCount}" +
+            ")"
     )
     @Options(useGeneratedKeys = true, keyProperty = "user.id")
     Integer save(@Param("user") User user);
 
-    @Select(
-            "SELECT id, role, username, email, password, registered_at, deleted, " +
-                    "banned_until, ban_count, permanent FROM users WHERE id = #{id}"
+    @Select("SELECT id, role, username, email, password, registered_at, " +
+            "deleted, banned_until, ban_count FROM users WHERE id = #{id}"
     )
     @Results({
-            @Result(property = "id", column = "id", javaType = Integer.class),
             @Result(property = "role", column = "role", javaType = UserRole.class),
-            @Result(property = "userName", column = "username", javaType = String.class),
-            @Result(property = "email", column = "email", javaType = String.class),
-            @Result(property = "password", column = "password", javaType = String.class),
-            @Result(property = "areDeleted", column = "password", javaType = String.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class),
-            @Result(property = "banCount", column = "ban_count", javaType = Integer.class),
-            @Result(property = "arePermanent", column = "permanent", javaType = Boolean.class)
+            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
-    User findById(@Param("id") int id);
+    User getById(@Param("id") int id);
 
-    @Select(
-            "SELECT id, role, username, email, password, registered_at, deleted, " +
-                    "banned_until, ban_count, permanent FROM users"
+    @Select({"<script>",
+            "SELECT id, role, username, email, password, registered_at, ",
+            "deleted, banned_until, ban_count FROM users ",
+            "WHERE id = #{id}",
+            "<if test='deleted == false'>",
+            " AND deleted = FALSE",
+            "</if>",
+            "</script>"
+    })
+    @Results({
+            @Result(property = "role", column = "role", javaType = UserRole.class),
+            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
+            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
+    })
+    User getByIdAndDeleted(@Param("id") int id, @Param("deleted") boolean deleted);
+
+    @Select("SELECT id, role, username, email, password, registered_at, " +
+            "deleted, banned_until, ban_count FROM users WHERE username = #{name}"
     )
     @Results({
-            @Result(property = "id", column = "id", javaType = Integer.class),
             @Result(property = "role", column = "role", javaType = UserRole.class),
-            @Result(property = "userName", column = "username", javaType = String.class),
-            @Result(property = "email", column = "email", javaType = String.class),
-            @Result(property = "password", column = "password", javaType = String.class),
-            @Result(property = "areDeleted", column = "password", javaType = String.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class),
-            @Result(property = "banCount", column = "ban_count", javaType = Integer.class),
-            @Result(property = "arePermanent", column = "permanent", javaType = Boolean.class)
+            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
-    List<User> findAll();
+    User getByName(@Param("name") String name);
 
-    @Update(
-            "UPDATE users SET " +
-                    "role = #{user.role.name}, email = #{user.email}, password = #{user.password}, " +
-                    "deleted = #{user.areDeleted}, banned_until = #{user.bannedUntil}, " +
-                    "ban_count = #{user.banCount}, WHERE id = #{user.id}"
+    @Select({"<script>",
+            "SELECT id, role, username, email, password, registered_at, ",
+            "deleted, banned_until, ban_count FROM users ",
+            "WHERE username = #{name}",
+            "<if test='deleted == false'>",
+            " AND deleted = #{deleted}",
+            "</if>",
+            "</script>"
+    })
+    @Results({
+            @Result(property = "role", column = "role", javaType = UserRole.class),
+            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
+            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
+    })
+    User getByNameAndDeleted(@Param("name") String name, @Param("deleted") boolean deleted);
+
+    @Select("SELECT id, role, username, email, password, registered_at, " +
+            "deleted, banned_until, ban_count FROM users"
+    )
+    @Results({
+            @Result(property = "role", column = "role", javaType = UserRole.class),
+            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
+            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
+    })
+    List<User> getAll();
+
+    @Select({"<script>",
+            "SELECT id, role, username, email, password, registered_at, ",
+            "deleted, banned_until, ban_count FROM users ",
+            "<if test='deleted == false'>",
+            " WHERE deleted = FALSE",
+            "</if>",
+            "</script>"
+    })
+    @Results({
+            @Result(property = "role", column = "role", javaType = UserRole.class),
+            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
+            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
+    })
+    List<User> getAllAndDeleted(@Param("deleted") boolean deleted);
+
+    @Update("UPDATE users SET " +
+            "role = COALESCE(#{user.role.name}, role), " +
+            "email = COALESCE(#{user.email}, email), " +
+            "password = COALESCE(#{user.password}, password), " +
+            "banned_until = #{user.bannedUntil}, " +
+            "ban_count = COALESCE(#{user.banCount}, ban_count) " +
+            "WHERE id = #{user.id}"
     )
     void update(@Param("user") User user);
 
-    @Delete("DELETE FROM users WHERE id = #{id}")
-    void deleteById(@Param("id") int id);
+    @Update("UPDATE users SET deleted = TRUE WHERE id = #{id}")
+    void deactivateById(@Param("id") int id);
 
     @Delete("DELETE FROM users")
     void deleteAll();
