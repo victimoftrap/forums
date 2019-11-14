@@ -2,12 +2,16 @@ package net.thumbtack.forums.dao;
 
 import net.thumbtack.forums.model.Forum;
 
+import java.util.List;
+
 public interface ForumDao {
     Forum save(Forum forum);
 
-    Forum findById(Integer id);
+    Forum getById(int id);
+
+    List<Forum> getAll();
 
     void update(Forum forum);
 
-    void deleteById(Integer id);
+    void deleteById(int id);
 }

@@ -1,15 +1,15 @@
 package net.thumbtack.forums.dao;
 
-import net.thumbtack.forums.model.Message;
+import net.thumbtack.forums.model.MessageItem;
 
 public interface MessageDao {
-    Message save(Message message);
+    MessageItem saveMessage(MessageItem message);
 
-    Message findById(Integer id);
+    MessageItem madeNewBranch(MessageItem message);
 
-    void update(Message message);
+    void update(MessageItem message);
 
-    void deleteById(Integer id);
+    void deleteById(int id);
 
     void deleteAll();
 }

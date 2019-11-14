@@ -1,7 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
-import net.thumbtack.forums.mappers.UserMapper;
-import net.thumbtack.forums.mappers.MessageMapper;
+import net.thumbtack.forums.mappers.*;
 
 import org.apache.ibatis.session.SqlSession;
 
@@ -10,7 +9,23 @@ public class MapperCreatorDao {
         return sqlSession.getMapper(UserMapper.class);
     }
 
-    protected MessageMapper getMessageMapper(final SqlSession sqlSession) {
-        return sqlSession.getMapper(MessageMapper.class);
+    protected SessionMapper getSessionMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(SessionMapper.class);
+    }
+
+    protected ForumMapper getForumMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(ForumMapper.class);
+    }
+
+    protected RatingMapper getRatingMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(RatingMapper.class);
+    }
+
+    protected MessageHistoryMapper getMessageHistoryMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(MessageHistoryMapper.class);
+    }
+
+    protected TagMapper getTagMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(TagMapper.class);
     }
 }

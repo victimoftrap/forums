@@ -1,56 +1,58 @@
 package net.thumbtack.forums.model;
 
+import net.thumbtack.forums.model.enums.UserRole;
+
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class User {
     private int id;
-    private UserRoles role;
-    private String userName;
+    private UserRole role;
+    private String username;
     private String email;
     private String password;
-    private Timestamp registeredAt;
-    private Timestamp bannedUntil;
+    private LocalDateTime registeredAt;
+    private boolean areDeleted;
+    private LocalDateTime bannedUntil;
     private int banCount;
-    // REVU do not understand what is it. rename
-    private boolean arePermanent;
 
-    public User(int id, UserRoles role, String userName, String email, String password,
-                Timestamp registeredAt, Timestamp bannedUntil, int banCount, boolean arePermanent) {
+    public User() {
+    }
+
+    public User(int id, UserRole role, String username, String email, String password,
+                LocalDateTime registeredAt, boolean areDeleted, LocalDateTime bannedUntil, int banCount) {
         this.id = id;
         this.role = role;
-        this.userName = userName;
+        this.username = username;
         this.email = email;
         this.password = password;
+        this.areDeleted = areDeleted;
         this.registeredAt = registeredAt;
         this.bannedUntil = bannedUntil;
         this.banCount = banCount;
-        this.arePermanent = arePermanent;
     }
 
-    public User(int id, String role, String username, String email, String password,
-                Timestamp registeredAt, Timestamp bannedUntil, int banCount, boolean arePermanent) {
-        this(id, UserRoles.valueOf(role), username, email, password, registeredAt,
-                bannedUntil, banCount, arePermanent
-        );
+    public User(UserRole role, String username, String email, String password,
+                LocalDateTime registeredAt, boolean areDeleted, LocalDateTime bannedUntil, int banCount) {
+        this(0, role, username, email, password, registeredAt, areDeleted, bannedUntil, banCount);
     }
 
-    public User(String role, String username, String email, String password,
-                Timestamp registeredAt, Timestamp bannedUntil, int banCount, boolean arePermanent) {
-        this(0, role, username, email, password, registeredAt,
-                bannedUntil, banCount, arePermanent
-        );
+    public User(int id, UserRole role, String username,
+                String email, String password, LocalDateTime registeredAt, boolean areDeleted) {
+        this(id, role, username, email, password, registeredAt, areDeleted, null, 0);
     }
 
-    public User(int id, String role, String username, String email, String password, Timestamp registeredAt) {
-        this(id, role, username, email, password, registeredAt,
-                null, 0, false
-        );
+    public User(UserRole role, String username,
+                String email, String password, LocalDateTime registeredAt, boolean areDeleted) {
+        this(0, role, username, email, password, registeredAt, areDeleted, null, 0);
     }
 
-    public User(String role, String username, String email, String password, Timestamp registeredAt) {
-        this(0, role, username, email, password, registeredAt,
-                null, 0, false
+    public User(int id, UserRole role, String username, String email, String password,
+                Timestamp registeredAt, boolean areDeleted, Timestamp bannedUntil, int banCount) {
+        this(id, role, username, email, password,
+                registeredAt.toLocalDateTime(), areDeleted,
+                bannedUntil.toLocalDateTime(), banCount
         );
     }
 
@@ -62,20 +64,20 @@ public class User {
         this.id = id;
     }
 
-    public UserRoles getRole() {
+    public UserRole getRole() {
         return role;
     }
 
-    public void setRole(UserRoles role) {
+    public void setRole(UserRole role) {
         this.role = role;
     }
 
-    public String getUserName() {
-        return userName;
+    public String getUsername() {
+        return username;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getEmail() {
@@ -94,19 +96,27 @@ public class User {
         this.password = password;
     }
 
-    public Timestamp getRegisteredAt() {
+    public boolean isAreDeleted() {
+        return areDeleted;
+    }
+
+    public void setAreDeleted(boolean areDeleted) {
+        this.areDeleted = areDeleted;
+    }
+
+    public LocalDateTime getRegisteredAt() {
         return registeredAt;
     }
 
-    public void setRegisteredAt(Timestamp registeredAt) {
+    public void setRegisteredAt(LocalDateTime registeredAt) {
         this.registeredAt = registeredAt;
     }
 
-    public Timestamp getBannedUntil() {
+    public LocalDateTime getBannedUntil() {
         return bannedUntil;
     }
 
-    public void setBannedUntil(Timestamp bannedUntil) {
+    public void setBannedUntil(LocalDateTime bannedUntil) {
         this.bannedUntil = bannedUntil;
     }
 
@@ -118,24 +128,16 @@ public class User {
         this.banCount = banCount;
     }
 
-    public boolean isArePermanent() {
-        return arePermanent;
-    }
-
-    public void setArePermanent(boolean arePermanent) {
-        this.arePermanent = arePermanent;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof User)) return false;
         User user = (User) o;
         return getId() == user.getId() &&
+                isAreDeleted() == user.isAreDeleted() &&
                 getBanCount() == user.getBanCount() &&
-                isArePermanent() == user.isArePermanent() &&
                 getRole() == user.getRole() &&
-                Objects.equals(getUserName(), user.getUserName()) &&
+                Objects.equals(getUsername(), user.getUsername()) &&
                 Objects.equals(getEmail(), user.getEmail()) &&
                 Objects.equals(getPassword(), user.getPassword()) &&
                 Objects.equals(getRegisteredAt(), user.getRegisteredAt()) &&
@@ -144,8 +146,8 @@ public class User {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getRole(), getUserName(), getEmail(), getPassword(),
-                getRegisteredAt(), getBannedUntil(), getBanCount(), isArePermanent()
+        return Objects.hash(getId(), getRole(), getUsername(), getEmail(), getPassword(),
+                isAreDeleted(), getRegisteredAt(), getBannedUntil(), getBanCount()
         );
     }
 }

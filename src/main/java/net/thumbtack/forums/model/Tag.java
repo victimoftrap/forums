@@ -6,6 +6,9 @@ public class Tag {
     private int id;
     private String name;
 
+    public Tag() {
+    }
+
     public Tag(int id, String name) {
         this.id = id;
         this.name = name;
