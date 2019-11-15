@@ -9,16 +9,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface UserMapper {
-// REVU user - лишнее
+// REVU user - пїЅпїЅпїЅпїЅпїЅпїЅ
 //	#{user.email} -------> #{email}
-// параметр всего один, и так ясно	
-// здесь и везде	
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ	
+// пїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ	
 	@Insert("INSERT INTO users " +
             "(role, username, email, password, registered_at, deleted, banned_until, ban_count) " +
             "VALUES(" +
             "#{user.role.name}, #{user.username}, " +
             "#{user.email}, #{user.password}, " +
-            "#{user.registeredAt}, #{user.areDeleted}, " +
+            "#{user.registeredAt}, #{user.deleted}, " +
             "#{user.bannedUntil}, #{user.banCount}" +
             ")"
     )
@@ -29,12 +29,12 @@ public interface UserMapper {
             "deleted, banned_until, ban_count FROM users WHERE id = #{id}"
     )
     @Results({
-        // REVU старайтесь давать полям класса и таблицы одинаковые имена
-        // тогда соответствующий @Result можно будет не писать
-    	// role тут не нужен, остальные можно сделать, чтобы было не нужно
+        // REVU пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ @Result пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+    	// role пїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "deleted", column = "deleted", javaType = Boolean.class),
             @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
     User getById(@Param("id") int id);
@@ -51,7 +51,7 @@ public interface UserMapper {
     @Results({
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "deleted", column = "deleted", javaType = Boolean.class),
             @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
     User getByIdAndDeleted(@Param("id") int id, @Param("deleted") boolean deleted);
@@ -62,7 +62,7 @@ public interface UserMapper {
     @Results({
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "deleted", column = "deleted", javaType = Boolean.class),
             @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
     User getByName(@Param("name") String name);
@@ -79,7 +79,7 @@ public interface UserMapper {
     @Results({
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "deleted", column = "deleted", javaType = Boolean.class),
             @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
     User getByNameAndDeleted(@Param("name") String name, @Param("deleted") boolean deleted);
@@ -90,7 +90,7 @@ public interface UserMapper {
     @Results({
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "deleted", column = "deleted", javaType = Boolean.class),
             @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
     List<User> getAll();
@@ -106,7 +106,7 @@ public interface UserMapper {
     @Results({
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
+            @Result(property = "deleted", column = "deleted", javaType = Boolean.class),
             @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
     })
     List<User> getAllAndDeleted(@Param("deleted") boolean deleted);
