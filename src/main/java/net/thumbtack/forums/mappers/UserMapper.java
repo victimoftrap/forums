@@ -9,7 +9,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface UserMapper {
-    @Insert("INSERT INTO users " +
+// REVU user - лишнее
+//	#{user.email} -------> #{email}
+// параметр всего один, и так ясно	
+// здесь и везде	
+	@Insert("INSERT INTO users " +
             "(role, username, email, password, registered_at, deleted, banned_until, ban_count) " +
             "VALUES(" +
             "#{user.role.name}, #{user.username}, " +
@@ -25,6 +29,9 @@ public interface UserMapper {
             "deleted, banned_until, ban_count FROM users WHERE id = #{id}"
     )
     @Results({
+        // REVU старайтесь давать полям класса и таблицы одинаковые имена
+        // тогда соответствующий @Result можно будет не писать
+    	// role тут не нужен, остальные можно сделать, чтобы было не нужно
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
             @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
