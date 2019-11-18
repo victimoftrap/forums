@@ -27,6 +27,11 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
+                // REVU создайте свой класс исключения и enum ошибок и выбрасывайте его тут вместо проброса ex
+                // throw new ServerException(ErrorCode.DATABASE_ERROR);
+                // можно ex в него завернуть
+                // тогда в обработчике исключения будете ловить его
+                // а RuntimeException останется для всяких непредвиденных исключений
             }
             sqlSession.commit();
         }

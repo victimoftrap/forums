@@ -14,7 +14,7 @@ public class Forum {
     private boolean readonly;
     private int messageCount;
     private int commentCount;
-    // REVU а еще можно список сообщений
+    // REVU Р° РµС‰Рµ РјРѕР¶РЅРѕ СЃРїРёСЃРѕРє СЃРѕРѕР±С‰РµРЅРёР№
 
     public Forum() {
     }

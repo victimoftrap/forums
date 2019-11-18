@@ -13,12 +13,12 @@ public class User {
     private String email;
     private String password;
     private LocalDateTime registeredAt;
-    // REVU isDeleted или просто deleted. Он же один
+    // REVU isDeleted РёР»Рё РїСЂРѕСЃС‚Рѕ deleted. РћРЅ Р¶Рµ РѕРґРёРЅ
     private boolean areDeleted;
     private LocalDateTime bannedUntil;
     private int banCount;
-    // REVU а еще можно список сообщений и список рейтингов
-    // но на усмотрение
+    // REVU Р° РµС‰Рµ РјРѕР¶РЅРѕ СЃРїРёСЃРѕРє СЃРѕРѕР±С‰РµРЅРёР№ Рё СЃРїРёСЃРѕРє СЂРµР№С‚РёРЅРіРѕРІ
+    // РЅРѕ РЅР° СѓСЃРјРѕС‚СЂРµРЅРёРµ
 
     public User() {
     }
