@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface UserMapper {
-// REVU user - лишнее
+// REVU user - Р»РёС€РЅРµРµ
 //	#{user.email} -------> #{email}
-// параметр всего один, и так ясно	
-// здесь и везде	
+// РїР°СЂР°РјРµС‚СЂ РІСЃРµРіРѕ РѕРґРёРЅ, Рё С‚Р°Рє СЏСЃРЅРѕ	
+// Р·РґРµСЃСЊ Рё РІРµР·РґРµ	
 	@Insert("INSERT INTO users " +
             "(role, username, email, password, registered_at, deleted, banned_until, ban_count) " +
             "VALUES(" +
@@ -29,9 +29,9 @@ public interface UserMapper {
             "deleted, banned_until, ban_count FROM users WHERE id = #{id}"
     )
     @Results({
-        // REVU старайтесь давать полям класса и таблицы одинаковые имена
-        // тогда соответствующий @Result можно будет не писать
-    	// role тут не нужен, остальные можно сделать, чтобы было не нужно
+        // REVU СЃС‚Р°СЂР°Р№С‚РµСЃСЊ РґР°РІР°С‚СЊ РїРѕР»СЏРј РєР»Р°СЃСЃР° Рё С‚Р°Р±Р»РёС†С‹ РѕРґРёРЅР°РєРѕРІС‹Рµ РёРјРµРЅР°
+        // С‚РѕРіРґР° СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёР№ @Result РјРѕР¶РЅРѕ Р±СѓРґРµС‚ РЅРµ РїРёСЃР°С‚СЊ
+    	// role С‚СѓС‚ РЅРµ РЅСѓР¶РµРЅ, РѕСЃС‚Р°Р»СЊРЅС‹Рµ РјРѕР¶РЅРѕ СЃРґРµР»Р°С‚СЊ, С‡С‚РѕР±С‹ Р±С‹Р»Рѕ РЅРµ РЅСѓР¶РЅРѕ
             @Result(property = "role", column = "role", javaType = UserRole.class),
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
             @Result(property = "areDeleted", column = "deleted", javaType = Boolean.class),
