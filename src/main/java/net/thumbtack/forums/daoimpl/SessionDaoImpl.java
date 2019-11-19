@@ -70,8 +70,11 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
                 getSessionMapper(sqlSession).deleteByToken(token);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to delete user session by token {}", token, ex);
+
+                sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
+            sqlSession.commit();
         }
     }
 }

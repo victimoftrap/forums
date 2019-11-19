@@ -13,8 +13,7 @@ public class User {
     private String email;
     private String password;
     private LocalDateTime registeredAt;
-    // REVU isDeleted или просто deleted. Он же один
-    private boolean areDeleted;
+    private boolean deleted;
     private LocalDateTime bannedUntil;
     private int banCount;
     // REVU а еще можно список сообщений и список рейтингов
@@ -24,37 +23,37 @@ public class User {
     }
 
     public User(int id, UserRole role, String username, String email, String password,
-                LocalDateTime registeredAt, boolean areDeleted, LocalDateTime bannedUntil, int banCount) {
+                LocalDateTime registeredAt, boolean deleted, LocalDateTime bannedUntil, int banCount) {
         this.id = id;
         this.role = role;
         this.username = username;
         this.email = email;
         this.password = password;
-        this.areDeleted = areDeleted;
+        this.deleted = deleted;
         this.registeredAt = registeredAt;
         this.bannedUntil = bannedUntil;
         this.banCount = banCount;
     }
 
     public User(UserRole role, String username, String email, String password,
-                LocalDateTime registeredAt, boolean areDeleted, LocalDateTime bannedUntil, int banCount) {
-        this(0, role, username, email, password, registeredAt, areDeleted, bannedUntil, banCount);
+                LocalDateTime registeredAt, boolean deleted, LocalDateTime bannedUntil, int banCount) {
+        this(0, role, username, email, password, registeredAt, deleted, bannedUntil, banCount);
     }
 
     public User(int id, UserRole role, String username,
-                String email, String password, LocalDateTime registeredAt, boolean areDeleted) {
-        this(id, role, username, email, password, registeredAt, areDeleted, null, 0);
+                String email, String password, LocalDateTime registeredAt, boolean deleted) {
+        this(id, role, username, email, password, registeredAt, deleted, null, 0);
     }
 
     public User(UserRole role, String username,
-                String email, String password, LocalDateTime registeredAt, boolean areDeleted) {
-        this(0, role, username, email, password, registeredAt, areDeleted, null, 0);
+                String email, String password, LocalDateTime registeredAt, boolean deleted) {
+        this(0, role, username, email, password, registeredAt, deleted, null, 0);
     }
 
     public User(int id, UserRole role, String username, String email, String password,
-                Timestamp registeredAt, boolean areDeleted, Timestamp bannedUntil, int banCount) {
+                Timestamp registeredAt, boolean deleted, Timestamp bannedUntil, int banCount) {
         this(id, role, username, email, password,
-                registeredAt.toLocalDateTime(), areDeleted,
+                registeredAt.toLocalDateTime(), deleted,
                 bannedUntil.toLocalDateTime(), banCount
         );
     }
@@ -99,12 +98,12 @@ public class User {
         this.password = password;
     }
 
-    public boolean isAreDeleted() {
-        return areDeleted;
+    public boolean isDeleted() {
+        return deleted;
     }
 
-    public void setAreDeleted(boolean areDeleted) {
-        this.areDeleted = areDeleted;
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
     public LocalDateTime getRegisteredAt() {
@@ -137,7 +136,7 @@ public class User {
         if (!(o instanceof User)) return false;
         User user = (User) o;
         return getId() == user.getId() &&
-                isAreDeleted() == user.isAreDeleted() &&
+                isDeleted() == user.isDeleted() &&
                 getBanCount() == user.getBanCount() &&
                 getRole() == user.getRole() &&
                 Objects.equals(getUsername(), user.getUsername()) &&
@@ -150,7 +149,7 @@ public class User {
     @Override
     public int hashCode() {
         return Objects.hash(getId(), getRole(), getUsername(), getEmail(), getPassword(),
-                isAreDeleted(), getRegisteredAt(), getBannedUntil(), getBanCount()
+                isDeleted(), getRegisteredAt(), getBannedUntil(), getBanCount()
         );
     }
 }

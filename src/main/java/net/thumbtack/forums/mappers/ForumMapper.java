@@ -33,7 +33,7 @@ public interface ForumMapper {
             @Result(property = "name", column = "name", javaType = String.class),
             @Result(property = "readonly", column = "readonly", javaType = Boolean.class),
             @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
-            @Result(property = "messageCount", column = "id", javaType = Integer.class,
+            /*@Result(property = "messageCount", column = "id", javaType = Integer.class,
                     one = @One(
                             select = "net.thumbtack.forums.mappers.MessageTreeMapper.getMessagesCount"
                     )
@@ -42,7 +42,7 @@ public interface ForumMapper {
                     one = @One(
                             select = "net.thumbtack.forums.mappers.MessageMapper.getCommentsCount"
                     )
-            )
+            )*/
     })
     Forum getById(@Param("id") int id);
 
