@@ -7,8 +7,8 @@ import org.apache.ibatis.annotations.*;
 
 public interface TagMapper {
     @Insert("INSERT INTO available_tags (tag_name) VALUES(#{tag.name})")
-    @Options(useGeneratedKeys = true, keyProperty = "tag.id")
-    Integer save(@Param("tag") Tag tag);
+    @Options(useGeneratedKeys = true)
+    Integer save(Tag tag);
 
     @Insert({"INSERT INTO message_tags (tag_id, message_id) ",
             "VALUES(",
@@ -32,13 +32,13 @@ public interface TagMapper {
     void saveMessageForAllTags(@Param("msg") MessageTree message);
 
     @Select("SELECT id, tag_name FROM available_tags WHERE id = #{id}")
-    Tag getById(@Param("id") int id);
+    Tag getById(int id);
 
     @Select("SELECT id, tag_name FROM available_tags WHERE tag_name = #{name}")
-    Tag getByName(@Param("name") String name);
+    Tag getByName(String name);
 
     @Delete("DELETE FROM available_tags WHERE id = #{id}")
-    void deleteById(@Param("id") int id);
+    void deleteById(int id);
 
     @Delete("DELETE FROM available_tags")
     void deleteAll();
