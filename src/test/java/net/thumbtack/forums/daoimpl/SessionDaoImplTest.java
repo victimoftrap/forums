@@ -52,6 +52,24 @@ class SessionDaoImplTest extends DaoTestBase {
     }
 
     @Test
+    void testGetUserBySession() {
+        final User user = new User(
+                UserRole.USER,
+                "shermental", "shermental@gmail.com", "passwd",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user);
+
+        final String token = UUID.randomUUID().toString();
+        final UserSession session = new UserSession(user, token);
+        sessionDao.createSession(session);
+
+        final User foundUser = sessionDao.getUserByToken(token);
+        assertEquals(user, foundUser);
+    }
+
+    @Test
     void testDeleteSession() {
         final User user = new User(
                 UserRole.USER,

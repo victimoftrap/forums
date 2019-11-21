@@ -35,13 +35,27 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
 
     @Override
     public UserSession getSessionByToken(String token) {
-        LOGGER.debug("Getting user session by token {}", token);
+        LOGGER.debug("Getting user session by session token {}", token);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                return getSessionMapper(sqlSession).getByToken(token);
+                return getSessionMapper(sqlSession).getSessionByToken(token);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get user session by token {}", token, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public User getUserByToken(String token) {
+        LOGGER.debug("Getting user by session token {}", token);
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                return getSessionMapper(sqlSession).getUserByToken(token);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get user by session token {}", token, ex);
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }

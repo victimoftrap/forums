@@ -8,6 +8,8 @@ public interface SessionDao {
 
     UserSession getSessionByToken(String token);
 
+    User getUserByToken(String token);
+
     String getSessionToken(User user);
 
     void deleteSession(String token);
