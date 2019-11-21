@@ -1,8 +1,10 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.UserDao;
-import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.exception.ErrorCode;
+import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
@@ -24,12 +26,12 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 LOGGER.info("Unable to save user {} in database", user, ex);
 
                 sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
                 // REVU создайте свой класс исключения и enum ошибок и выбрасывайте его тут вместо проброса ex
                 // throw new ServerException(ErrorCode.DATABASE_ERROR);
                 // можно ex в него завернуть
                 // тогда в обработчике исключения будете ловить его
                 // а RuntimeException останется для всяких непредвиденных исключений
-                throw ex;
             }
             sqlSession.commit();
         }
@@ -45,7 +47,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 return getUserMapper(sqlSession).getById(id);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get user by ID {}", id, ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -59,7 +61,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 return getUserMapper(sqlSession).getByIdAndDeleted(id, deleted);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get user by ID {} from database", id, ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -73,7 +75,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 return getUserMapper(sqlSession).getByName(name);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get user by name {}", name, ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -87,7 +89,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 return getUserMapper(sqlSession).getByNameAndDeleted(name, deleted);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get user by name {} from database", name, ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -101,7 +103,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 return getUserMapper(sqlSession).getAll();
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get users from database", ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -117,7 +119,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 return getUserMapper(sqlSession).getAllAndDeleted(withDeleted);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get users from database", ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -133,7 +135,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 LOGGER.info("Unable to update user {} in database", user, ex);
 
                 sqlSession.rollback();
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
             sqlSession.commit();
         }
@@ -150,7 +152,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 LOGGER.info("Unable to deactivate user by ID {}", id, ex);
 
                 sqlSession.rollback();
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
             sqlSession.commit();
         }
@@ -167,7 +169,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 LOGGER.info("Unable delete all users from database", ex);
 
                 sqlSession.rollback();
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
             sqlSession.commit();
         }

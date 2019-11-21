@@ -1,6 +1,8 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.DebugDao;
+import net.thumbtack.forums.exception.ErrorCode;
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
@@ -20,7 +22,7 @@ public class DebugDaoImpl extends MapperCreatorDao implements DebugDao {
             } catch (RuntimeException e) {
                 LOGGER.info("Unable to clear database", e);
                 session.rollback();
-                throw e;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
             session.commit();
         }

@@ -1,9 +1,11 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.UserSession;
+import net.thumbtack.forums.exception.ErrorCode;
+import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
@@ -25,7 +27,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
                 );
 
                 sqlSession.rollback();
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
             sqlSession.commit();
         }
@@ -33,14 +35,28 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
 
     @Override
     public UserSession getSessionByToken(String token) {
-        LOGGER.debug("Getting user session by token {}", token);
+        LOGGER.debug("Getting user session by session token {}", token);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                return getSessionMapper(sqlSession).getByToken(token);
+                return getSessionMapper(sqlSession).getSessionByToken(token);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get user session by token {}", token, ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public User getUserByToken(String token) {
+        LOGGER.debug("Getting user by session token {}", token);
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                return getSessionMapper(sqlSession).getUserByToken(token);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get user by session token {}", token, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -54,7 +70,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
                 return getSessionMapper(sqlSession).getSessionToken(user);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get session token for user {}", user, ex);
-                throw ex;
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
@@ -68,8 +84,11 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
                 getSessionMapper(sqlSession).deleteByToken(token);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to delete user session by token {}", token, ex);
-                throw ex;
+
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
+            sqlSession.commit();
         }
     }
 }

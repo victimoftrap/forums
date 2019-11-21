@@ -46,6 +46,10 @@ public class Forum {
         this(0, ForumType.valueOf(type), owner, name, createdAt, readonly, messageCount, commentCount);
     }
 
+    public Forum(int id, String type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
+        this(id, ForumType.valueOf(type), owner, name, createdAt, readonly, 0, 0);
+    }
+
     public int getId() {
         return id;
     }

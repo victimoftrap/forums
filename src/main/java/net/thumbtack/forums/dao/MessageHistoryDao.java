@@ -5,9 +5,9 @@ import net.thumbtack.forums.model.HistoryItem;
 import java.util.List;
 
 public interface MessageHistoryDao {
-    Integer save(HistoryItem history);
+    HistoryItem save(HistoryItem history);
 
-    List<HistoryItem> getHistoryOfMessage(int messageId);
+    List<HistoryItem> getHistoryOfMessage(int messageId, boolean allVersions, boolean unpublished);
 
     void update(HistoryItem history);
 

@@ -13,12 +13,12 @@ import java.util.List;
 public interface ForumMapper {
     @Insert("INSERT INTO forums (forum_type, owner_id, name, readonly, created_at) " +
             "VALUES(" +
-            "#{forum.type.name}, #{forum.owner.id}, " +
-            "#{forum.name}, #{forum.readonly}, #{forum.createdAt}" +
+            "#{type.name}, #{owner.id}, " +
+            "#{name}, #{readonly}, #{createdAt}" +
             ")"
     )
-    @Options(useGeneratedKeys = true, keyProperty = "forum.id")
-    Integer save(@Param("forum") Forum forum);
+    @Options(useGeneratedKeys = true)
+    Integer save(Forum forum);
 
     @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums WHERE id = #{id}")
     @Results({
@@ -35,16 +35,22 @@ public interface ForumMapper {
             @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
             @Result(property = "messageCount", column = "id", javaType = Integer.class,
                     one = @One(
-                            select = "net.thumbtack.forums.mappers.MessageTreeMapper.getMessagesCount"
+                            select = "net.thumbtack.forums.mappers.ForumMapper.getPublishedMessagesCountInForum"
                     )
             ),
-            @Result(property = "commentCount", column = "id", javaType = Integer.class,
+            /*@Result(property = "commentCount", column = "id", javaType = Integer.class,
                     one = @One(
                             select = "net.thumbtack.forums.mappers.MessageMapper.getCommentsCount"
                     )
-            )
+            )*/
     })
     Forum getById(@Param("id") int id);
+
+    @Select({"SELECT COUNT(*) FROM message_history WHERE state = 'PUBLISHED' AND message_id IN (",
+            "SELECT root_message FROM messages_tree WHERE forum_id = #{id}",
+            ")"
+    })
+    int getPublishedMessagesCountInForum(@Param("id") int forumId);
 
     @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums")
     @Results({
@@ -74,8 +80,11 @@ public interface ForumMapper {
     })
     List<Forum> getAll();
 
-    @Update("UPDATE forums SET readonly = COALESCE(#{forum.readonly}, readonly)")
+    @Update("UPDATE forums SET readonly = COALESCE(#{forum.readonly}, readonly) WHERE id = #{forum.id}")
     void update(@Param("forum") Forum forum);
+
+    @Update("UPDATE forums SET readonly = TRUE WHERE owner_id = #{user.id}")
+    void madeReadonlyModeratedForumsOf(@Param("user") User user);
 
     @Delete("DELETE FROM forums WHERE id = #{id}")
     void deleteById(@Param("id") int id);
