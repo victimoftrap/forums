@@ -9,11 +9,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MessageHistoryMapper {
-    @Insert("INSERT INTO message_history (message_id, body, state, created_at) " +
-            "VALUES(#{hist.messageId}, #{hist.body}, #{hist.state.name}, #{hist.createdAt})"
+    @Insert("INSERT INTO message_history " +
+            "(message_id, body, state, created_at) " +
+            "VALUES(#{messageId}, #{body}, #{state.name}, #{createdAt})"
     )
-    @Options(useGeneratedKeys = true, keyProperty = "hist.id")
-    Integer save(@Param("hist") HistoryItem history);
+    @Options(useGeneratedKeys = true)
+    Integer save(HistoryItem history);
 
     @Select({"<script>",
             "SELECT message_id, body, state, created_at FROM message_history",
@@ -36,13 +37,20 @@ public interface MessageHistoryMapper {
                                    @Param("unpublished") boolean unpublished
     );
 
-    @Update("UPDATE message_history SET " +
-            "body = COALESCE(#{hist.body}, body), " +
-            "state = COALESCE(#{hist.state.name}, state), " +
-            "created_at = COALESCE(#{hist.createdAt}, created_at) " +
-            "WHERE message_id = #{hist.messageId} AND state = 'UNPUBLISHED'"
+    @Select("SELECT message_id, body, state, created_at " +
+            "FROM message_history " +
+            "WHERE message_id = #{id} " +
+            "ORDER BY created_at DESC"
     )
-    void update(@Param("hist") HistoryItem historyItem); // publish, reject, editUnpublished
+    List<HistoryItem> getByMessageId(@Param("id") int messageId);
+
+    @Update("UPDATE message_history SET " +
+            "body = COALESCE(#{body}, body), " +
+            "state = COALESCE(#{state.name}, state), " +
+            "created_at = COALESCE(#{createdAt}, created_at) " +
+            "WHERE message_id = #{messageId} AND state = 'UNPUBLISHED'"
+    )
+    void update(HistoryItem historyItem); // publish, reject, editUnpublished
 
     @Delete("DELETE FROM message_history WHERE message_id = #{hist.messageId} AND state = 'UNPUBLISHED'")
     void delete(@Param("hist") HistoryItem historyItem);
