@@ -15,6 +15,8 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionDaoImpl.class);
 
     @Override
+    // REVU а если сессия уже есть, то есть был логин, и опять логин без логаута
+    // посмотрите INSERT ON DUPLICATE KEY
     public void createSession(UserSession session) {
         LOGGER.debug("Creating new session for user {}", session.getUser());
 
@@ -62,6 +64,8 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     }
 
     @Override
+    // REVU для отладки ? Иного смысла не вижу
+    // есть юзер - дайте его токен ? Простите, а как он сюда попал без токена ?
     public String getSessionToken(User user) {
         LOGGER.debug("Getting session token for user {}", user);
 

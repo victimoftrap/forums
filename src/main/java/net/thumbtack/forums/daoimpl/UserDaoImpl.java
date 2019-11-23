@@ -53,6 +53,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    // REVU зачем 2 метода. Можно скрипт использовать <if.. AND deleted 
     public User getById(int id, boolean deleted) {
         LOGGER.debug("Getting user that can be deactivated by ID {}", id);
 
@@ -67,6 +68,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    // REVU нужно ли ? Где унас в задаче поиск юзеров по именам ?
     public User getByName(String name) {
         LOGGER.debug("Getting user by name {} from database", name);
 
@@ -81,6 +83,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    // REVU см. выше
     public User getByName(String name, boolean deleted) {
         LOGGER.debug("Getting user that can be deactivated by name {}", name);
 
@@ -109,6 +112,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    // REVU см. выше
     public List<User> getAll(boolean withDeleted) {
         LOGGER.debug(String.format("Getting all %s users from database",
                 withDeleted ? "existing and deleted" : "existing"

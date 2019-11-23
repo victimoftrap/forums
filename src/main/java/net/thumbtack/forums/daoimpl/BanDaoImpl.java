@@ -10,6 +10,8 @@ import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// REVU едва ли стоит ради этого заводить отдельный Dao. В UserDao его. 
+// Тем более, что в UserService все равно придется проверять каждый раз, не забанен ли. 
 public class BanDaoImpl extends MapperCreatorDao implements BanDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(BanDaoImpl.class);
 
