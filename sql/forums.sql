@@ -24,7 +24,8 @@ CREATE TABLE users_sessions(
   user_id       INT(11)  NOT NULL,
   session_token CHAR(36) NOT NULL,
 
-  PRIMARY KEY (user_id, session_token),
+  UNIQUE KEY (user_id),
+  UNIQUE KEY (session_token),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 

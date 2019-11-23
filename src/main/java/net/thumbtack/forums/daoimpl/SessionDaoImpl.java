@@ -15,14 +15,12 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionDaoImpl.class);
 
     @Override
-    // REVU а если сессия уже есть, то есть был логин, и опять логин без логаута
-    // посмотрите INSERT ON DUPLICATE KEY
-    public void createSession(UserSession session) {
+    public void upsertSession(UserSession session) {
         LOGGER.debug("Creating new session for user {}", session.getUser());
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getSessionMapper(sqlSession).save(session);
+                getSessionMapper(sqlSession).upsertSession(session);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to save session token in database {} for user {}",
                         session.getToken(), session.getUser(), ex
@@ -64,22 +62,6 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     }
 
     @Override
-    // REVU для отладки ? Иного смысла не вижу
-    // есть юзер - дайте его токен ? Простите, а как он сюда попал без токена ?
-    public String getSessionToken(User user) {
-        LOGGER.debug("Getting session token for user {}", user);
-
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
-            try {
-                return getSessionMapper(sqlSession).getSessionToken(user);
-            } catch (RuntimeException ex) {
-                LOGGER.info("Unable to get session token for user {}", user, ex);
-                throw new ServerException(ErrorCode.DATABASE_ERROR);
-            }
-        }
-    }
-
-    @Override
     public void deleteSession(String token) {
         LOGGER.debug("Deleting user session by token {}", token);
 
@@ -88,6 +70,23 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
                 getSessionMapper(sqlSession).deleteByToken(token);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to delete user session by token {}", token, ex);
+
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
+
+    @Override
+    public void deleteAll() {
+        LOGGER.debug("Deleting all sessions for all users");
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                getSessionMapper(sqlSession).deleteAll();
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to delete all sessions for users", ex);
 
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
