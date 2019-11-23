@@ -9,9 +9,11 @@ import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component("userDao")
 public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserDaoImpl.class);
 
@@ -27,11 +29,6 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
-                // REVU создайте свой класс исключения и enum ошибок и выбрасывайте его тут вместо проброса ex
-                // throw new ServerException(ErrorCode.DATABASE_ERROR);
-                // можно ex в него завернуть
-                // тогда в обработчике исключения будете ловить его
-                // а RuntimeException останется для всяких непредвиденных исключений
             }
             sqlSession.commit();
         }

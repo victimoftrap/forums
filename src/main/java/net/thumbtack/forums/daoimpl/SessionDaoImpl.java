@@ -10,7 +10,9 @@ import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+@Component("sessionDao")
 public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionDaoImpl.class);
 

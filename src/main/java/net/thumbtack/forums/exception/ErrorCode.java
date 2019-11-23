@@ -1,7 +1,12 @@
 package net.thumbtack.forums.exception;
 
 public enum ErrorCode {
-    DATABASE_ERROR("Error in database occurred");
+    DATABASE_ERROR("Error in database occurred"),
+    USER_WITH_THIS_NAME_EXISTS("User with requested name are already exists"),
+    USER_NOT_FOUND_BY_NAME("User not found by requested name"),
+    USER_PASSWORD_NOT_MATCHES("Requested user password not matches"),
+    WRONG_SESSION_TOKEN("Wrong session token")
+    ;
 
     private String message;
 
