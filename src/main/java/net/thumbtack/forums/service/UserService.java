@@ -8,8 +8,8 @@ import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -18,15 +18,12 @@ import java.util.UUID;
 public class UserService {
     private final UserDao userDao;
     private final SessionDao sessionDao;
-    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public UserService(final UserDao userDao,
-                       final SessionDao sessionDao,
-                       final PasswordEncoder passwordEncoder) {
+                       final SessionDao sessionDao) {
         this.userDao = userDao;
         this.sessionDao = sessionDao;
-        this.passwordEncoder = passwordEncoder;
     }
 
     public UserDtoResponse registerUser(final RegisterUserDtoRequest request) {
@@ -34,8 +31,7 @@ public class UserService {
             throw new ServerException(ErrorCode.USER_WITH_THIS_NAME_EXISTS);
         }
 
-        final String securePassword = passwordEncoder.encode(request.getPassword());
-        final User user = new User(request.getName(), request.getEmail(), securePassword);
+        final User user = new User(request.getName(), request.getEmail(), request.getPassword());
         userDao.save(user);
 
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
@@ -48,7 +44,7 @@ public class UserService {
         if (user == null) {
             throw new ServerException(ErrorCode.USER_NOT_FOUND_BY_NAME);
         }
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!user.getPassword().equals(request.getPassword())) {
             throw new ServerException(ErrorCode.USER_PASSWORD_NOT_MATCHES);
         }
 
@@ -71,12 +67,11 @@ public class UserService {
         if (user == null) {
             throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
         }
-
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+        if (!user.getPassword().equals(request.getOldPassword())) {
             throw new ServerException(ErrorCode.USER_PASSWORD_NOT_MATCHES);
         }
 
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(request.getPassword());
         userDao.update(user);
         return new UserDtoResponse(user.getId(), user.getUsername(), user.getEmail(), sessionToken);
     }

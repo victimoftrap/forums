@@ -14,7 +14,6 @@ import net.thumbtack.forums.exception.ServerException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -28,16 +27,14 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
     private UserDao userDao;
     private SessionDao sessionDao;
-    private PasswordEncoder passwordEncoder;
     private UserService userService;
 
     @BeforeEach
     void initMocks() {
         userDao = mock(UserDao.class);
         sessionDao = mock(SessionDao.class);
-        passwordEncoder = mock(PasswordEncoder.class);
 
-        userService = new UserService(userDao, sessionDao, passwordEncoder);
+        userService = new UserService(userDao, sessionDao);
     }
 
     @Test
@@ -64,8 +61,6 @@ class UserServiceTest {
 
         when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(null);
-        when(passwordEncoder.encode(anyString()))
-                .thenReturn(request.getPassword());
         doAnswer(invocationOnMock -> {
             User user = invocationOnMock.getArgument(0);
             user.setId(createdUser.getId());
@@ -77,14 +72,11 @@ class UserServiceTest {
                 .upsertSession(any(UserSession.class));
 
         final UserDtoResponse actualResponse = userService.registerUser(request);
-
-        verify(userDao, times(1))
+        verify(userDao)
                 .getByName(anyString(), anyBoolean());
-        verify(passwordEncoder, times(1))
-                .encode(anyString());
-        verify(userDao, times(1))
+        verify(userDao)
                 .save(any(User.class));
-        verify(sessionDao, times(1))
+        verify(sessionDao)
                 .upsertSession(any(UserSession.class));
 
         assertEquals(expectedResponse.getId(), actualResponse.getId());
@@ -114,7 +106,6 @@ class UserServiceTest {
 
         verify(userDao, times(2))
                 .getByName(eq(request.getName()), anyBoolean());
-        verifyZeroInteractions(passwordEncoder);
         verifyZeroInteractions(sessionDao);
     }
 
@@ -135,8 +126,10 @@ class UserServiceTest {
             assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
         }
 
-        verify(userDao, times(1))
+        verify(userDao)
                 .getByName(anyString(), anyBoolean());
+        verify(userDao, never())
+                .save(any(User.class));
         verifyZeroInteractions(sessionDao);
     }
 
@@ -159,7 +152,9 @@ class UserServiceTest {
             assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
         }
 
-        verify(userDao, times(1))
+        verify(userDao)
+                .getByName(anyString(), anyBoolean());
+        verify(userDao)
                 .save(any(User.class));
         verifyZeroInteractions(sessionDao);
     }
@@ -184,6 +179,11 @@ class UserServiceTest {
         } catch (ServerException e) {
             assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
         }
+
+        verify(userDao)
+                .getByName(anyString(), anyBoolean());
+        verify(userDao)
+                .save(any(User.class));
     }
 
     @Test
@@ -193,17 +193,16 @@ class UserServiceTest {
 
         when(userDao.getByName(anyString()))
                 .thenReturn(user);
-        when(passwordEncoder.matches(anyString(), anyString()))
-                .thenReturn(true);
         doNothing()
                 .when(sessionDao)
                 .upsertSession(any(UserSession.class));
 
         final UserDtoResponse response = userService.login(request);
 
-        verify(userDao).getByName(anyString());
-        verify(passwordEncoder).matches(anyString(), anyString());
-        verify(sessionDao).upsertSession(any(UserSession.class));
+        verify(userDao)
+                .getByName(anyString());
+        verify(sessionDao)
+                .upsertSession(any(UserSession.class));
 
         assertEquals(user.getId(), response.getId());
         assertEquals(user.getUsername(), response.getName());
@@ -227,20 +226,18 @@ class UserServiceTest {
             assertEquals(ErrorCode.USER_NOT_FOUND_BY_NAME, e.getErrorCode());
         }
 
-        verify(userDao, times(2)).getByName(anyString());
-        verifyZeroInteractions(passwordEncoder);
+        verify(userDao, times(2))
+                .getByName(anyString());
         verifyZeroInteractions(sessionDao);
     }
 
     @Test
     void testLoginUser_requestedPasswordNotMatches_throwsServerException() {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "thirdman");
-        final User user = new User(request.getName(), "white@thirdman.com", request.getPassword());
+        final User user = new User(request.getName(), "white@thirdman.com", "WRONG_PASS");
 
         when(userDao.getByName(anyString()))
                 .thenReturn(user);
-        when(passwordEncoder.matches(anyString(), anyString()))
-                .thenReturn(false);
 
         try {
             userService.login(request);
@@ -249,7 +246,6 @@ class UserServiceTest {
         }
 
         verify(userDao).getByName(anyString());
-        verify(passwordEncoder).matches(anyString(), anyString());
         verifyZeroInteractions(sessionDao);
     }
 
@@ -265,9 +261,9 @@ class UserServiceTest {
                 .deleteSession(anyString());
 
         userService.logout(sessionToken);
-        verify(sessionDao, times(1))
+        verify(sessionDao)
                 .getUserByToken(anyString());
-        verify(sessionDao, times(1))
+        verify(sessionDao)
                 .deleteSession(anyString());
     }
 
@@ -281,8 +277,10 @@ class UserServiceTest {
         } catch (ServerException e) {
             assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
         }
-        verify(sessionDao).getUserByToken(anyString());
-        verify(sessionDao, never()).deleteSession(anyString());
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(sessionDao, never())
+                .deleteSession(anyString());
     }
 
     @Test
@@ -294,10 +292,12 @@ class UserServiceTest {
         try {
             userService.logout(token);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
         }
-        verify(sessionDao).getUserByToken(anyString());
-        verify(sessionDao, never()).deleteSession(anyString());
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(sessionDao, never())
+                .deleteSession(anyString());
     }
 
     @Test
@@ -314,10 +314,10 @@ class UserServiceTest {
         try {
             userService.logout(token);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
         }
         verify(sessionDao).getUserByToken(anyString());
-        verify(sessionDao, never()).deleteSession(anyString());
+        verify(sessionDao).deleteSession(anyString());
     }
 
     @Test
@@ -330,10 +330,6 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
-        when(passwordEncoder.matches(anyString(), anyString()))
-                .thenReturn(true);
-        when(passwordEncoder.encode(anyString()))
-                .thenReturn(request.getPassword());
         doAnswer(invocationOnMock -> {
             User upd = invocationOnMock.getArgument(0);
             upd.setPassword(request.getPassword());
@@ -343,11 +339,10 @@ class UserServiceTest {
                 .update(any(User.class));
 
         final UserDtoResponse response = userService.updatePassword(sessionToken, request);
-
-        verify(sessionDao).getUserByToken(anyString());
-        verify(passwordEncoder).matches(anyString(), anyString());
-        verify(passwordEncoder).encode(anyString());
-        verify(userDao).update(any(User.class));
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .update(any(User.class));
         assertEquals(
                 new UserDtoResponse(user.getId(), user.getUsername(), user.getEmail(), sessionToken),
                 response
@@ -364,8 +359,8 @@ class UserServiceTest {
         } catch (ServerException e) {
             assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
         }
-        verify(sessionDao).getUserByToken(anyString());
-        verifyZeroInteractions(passwordEncoder);
+        verify(sessionDao)
+                .getUserByToken(anyString());
         verifyZeroInteractions(userDao);
     }
 }
