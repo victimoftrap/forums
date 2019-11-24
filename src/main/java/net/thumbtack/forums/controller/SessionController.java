@@ -32,12 +32,12 @@ public class SessionController {
         final UserDtoResponse response = userService.login(request);
         return ResponseEntity
                 .ok()
-                .header(HttpHeaders.SET_COOKIE, "SESSIONID=" + response.getSessionToken())
+                .header(HttpHeaders.SET_COOKIE, "JAVASESSIONID=" + response.getSessionToken())
                 .body(response);
     }
 
     @DeleteMapping("/")
-    public ResponseEntity<EmptyDtoResponse> logout(@CookieValue(value = "SESSIONID") String token) {
+    public ResponseEntity<EmptyDtoResponse> logout(@CookieValue(value = "JAVASESSIONID") String token) {
         return ResponseEntity
                 .ok(userService.logout(token));
     }

@@ -1,13 +1,10 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.dto.*;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.dao.UserDao;
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.dto.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.UserDtoResponse;
-import net.thumbtack.forums.dto.LoginUserDtoRequest;
-import net.thumbtack.forums.dto.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
@@ -67,5 +64,20 @@ public class UserService {
         }
         sessionDao.deleteSession(sessionToken);
         return new EmptyDtoResponse();
+    }
+
+    public UserDtoResponse updatePassword(final String sessionToken, final UpdatePasswordDtoRequest request) {
+        final User user = sessionDao.getUserByToken(sessionToken);
+        if (user == null) {
+            throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
+        }
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new ServerException(ErrorCode.USER_PASSWORD_NOT_MATCHES);
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        userDao.update(user);
+        return new UserDtoResponse(user.getId(), user.getUsername(), user.getEmail(), sessionToken);
     }
 }
