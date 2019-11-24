@@ -9,6 +9,7 @@ import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
+import net.thumbtack.forums.model.enums.UserRole;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -74,5 +75,24 @@ public class UserService {
         user.setPassword(request.getPassword());
         userDao.update(user);
         return new UserDtoResponse(user.getId(), user.getUsername(), user.getEmail(), sessionToken);
+    }
+
+    public EmptyDtoResponse madeSuperuser(final String sessionToken, final int userId) {
+        final User user = sessionDao.getUserByToken(sessionToken);
+        if (user == null) {
+            throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
+        }
+        if (user.getRole() != UserRole.SUPERUSER) {
+            throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
+        }
+
+        final User dependentUser = userDao.getById(userId);
+        if (dependentUser == null) {
+            throw new ServerException(ErrorCode.USER_NOT_FOUND_BY_ID);
+        }
+
+        dependentUser.setRole(UserRole.SUPERUSER);
+        userDao.update(dependentUser);
+        return new EmptyDtoResponse();
     }
 }
