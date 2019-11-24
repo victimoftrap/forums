@@ -8,6 +8,7 @@ import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dto.UserDtoResponse;
 import net.thumbtack.forums.dto.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.LoginUserDtoRequest;
+import net.thumbtack.forums.dto.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,11 +41,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser() throws Exception {
+    void testRegisterUser() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "jolybell",
-                "ahoi@jolybell.com",
-                "password123"
+                "jolybell", "ahoi@jolybell.com", "password123"
         );
         final User createdUser = new User(
                 1,
@@ -105,10 +105,7 @@ class UserServiceTest {
         when(userDao.getByName(eq(request.getName()), anyBoolean()))
                 .thenThrow(new ServerException(ErrorCode.USER_WITH_THIS_NAME_EXISTS));
 
-        assertThrows(ServerException.class,
-                () -> userService.registerUser(request)
-        );
-
+        assertThrows(ServerException.class, () -> userService.registerUser(request));
         try {
             userService.registerUser(request);
         } catch (ServerException e) {
@@ -191,15 +188,8 @@ class UserServiceTest {
 
     @Test
     void testLoginUser() {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest(
-                "while",
-                "thirdman"
-        );
-        final User user = new User(
-                request.getName(),
-                "white@thirdman.com",
-                request.getPassword()
-        );
+        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "thirdman");
+        final User user = new User(request.getName(), "white@thirdman.com", request.getPassword());
 
         when(userDao.getByName(anyString()))
                 .thenReturn(user);
@@ -221,11 +211,8 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_userNotFound_throwsException() {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest(
-                "while",
-                "thirdman"
-        );
+    void testLoginUser_userNotFound_throwsServerException() {
+        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "thirdman");
         when(userDao.getByName(anyString()))
                 .thenReturn(null);
         when(userDao.getByName(anyString()))
@@ -246,16 +233,9 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_requestedPasswordNotMatches_throwsException() {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest(
-                "while",
-                "thirdman"
-        );
-        final User user = new User(
-                request.getName(),
-                "white@thirdman.com",
-                request.getPassword()
-        );
+    void testLoginUser_requestedPasswordNotMatches_throwsServerException() {
+        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "thirdman");
+        final User user = new User(request.getName(), "white@thirdman.com", request.getPassword());
 
         when(userDao.getByName(anyString()))
                 .thenReturn(user);
@@ -276,11 +256,7 @@ class UserServiceTest {
     @Test
     void testLogoutUser() {
         final String sessionToken = "token";
-        final User user = new User(
-                "alvvays",
-                "aloha@alvvays.ca",
-                "dives"
-        );
+        final User user = new User("alvvays", "aloha@alvvays.ca", "dives");
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
@@ -289,10 +265,107 @@ class UserServiceTest {
                 .deleteSession(anyString());
 
         userService.logout(sessionToken);
-
         verify(sessionDao, times(1))
                 .getUserByToken(anyString());
         verify(sessionDao, times(1))
                 .deleteSession(anyString());
+    }
+
+    @Test
+    void testLogoutUser_userNotFoundByToken_throwsServerException() {
+        final String sessionToken = "token";
+        when(sessionDao.getUserByToken(anyString())).thenReturn(null);
+
+        try {
+            userService.logout(sessionToken);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+        }
+        verify(sessionDao).getUserByToken(anyString());
+        verify(sessionDao, never()).deleteSession(anyString());
+    }
+
+    @Test
+    void testLogoutUser_onGetSessionDatabaseError_throwsServerException() {
+        final String token = "token";
+        when(sessionDao.getUserByToken(anyString()))
+                .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
+
+        try {
+            userService.logout(token);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+        }
+        verify(sessionDao).getUserByToken(anyString());
+        verify(sessionDao, never()).deleteSession(anyString());
+    }
+
+    @Test
+    void testLogoutUser_onDeleteSessionDatabaseError_throwsServerException() {
+        final String token = "token";
+        final User user = new User(
+                "alvvays", "aloha@alvvays.ca", "dives");
+
+        when(sessionDao.getUserByToken(anyString())).thenReturn(user);
+        doThrow(new ServerException(ErrorCode.DATABASE_ERROR))
+                .when(sessionDao)
+                .deleteSession(anyString());
+
+        try {
+            userService.logout(token);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+        }
+        verify(sessionDao).getUserByToken(anyString());
+        verify(sessionDao, never()).deleteSession(anyString());
+    }
+
+    @Test
+    void testUpdatePassword() {
+        final String sessionToken = UUID.randomUUID().toString();
+        final User user = new User("alvvays", "aloha@alvvays.ca", "dives");
+        final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
+                user.getUsername(), user.getPassword(), "new-password"
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(passwordEncoder.matches(anyString(), anyString()))
+                .thenReturn(true);
+        when(passwordEncoder.encode(anyString()))
+                .thenReturn(request.getPassword());
+        doAnswer(invocationOnMock -> {
+            User upd = invocationOnMock.getArgument(0);
+            upd.setPassword(request.getPassword());
+            return upd;
+        })
+                .when(userDao)
+                .update(any(User.class));
+
+        final UserDtoResponse response = userService.updatePassword(sessionToken, request);
+
+        verify(sessionDao).getUserByToken(anyString());
+        verify(passwordEncoder).matches(anyString(), anyString());
+        verify(passwordEncoder).encode(anyString());
+        verify(userDao).update(any(User.class));
+        assertEquals(
+                new UserDtoResponse(user.getId(), user.getUsername(), user.getEmail(), sessionToken),
+                response
+        );
+    }
+
+    @Test
+    void testUpdatePassword_userNotFoundByToken_throwsServerException() {
+        final String sessionToken = "token";
+        when(sessionDao.getUserByToken(anyString())).thenReturn(null);
+
+        try {
+            userService.logout(sessionToken);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+        }
+        verify(sessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(passwordEncoder);
+        verifyZeroInteractions(userDao);
     }
 }
