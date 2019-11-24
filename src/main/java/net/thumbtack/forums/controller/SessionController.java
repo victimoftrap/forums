@@ -24,7 +24,6 @@ public class SessionController {
     }
 
     @PostMapping(
-            value = "/",
             produces = MediaType.APPLICATION_JSON_VALUE,
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
@@ -36,7 +35,7 @@ public class SessionController {
                 .body(response);
     }
 
-    @DeleteMapping("/")
+    @DeleteMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<EmptyDtoResponse> logout(@CookieValue(value = "JAVASESSIONID") String token) {
         return ResponseEntity
                 .ok(userService.logout(token));
