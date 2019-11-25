@@ -39,7 +39,7 @@ class SessionControllerTest {
 
     @Test
     void testLogin() throws Exception {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest("till", "hallomann");
+        final LoginUserDtoRequest request = new LoginUserDtoRequest("till", "strong_password");
         final UserDtoResponse response = new UserDtoResponse(
                 12,
                 request.getName(),

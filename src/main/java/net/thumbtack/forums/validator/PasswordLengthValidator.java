@@ -5,16 +5,16 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@Component("passwordValidator")
-public class PasswordValidator {
+@Component("passwordLengthValidator")
+public class PasswordLengthValidator {
     private final ServerConfigurationProperties properties;
 
     @Autowired
-    public PasswordValidator(ServerConfigurationProperties properties) {
+    public PasswordLengthValidator(final ServerConfigurationProperties properties) {
         this.properties = properties;
     }
 
-    public boolean validate(final String password) {
+    public boolean isValid(final String password) {
         return password.length() >= properties.getMinPasswordLength();
     }
 }

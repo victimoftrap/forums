@@ -12,6 +12,8 @@ import net.thumbtack.forums.dto.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
+import net.thumbtack.forums.validator.PasswordLengthValidator;
+import net.thumbtack.forums.validator.UsernameLengthValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,14 +29,18 @@ import static org.mockito.Mockito.*;
 class UserServiceTest {
     private UserDao userDao;
     private SessionDao sessionDao;
+    private UsernameLengthValidator usernameLengthValidator;
+    private PasswordLengthValidator passwordLengthValidator;
     private UserService userService;
 
     @BeforeEach
     void initMocks() {
         userDao = mock(UserDao.class);
         sessionDao = mock(SessionDao.class);
+        usernameLengthValidator = mock(UsernameLengthValidator.class);
+        passwordLengthValidator = mock(PasswordLengthValidator.class);
 
-        userService = new UserService(userDao, sessionDao);
+        userService = new UserService(userDao, sessionDao, usernameLengthValidator, passwordLengthValidator);
     }
 
     @Test
@@ -61,6 +67,10 @@ class UserServiceTest {
 
         when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(null);
+        when(usernameLengthValidator.isValid(anyString()))
+                .thenReturn(true);
+        when(passwordLengthValidator.isValid(anyString()))
+                .thenReturn(true);
         doAnswer(invocationOnMock -> {
             User user = invocationOnMock.getArgument(0);
             user.setId(createdUser.getId());
@@ -74,6 +84,10 @@ class UserServiceTest {
         final UserDtoResponse actualResponse = userService.registerUser(request);
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
+        verify(usernameLengthValidator)
+                .isValid(anyString());
+        verify(passwordLengthValidator)
+                .isValid(anyString());
         verify(userDao)
                 .save(any(User.class));
         verify(sessionDao)
@@ -110,6 +124,46 @@ class UserServiceTest {
     }
 
     @Test
+    void testRegisterUser_usernameTooLarge_throwsServerException() {
+        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+                "01234567890123456789012345678901234567890123456789.haha",
+                "ahoi@jolybell.com",
+                "password123"
+        );
+        when(userDao.getByName(anyString(), anyBoolean()))
+                .thenReturn(null);
+        when(usernameLengthValidator.isValid(eq(request.getName())))
+                .thenReturn(false);
+
+        try {
+            userService.registerUser(request);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
+        }
+    }
+
+    @Test
+    void testRegisterUser_passwordTooShort_throwsServerException() {
+        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+                "jolygolf",
+                "ahoi@jolybell.com",
+                "a"
+        );
+        when(userDao.getByName(anyString(), anyBoolean()))
+                .thenReturn(null);
+        when(usernameLengthValidator.isValid(eq(request.getName())))
+                .thenReturn(true);
+        when(passwordLengthValidator.isValid(eq(request.getPassword())))
+                .thenReturn(false);
+
+        try {
+            userService.registerUser(request);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
+        }
+    }
+
+    @Test
     void testRegisterUser_onGetUserDatabaseError_throwsServerException() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
@@ -143,6 +197,10 @@ class UserServiceTest {
 
         when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(null);
+        when(usernameLengthValidator.isValid(anyString()))
+                .thenReturn(true);
+        when(passwordLengthValidator.isValid(anyString()))
+                .thenReturn(true);
         when(userDao.save(any(User.class)))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
 
@@ -154,6 +212,10 @@ class UserServiceTest {
 
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
+        verify(usernameLengthValidator)
+                .isValid(anyString());
+        verify(passwordLengthValidator)
+                .isValid(anyString());
         verify(userDao)
                 .save(any(User.class));
         verifyZeroInteractions(sessionDao);
@@ -169,6 +231,10 @@ class UserServiceTest {
 
         when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(null);
+        when(usernameLengthValidator.isValid(anyString()))
+                .thenReturn(true);
+        when(passwordLengthValidator.isValid(anyString()))
+                .thenReturn(true);
         when(userDao.save(any(User.class)))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
         doThrow(new ServerException(ErrorCode.DATABASE_ERROR))
@@ -182,13 +248,17 @@ class UserServiceTest {
 
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
+        verify(usernameLengthValidator)
+                .isValid(anyString());
+        verify(passwordLengthValidator)
+                .isValid(anyString());
         verify(userDao)
                 .save(any(User.class));
     }
 
     @Test
     void testLoginUser() {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "thirdman");
+        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
         final User user = new User(request.getName(), "white@thirdman.com", request.getPassword());
 
         when(userDao.getByName(anyString()))
@@ -211,7 +281,7 @@ class UserServiceTest {
 
     @Test
     void testLoginUser_userNotFound_throwsServerException() {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "thirdman");
+        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
         when(userDao.getByName(anyString()))
                 .thenReturn(null);
         when(userDao.getByName(anyString()))
@@ -233,8 +303,8 @@ class UserServiceTest {
 
     @Test
     void testLoginUser_requestedPasswordNotMatches_throwsServerException() {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "thirdman");
-        final User user = new User(request.getName(), "white@thirdman.com", "WRONG_PASS");
+        final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "correct_password");
+        final User user = new User(request.getName(), "white@thirdman.com", "INCORRECT_password");
 
         when(userDao.getByName(anyString()))
                 .thenReturn(user);
@@ -252,7 +322,7 @@ class UserServiceTest {
     @Test
     void testLogoutUser() {
         final String sessionToken = "token";
-        final User user = new User("alvvays", "aloha@alvvays.ca", "dives");
+        final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
@@ -304,7 +374,7 @@ class UserServiceTest {
     void testLogoutUser_onDeleteSessionDatabaseError_throwsServerException() {
         final String token = "token";
         final User user = new User(
-                "alvvays", "aloha@alvvays.ca", "dives");
+                "alvvays", "aloha@alvvays.ca", "password123");
 
         when(sessionDao.getUserByToken(anyString())).thenReturn(user);
         doThrow(new ServerException(ErrorCode.DATABASE_ERROR))
@@ -323,13 +393,15 @@ class UserServiceTest {
     @Test
     void testUpdatePassword() {
         final String sessionToken = UUID.randomUUID().toString();
-        final User user = new User("alvvays", "aloha@alvvays.ca", "dives");
+        final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
-                user.getUsername(), user.getPassword(), "new-password"
+                user.getUsername(), user.getPassword(), "new-password-123"
         );
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
+        when(passwordLengthValidator.isValid(eq(request.getPassword())))
+                .thenReturn(true);
         doAnswer(invocationOnMock -> {
             User upd = invocationOnMock.getArgument(0);
             upd.setPassword(request.getPassword());
@@ -341,6 +413,8 @@ class UserServiceTest {
         final UserDtoResponse response = userService.updatePassword(sessionToken, request);
         verify(sessionDao)
                 .getUserByToken(anyString());
+        verify(passwordLengthValidator)
+                .isValid(anyString());
         verify(userDao)
                 .update(any(User.class));
         assertEquals(
@@ -362,5 +436,29 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(anyString());
         verifyZeroInteractions(userDao);
+    }
+
+    @Test
+    void testUpdatePassword_passwordTooShort_throwsServerException() {
+        final String sessionToken = UUID.randomUUID().toString();
+        final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
+        final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
+                user.getUsername(), user.getPassword(), "short!"
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(passwordLengthValidator.isValid(eq(request.getPassword())))
+                .thenReturn(false);
+
+        try {
+            userService.updatePassword(sessionToken, request);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
+        }
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(passwordLengthValidator)
+                .isValid(anyString());
     }
 }
