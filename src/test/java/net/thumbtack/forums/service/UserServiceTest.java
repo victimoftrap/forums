@@ -280,6 +280,31 @@ class UserServiceTest {
     }
 
     @Test
+    void testLoginUser_loginWithCaseInsensitiveName_successfullyLogin() {
+        final LoginUserDtoRequest request = new LoginUserDtoRequest(
+                "kAElThaS", "animation_scientist"
+        );
+        final User user = new User("kaelthas", "kulthas@gmail.com", request.getPassword());
+
+        when(userDao.getByName(anyString()))
+                .thenReturn(user);
+        doNothing()
+                .when(sessionDao)
+                .upsertSession(any(UserSession.class));
+
+        final UserDtoResponse response = userService.login(request);
+
+        verify(userDao)
+                .getByName(anyString());
+        verify(sessionDao)
+                .upsertSession(any(UserSession.class));
+
+        assertEquals(user.getId(), response.getId());
+        assertEquals(user.getUsername(), response.getName());
+        assertEquals(user.getEmail(), response.getEmail());
+    }
+
+    @Test
     void testLoginUser_userNotFound_throwsServerException() {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
         when(userDao.getByName(anyString()))
