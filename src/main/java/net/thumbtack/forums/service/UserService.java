@@ -6,12 +6,12 @@ import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.dto.*;
 import net.thumbtack.forums.dao.UserDao;
 import net.thumbtack.forums.dao.SessionDao;
+import net.thumbtack.forums.validator.PasswordLengthValidator;
+import net.thumbtack.forums.validator.UsernameLengthValidator;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
-import net.thumbtack.forums.validator.PasswordLengthValidator;
-import net.thumbtack.forums.validator.UsernameLengthValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,7 @@ public class UserService {
 
     public UserDtoResponse registerUser(final RegisterUserDtoRequest request) {
         if (userDao.getByName(request.getName(), true) != null) {
-            throw new ServerException(ErrorCode.USER_WITH_THIS_NAME_EXISTS);
+            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
         }
         if (!usernameLengthValidator.isValid(request.getName()) ||
                 !passwordLengthValidator.isValid(request.getPassword())) {
@@ -55,10 +55,10 @@ public class UserService {
     public UserDtoResponse login(final LoginUserDtoRequest request) {
         final User user = userDao.getByName(request.getName());
         if (user == null) {
-            throw new ServerException(ErrorCode.USER_NOT_FOUND_BY_NAME);
+            throw new ServerException(ErrorCode.USER_NOT_FOUND);
         }
         if (!user.getPassword().equals(request.getPassword())) {
-            throw new ServerException(ErrorCode.USER_PASSWORD_NOT_MATCHES);
+            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
         }
 
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
@@ -84,7 +84,7 @@ public class UserService {
             throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
         }
         if (!user.getPassword().equals(request.getOldPassword())) {
-            throw new ServerException(ErrorCode.USER_PASSWORD_NOT_MATCHES);
+            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
         }
 
         user.setPassword(request.getPassword());
@@ -103,7 +103,7 @@ public class UserService {
 
         final User dependentUser = userDao.getById(userId);
         if (dependentUser == null) {
-            throw new ServerException(ErrorCode.USER_NOT_FOUND_BY_ID);
+            throw new ServerException(ErrorCode.USER_NOT_FOUND);
         }
 
         dependentUser.setRole(UserRole.SUPERUSER);

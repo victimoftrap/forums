@@ -107,15 +107,15 @@ class UserServiceTest {
         );
 
         when(userDao.getByName(eq(request.getName()), anyBoolean()))
-                .thenThrow(new ServerException(ErrorCode.USER_WITH_THIS_NAME_EXISTS));
+                .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA));
         when(userDao.getByName(eq(request.getName()), anyBoolean()))
-                .thenThrow(new ServerException(ErrorCode.USER_WITH_THIS_NAME_EXISTS));
+                .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA));
 
         assertThrows(ServerException.class, () -> userService.registerUser(request));
         try {
             userService.registerUser(request);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.USER_WITH_THIS_NAME_EXISTS, e.getErrorCode());
+            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
         }
 
         verify(userDao, times(2))
@@ -318,7 +318,7 @@ class UserServiceTest {
         try {
             userService.login(request);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.USER_NOT_FOUND_BY_NAME, e.getErrorCode());
+            assertEquals(ErrorCode.USER_NOT_FOUND, e.getErrorCode());
         }
 
         verify(userDao, times(2))
@@ -337,7 +337,7 @@ class UserServiceTest {
         try {
             userService.login(request);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.USER_PASSWORD_NOT_MATCHES, e.getErrorCode());
+            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
         }
 
         verify(userDao).getByName(anyString());
