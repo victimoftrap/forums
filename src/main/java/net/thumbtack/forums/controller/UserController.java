@@ -56,7 +56,11 @@ public class UserController {
     )
     public ResponseEntity<UserDtoResponse> updatePassword(
             @CookieValue(value = COOKIE_NAME) String token,
-            @RequestBody @Valid UpdatePasswordDtoRequest request) {
+            @RequestBody @Valid UpdatePasswordDtoRequest request,
+            HttpServletResponse response) {
+        final Cookie sessionCookie = new Cookie(COOKIE_NAME, token);
+        sessionCookie.setHttpOnly(true);
+        response.addCookie(sessionCookie);
         return ResponseEntity.ok(userService.updatePassword(token, request));
     }
 

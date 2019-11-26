@@ -9,7 +9,7 @@ public class UsernamePatternValidator implements ConstraintValidator<UsernamePat
 
     @Override
     public void initialize(UsernamePattern constraintAnnotation) {
-        final String usernameRegex = "^\\p{Alpha}\\p{Digit}\\p{IsCyrillic}]+$";
+        final String usernameRegex = "^[\\p{Alpha}\\p{Digit}\\p{IsCyrillic}]+$";
         usernamePattern = Pattern.compile(usernameRegex);
     }
 
