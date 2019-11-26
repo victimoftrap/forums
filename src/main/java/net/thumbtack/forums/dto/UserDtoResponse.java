@@ -1,9 +1,11 @@
 package net.thumbtack.forums.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.Objects;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserDtoResponse {
     private int id;
     private String name;

@@ -10,12 +10,16 @@ import net.thumbtack.forums.validator.PasswordLengthValidator;
 import net.thumbtack.forums.validator.UsernameLengthValidator;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.Month;
 
 @Service("userService")
 public class UserService {
@@ -23,16 +27,19 @@ public class UserService {
     private final SessionDao sessionDao;
     private final UsernameLengthValidator usernameLengthValidator;
     private final PasswordLengthValidator passwordLengthValidator;
+    private final ServerConfigurationProperties properties;
 
     @Autowired
     public UserService(final UserDao userDao,
                        final SessionDao sessionDao,
                        final UsernameLengthValidator usernameLengthValidator,
-                       final PasswordLengthValidator passwordLengthValidator) {
+                       final PasswordLengthValidator passwordLengthValidator,
+                       final ServerConfigurationProperties properties) {
         this.userDao = userDao;
         this.sessionDao = sessionDao;
         this.usernameLengthValidator = usernameLengthValidator;
         this.passwordLengthValidator = passwordLengthValidator;
+        this.properties = properties;
     }
 
     public UserDtoResponse registerUser(final RegisterUserDtoRequest request) {
@@ -50,6 +57,19 @@ public class UserService {
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
         sessionDao.upsertSession(session);
         return new UserDtoResponse(user.getId(), user.getUsername(), user.getEmail(), session.getToken());
+    }
+
+    public EmptyDtoResponse deleteUser(final String sessionToken) {
+        final User user = sessionDao.getUserByToken(sessionToken);
+        if (user == null) {
+            throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
+        }
+
+        // TODO made readonly user forums
+        user.setDeleted(true);
+        sessionDao.deleteSession(sessionToken);
+        userDao.deactivateById(user.getId());
+        return new EmptyDtoResponse();
     }
 
     public UserDtoResponse login(final LoginUserDtoRequest request) {
@@ -107,7 +127,40 @@ public class UserService {
         }
 
         dependentUser.setRole(UserRole.SUPERUSER);
+        dependentUser.setBannedUntil(null);
         userDao.update(dependentUser);
+        return new EmptyDtoResponse();
+    }
+
+    public EmptyDtoResponse banUser(final String sessionToken, final int restrictedUserId) {
+        final User user = sessionDao.getUserByToken(sessionToken);
+        if (user == null) {
+            throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
+        }
+        if (user.getRole() != UserRole.SUPERUSER) {
+            throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
+        }
+
+        final User restrictedUser = userDao.getById(restrictedUserId);
+        if (restrictedUser == null) {
+            throw new ServerException(ErrorCode.USER_NOT_FOUND);
+        }
+        if (restrictedUser.getRole() == UserRole.SUPERUSER) {
+            throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
+        }
+
+        final LocalDateTime banTime;
+        final int banCount;
+        if (restrictedUser.getBanCount() < properties.getMaxBanCount()) {
+            banTime = LocalDateTime.now().plus(properties.getBanTime(), ChronoUnit.DAYS);
+            banCount = user.getBanCount() + 1;
+        } else {
+            banTime = LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0);
+            banCount = user.getBanCount();
+        }
+        user.setBannedUntil(banTime);
+        user.setBanCount(banCount);
+        userDao.update(user);
         return new EmptyDtoResponse();
     }
 }
