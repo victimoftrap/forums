@@ -1,12 +1,14 @@
 package net.thumbtack.forums.dto;
 
-import javax.validation.constraints.NotBlank;
+import net.thumbtack.forums.validator.PasswordPattern;
+import net.thumbtack.forums.validator.UsernamePattern;
+
 import java.util.Objects;
 
 public class LoginUserDtoRequest {
-    @NotBlank
+    @UsernamePattern
     private String name;
-    @NotBlank
+    @PasswordPattern
     private String password;
 
     public LoginUserDtoRequest(String name, String password) {
