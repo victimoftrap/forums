@@ -1,13 +1,12 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.exception.RequestFieldName;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.dto.*;
 import net.thumbtack.forums.dao.UserDao;
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.validator.PasswordLengthValidator;
-import net.thumbtack.forums.validator.UsernameLengthValidator;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
@@ -25,30 +24,20 @@ import java.time.Month;
 public class UserService {
     private final UserDao userDao;
     private final SessionDao sessionDao;
-    private final UsernameLengthValidator usernameLengthValidator;
-    private final PasswordLengthValidator passwordLengthValidator;
     private final ServerConfigurationProperties properties;
 
     @Autowired
     public UserService(final UserDao userDao,
                        final SessionDao sessionDao,
-                       final UsernameLengthValidator usernameLengthValidator,
-                       final PasswordLengthValidator passwordLengthValidator,
                        final ServerConfigurationProperties properties) {
         this.userDao = userDao;
         this.sessionDao = sessionDao;
-        this.usernameLengthValidator = usernameLengthValidator;
-        this.passwordLengthValidator = passwordLengthValidator;
         this.properties = properties;
     }
 
     public UserDtoResponse registerUser(final RegisterUserDtoRequest request) {
         if (userDao.getByName(request.getName(), true) != null) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
-        }
-        if (!usernameLengthValidator.isValid(request.getName()) ||
-                !passwordLengthValidator.isValid(request.getPassword())) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
+            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.USERNAME);
         }
 
         final User user = new User(request.getName(), request.getEmail(), request.getPassword());
@@ -75,10 +64,10 @@ public class UserService {
     public UserDtoResponse login(final LoginUserDtoRequest request) {
         final User user = userDao.getByName(request.getName());
         if (user == null) {
-            throw new ServerException(ErrorCode.USER_NOT_FOUND);
+            throw new ServerException(ErrorCode.USER_NOT_FOUND, RequestFieldName.USERNAME);
         }
         if (!user.getPassword().equals(request.getPassword())) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
+            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.PASSWORD);
         }
 
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
@@ -100,11 +89,8 @@ public class UserService {
         if (user == null) {
             throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
         }
-        if (!passwordLengthValidator.isValid(request.getPassword())) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
-        }
         if (!user.getPassword().equals(request.getOldPassword())) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA);
+            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.OLD_PASSWORD);
         }
 
         user.setPassword(request.getPassword());

@@ -1,15 +1,15 @@
 package net.thumbtack.forums.validator;
 
-import java.lang.annotation.*;
 import javax.validation.Constraint;
 import javax.validation.Payload;
+import java.lang.annotation.*;
 
 @Documented
-@Constraint(validatedBy = UsernamePatternValidator.class)
+@Constraint(validatedBy = PasswordPatternValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface UsernamePattern {
-    String message() default "username must contain only latin or cyrillic letters or digits and shorter than %s symbols";
+public @interface PasswordPattern {
+    String message() default "password must be not blank and longer than %s symbols";
 
     Class<?>[] groups() default {};
 
