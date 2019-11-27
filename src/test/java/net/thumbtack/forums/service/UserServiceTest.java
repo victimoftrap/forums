@@ -16,15 +16,16 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+import java.time.Month;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 class UserServiceTest {
     private UserDao userDao;
@@ -36,6 +37,7 @@ class UserServiceTest {
     void initMocks() {
         userDao = mock(UserDao.class);
         sessionDao = mock(SessionDao.class);
+        properties = mock(ServerConfigurationProperties.class);
         userService = new UserService(userDao, sessionDao, properties);
     }
 
@@ -87,7 +89,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser_userWithRequestedNameExists_throwsServerException() {
+    void testRegisterUser_userWithRequestedNameExists_shouldThrowException() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
                 "ahoi@jolybell.com",
@@ -112,7 +114,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser_onGetUserDatabaseError_throwsServerException() {
+    void testRegisterUser_onGetUserDatabaseError_shouldThrowException() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
                 "ahoi@jolybell.com",
@@ -136,7 +138,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser_onSaveUserDatabaseError_throwsServerException() {
+    void testRegisterUser_onSaveUserDatabaseError_shouldThrowException() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
                 "ahoi@jolybell.com",
@@ -162,7 +164,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser_onSaveSessionDatabaseError_throwsServerException() {
+    void testRegisterUser_onSaveSessionDatabaseError_shouldThrowException() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
                 "ahoi@jolybell.com",
@@ -216,7 +218,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testDeleteUser_userNotFoundByToken_shouldThrowSeverException() {
+    void testDeleteUser_userNotFoundByToken_shouldThrowException() {
         final String token = "token";
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(null);
@@ -258,7 +260,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_loginWithCaseInsensitiveName_successfullyLogin() {
+    void testLoginUser_loginWithCaseInsensitiveName_shouldSuccessfullyLogin() {
         final LoginUserDtoRequest request = new LoginUserDtoRequest(
                 "kAElThaS", "animation_scientist"
         );
@@ -283,7 +285,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_userNotFound_throwsServerException() {
+    void testLoginUser_userNotFound_shouldThrowException() {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
         when(userDao.getByName(anyString()))
                 .thenReturn(null);
@@ -305,7 +307,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_requestedPasswordNotMatches_throwsServerException() {
+    void testLoginUser_requestedPasswordNotMatches_shouldThrowException() {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "correct_password");
         final User user = new User(request.getName(), "white@thirdman.com", "INCORRECT_password");
 
@@ -341,7 +343,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLogoutUser_userNotFoundByToken_throwsServerException() {
+    void testLogoutUser_userNotFoundByToken_shouldThrowException() {
         final String sessionToken = "token";
         when(sessionDao.getUserByToken(anyString())).thenReturn(null);
 
@@ -357,7 +359,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLogoutUser_onGetSessionDatabaseError_throwsServerException() {
+    void testLogoutUser_onGetSessionDatabaseError_shouldThrowException() {
         final String token = "token";
         when(sessionDao.getUserByToken(anyString()))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
@@ -374,7 +376,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLogoutUser_onDeleteSessionDatabaseError_throwsServerException() {
+    void testLogoutUser_onDeleteSessionDatabaseError_shouldThrowException() {
         final String token = "token";
         final User user = new User(
                 "alvvays", "aloha@alvvays.ca", "password123");
@@ -423,7 +425,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdatePassword_userNotFoundByToken_throwsServerException() {
+    void testUpdatePassword_userNotFoundByToken_shouldThrowException() {
         final String sessionToken = "token";
         when(sessionDao.getUserByToken(anyString())).thenReturn(null);
 
@@ -438,7 +440,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdatePassword_passwordTooShort_throwsServerException() {
+    void testUpdatePassword_passwordTooShort_shouldThrowException() {
         final String sessionToken = UUID.randomUUID().toString();
         final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
@@ -483,6 +485,46 @@ class UserServiceTest {
                 .update(any(User.class));
 
         userService.madeSuperuser(sessionToken, user.getId());
+        assertEquals(UserRole.SUPERUSER, user.getRole());
+
+        verify(sessionDao)
+                .getUserByToken(eq(sessionToken));
+        verify(userDao)
+                .getById(anyInt());
+        verify(userDao)
+                .update(any(User.class));
+    }
+
+    @Test
+    void testMadeSuperuser_userWasBanned_shouldUnbanUserAndMadeSuperuser() {
+        final String sessionToken = UUID.randomUUID().toString();
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final User user = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                LocalDateTime.now().plus(3, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS),
+                2
+        );
+
+        when(sessionDao.getUserByToken(eq(sessionToken)))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt()))
+                .thenReturn(user);
+        doAnswer(invocationOnMock -> {
+            User upd = invocationOnMock.getArgument(0);
+            upd.setRole(UserRole.SUPERUSER);
+            upd.setBannedUntil(null);
+            return upd;
+        })
+                .when(userDao)
+                .update(any(User.class));
+
+        userService.madeSuperuser(sessionToken, user.getId());
+        assertEquals(UserRole.SUPERUSER, user.getRole());
+        assertNull(user.getBannedUntil());
 
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
@@ -559,6 +601,180 @@ class UserServiceTest {
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
                 .getById(anyInt());
+        verify(userDao, never())
+                .update(any(User.class));
+    }
+
+    @Test
+    void testBanUser() {
+        final String token = "token";
+        final int banTime = 7;
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt()))
+                .thenReturn(bannedUser);
+        when(properties.getMaxBanCount())
+                .thenReturn(5);
+        when(properties.getBanTime())
+                .thenReturn(banTime);
+        doNothing()
+                .when(userDao)
+                .update(any(User.class));
+
+        userService.banUser(token, bannedUser.getId());
+        assertEquals(1, bannedUser.getBanCount());
+        assertNotNull(bannedUser.getBannedUntil());
+
+        verify(sessionDao).getUserByToken(anyString());
+        verify(userDao).getById(anyInt());
+        verify(properties).getMaxBanCount();
+        verify(properties).getBanTime();
+        verify(userDao).update(any(User.class));
+    }
+
+    @Test
+    void testBanUser_restrictedUserAreSuperuser_shouldThrowException() {
+        final String token = "token";
+        final int banTime = 7;
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final User bannedUser = new User(456, UserRole.SUPERUSER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt()))
+                .thenReturn(bannedUser);
+        try {
+            userService.banUser(token, bannedUser.getId());
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.FORBIDDEN_OPERATION, e.getErrorCode());
+        }
+
+        verify(sessionDao).getUserByToken(anyString());
+        verify(userDao).getById(anyInt());
+        verifyZeroInteractions(properties);
+        verify(userDao, never()).update(any(User.class));
+    }
+
+    @Test
+    void testBanUser_userWasBannedTooMuch_shouldBanPermanently() {
+        final String token = "token";
+        final int banTime = 7;
+        final int maxBanCount = 5;
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                null, 4
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt())).thenReturn(bannedUser);
+        when(properties.getMaxBanCount()).thenReturn(maxBanCount);
+        when(properties.getMaxBanCount()).thenReturn(maxBanCount);
+        doNothing()
+                .when(userDao)
+                .update(any(User.class));
+
+        userService.banUser(token, bannedUser.getId());
+        assertEquals(maxBanCount, bannedUser.getBanCount());
+        assertNotNull(bannedUser.getBannedUntil());
+        assertEquals(
+                LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0),
+                bannedUser.getBannedUntil()
+        );
+
+        verify(sessionDao).getUserByToken(anyString());
+        verify(userDao).getById(anyInt());
+        verify(properties, times(2)).getMaxBanCount();
+        verify(userDao).update(any(User.class));
+    }
+
+    @Test
+    void testBanUser_userNotFoundByToken_shouldThrowException() {
+        final String sessionToken = UUID.randomUUID().toString();
+        when(sessionDao.getUserByToken(eq(sessionToken)))
+                .thenReturn(null);
+
+        try {
+            userService.banUser(sessionToken, 456);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+        }
+
+        verify(sessionDao).getUserByToken(eq(sessionToken));
+        verify(userDao, never()).getById(anyInt());
+        verifyZeroInteractions(properties);
+        verify(userDao, never()).update(any(User.class));
+    }
+
+    @Test
+    void testBanUser_requestFromRegularUser_shouldThrowException() {
+        final String sessionToken = UUID.randomUUID().toString();
+        final User regularUser = new User(123, UserRole.USER,
+                "regular_user", "regular@forums.ca", "regularpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        when(sessionDao.getUserByToken(eq(sessionToken)))
+                .thenReturn(regularUser);
+
+        try {
+            userService.banUser(sessionToken, 456);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.FORBIDDEN_OPERATION, e.getErrorCode());
+        }
+
+        verify(sessionDao)
+                .getUserByToken(eq(sessionToken));
+        verify(userDao, never())
+                .getById(anyInt());
+        verifyZeroInteractions(properties);
+        verify(userDao, never())
+                .update(any(User.class));
+    }
+
+    @Test
+    void testBanUser_userNotFoundById_shouldThrowException() {
+        final String sessionToken = UUID.randomUUID().toString();
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        when(sessionDao.getUserByToken(eq(sessionToken)))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt()))
+                .thenReturn(null);
+
+        try {
+            userService.banUser(sessionToken, 456);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.USER_NOT_FOUND, e.getErrorCode());
+        }
+
+        verify(sessionDao)
+                .getUserByToken(eq(sessionToken));
+        verify(userDao)
+                .getById(anyInt());
+        verifyZeroInteractions(properties);
         verify(userDao, never())
                 .update(any(User.class));
     }
