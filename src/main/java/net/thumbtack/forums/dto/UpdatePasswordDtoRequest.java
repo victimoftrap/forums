@@ -1,5 +1,7 @@
 package net.thumbtack.forums.dto;
 
+import net.thumbtack.forums.validator.PasswordPattern;
+
 import javax.validation.constraints.NotBlank;
 
 public class UpdatePasswordDtoRequest {
@@ -7,7 +9,7 @@ public class UpdatePasswordDtoRequest {
     private String name;
     @NotBlank
     private String oldPassword;
-    @NotBlank
+    @PasswordPattern
     private String password;
 
     public UpdatePasswordDtoRequest(String name, String oldPassword, String password) {
