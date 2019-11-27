@@ -6,10 +6,10 @@ import net.thumbtack.forums.dto.exception.ExceptionListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
 import net.thumbtack.forums.service.UserService;
-import net.thumbtack.forums.dto.UserDtoResponse;
+import net.thumbtack.forums.dto.user.UserDtoResponse;
 import net.thumbtack.forums.dto.EmptyDtoResponse;
-import net.thumbtack.forums.dto.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

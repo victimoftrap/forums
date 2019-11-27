@@ -2,8 +2,8 @@ package net.thumbtack.forums.controller;
 
 import net.thumbtack.forums.service.UserService;
 import net.thumbtack.forums.dto.EmptyDtoResponse;
-import net.thumbtack.forums.dto.UserDtoResponse;
-import net.thumbtack.forums.dto.LoginUserDtoRequest;
+import net.thumbtack.forums.dto.user.UserDtoResponse;
+import net.thumbtack.forums.dto.user.LoginUserDtoRequest;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
 import net.thumbtack.forums.exception.ServerException;

@@ -1,5 +1,9 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.dto.user.LoginUserDtoRequest;
+import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.user.UserDtoResponse;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.UserSession;

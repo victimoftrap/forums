@@ -1,4 +1,4 @@
-package net.thumbtack.forums.dto;
+package net.thumbtack.forums.dto.user;
 
 import net.thumbtack.forums.validator.PasswordPattern;
 import net.thumbtack.forums.validator.UsernamePattern;
