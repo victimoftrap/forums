@@ -4,6 +4,7 @@ import net.thumbtack.forums.model.enums.UserRole;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 public class User {
@@ -55,6 +56,13 @@ public class User {
         this(id, role, username, email, password,
                 registeredAt.toLocalDateTime(), deleted,
                 bannedUntil.toLocalDateTime(), banCount
+        );
+    }
+
+    public User(String username, String email, String password) {
+        this(0, UserRole.USER, username, email, password,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false,null, 0
         );
     }
 
