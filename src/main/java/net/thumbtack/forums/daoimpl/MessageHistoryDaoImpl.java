@@ -34,6 +34,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
+    // getMessageHistory
     public List<HistoryItem> getHistoryOfMessage(int messageId, boolean allVersions, boolean unpublished) {
         String logMessage;
         if (allVersions) {
