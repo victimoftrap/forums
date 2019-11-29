@@ -1,11 +1,12 @@
-package net.thumbtack.forums.dto;
+package net.thumbtack.forums.dto.user;
 
+import net.thumbtack.forums.validator.UsernamePattern;
 import net.thumbtack.forums.validator.PasswordPattern;
 
 import javax.validation.constraints.NotBlank;
 
 public class UpdatePasswordDtoRequest {
-    @NotBlank
+    @UsernamePattern
     private String name;
     @NotBlank
     private String oldPassword;
