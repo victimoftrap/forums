@@ -1,6 +1,7 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.model.enums.UserRole;
 
 import org.junit.jupiter.api.Test;
@@ -8,17 +9,14 @@ import org.junit.jupiter.api.Test;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class UserDaoImplTest extends DaoTestBase {
     @Test
-    void testInsertNewUser() {
+    void testSaveUser() {
         User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
@@ -26,16 +24,35 @@ class UserDaoImplTest extends DaoTestBase {
                 false
         );
 
-        final User insertedUser = userDao.save(user);
+        final User savedUser = userDao.save(user);
         assertAll(
-                () -> assertNotEquals(0, insertedUser.getId()),
+                () -> assertNotEquals(0, savedUser.getId()),
                 () -> assertNotEquals(0, user.getId()),
-                () -> assertEquals(user, insertedUser)
+                () -> assertEquals(user, savedUser)
         );
     }
 
     @Test
-    void testInsertNewUser_nullParam_userNotCreated() {
+    void testSaveUserAndHisSession() {
+        User user = new User(
+                UserRole.USER,
+                "shermental", "shermental@gmail.com", "passwd",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        UserSession session = new UserSession(
+                user, UUID.randomUUID().toString()
+        );
+
+        UserSession savedSession = userDao.save(user, session);
+        assertAll(
+                () -> assertNotEquals(0, user.getId()),
+                () -> assertEquals(session, savedSession)
+        );
+    }
+
+    @Test
+    void testSaveUser_usernameAreNull_shouldNotCreateUser() {
         final User user = new User(
                 UserRole.USER,
                 null, "shermental@gmail.com", "passwd",
@@ -63,13 +80,13 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
-    void testGetUserById_userNotExists_userNotFound() {
+    void testGetUserById_userNotExists_shouldNotFindUser() {
         final User selectedUser = userDao.getById(1256);
         assertNull(selectedUser);
     }
 
     @Test
-    void testGetUserById_userDeleted_userFound() {
+    void testGetUserThatMayBeDeletedById_userDeleted_shouldFindUser() {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -87,7 +104,7 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
-    void testGetUserById_userDeleted_userNotFound() {
+    void testGetUserById_userDeleted_shouldNotFindUser() {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -116,13 +133,13 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
-    void testGetUserByName_userNotExists_userNotFound() {
+    void testGetUserByName_userNotExists_shouldNotFindUser() {
         final User selectedUser = userDao.getByName("catchMeIfYouCan");
         assertNull(selectedUser);
     }
 
     @Test
-    void testGetUserByName_userDeleted_userFound() {
+    void testGetUserThatMayBeDeletedByName_userDeleted_shouldFindUser() {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -140,7 +157,7 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
-    void testGetUserByName_userDeleted_userNotFound() {
+    void testGetUserByName_userDeleted_shouldNotFindUser() {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -185,7 +202,7 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
-    void testGetAllUsers_someUsersDeleted_getOnlyEnabledUsers() {
+    void testGetAllUsers_someUsersDeleted_shouldReturnOnlyEnabledUsers() {
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -217,7 +234,7 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
-    void testGetAllUsers_someUsersDeleted_getAllUsers() {
+    void testGetAllUsers_someUsersDeleted_shouldReturnAllUsers() {
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -289,7 +306,7 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
-    void testGetAllUsers_noUsersExists_emptyList() {
+    void testGetAllUsers_noUsersExists_shouldReturnEmptyList() {
         List<User> selectedUsers = userDao.getAll();
         assertEquals(Collections.EMPTY_LIST, selectedUsers);
 

@@ -61,12 +61,8 @@ public class UserService {
         }
 
         final User user = new User(request.getName(), request.getEmail(), request.getPassword());
-        // REVU лучше сделать трансакцией, то есть одним вызовом DAO, внутри которого несколько вызовов маппера
-        // иначе может быть случай, когда userDao.save не прошел по какой-то причине, а делается sessionDao.upsertSession
-        userDao.save(user);
-
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
-        sessionDao.upsertSession(session);
+        userDao.save(user, session);
         return UserConverter.userToUserResponse(user, session.getToken());
     }
 
@@ -75,8 +71,6 @@ public class UserService {
 
         // TODO made readonly user forums
         user.setDeleted(true);
-        // REVU лучше сделать трансакцией, то есть одним вызовом DAO, внутри которого несколько вызовов маппера
-        sessionDao.deleteSession(sessionToken);
         userDao.deactivateById(user.getId());
         return new EmptyDtoResponse();
     }

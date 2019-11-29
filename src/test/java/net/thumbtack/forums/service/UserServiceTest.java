@@ -68,20 +68,17 @@ class UserServiceTest {
         doAnswer(invocationOnMock -> {
             User user = invocationOnMock.getArgument(0);
             user.setId(createdUser.getId());
-            return user;
-        }).when(userDao)
-                .save(any(User.class));
-        doNothing()
-                .when(sessionDao)
-                .upsertSession(any(UserSession.class));
+            return invocationOnMock.getArgument(1);
+        })
+                .when(userDao)
+                .save(any(User.class), any(UserSession.class));
 
         final UserDtoResponse actualResponse = userService.registerUser(request);
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
         verify(userDao)
-                .save(any(User.class));
-        verify(sessionDao)
-                .upsertSession(any(UserSession.class));
+                .save(any(User.class), any(UserSession.class));
+        verifyZeroInteractions(sessionDao);
 
         assertEquals(expectedResponse.getId(), actualResponse.getId());
         assertEquals(expectedResponse.getName(), actualResponse.getName());
@@ -120,7 +117,6 @@ class UserServiceTest {
                 "ahoi@jolybell.com",
                 "password123"
         );
-
         when(userDao.getByName(eq(request.getName()), anyBoolean()))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
 
@@ -147,7 +143,7 @@ class UserServiceTest {
 
         when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(null);
-        when(userDao.save(any(User.class)))
+        when(userDao.save(any(User.class), any(UserSession.class)))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
 
         try {
@@ -159,35 +155,8 @@ class UserServiceTest {
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
         verify(userDao)
-                .save(any(User.class));
+                .save(any(User.class), any(UserSession.class));
         verifyZeroInteractions(sessionDao);
-    }
-
-    @Test
-    void testRegisterUser_onSaveSessionDatabaseError_shouldThrowException() {
-        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "jolybell",
-                "ahoi@jolybell.com",
-                "password123"
-        );
-
-        when(userDao.getByName(anyString(), anyBoolean()))
-                .thenReturn(null);
-        when(userDao.save(any(User.class)))
-                .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
-        doThrow(new ServerException(ErrorCode.DATABASE_ERROR))
-                .when(sessionDao)
-                .upsertSession(any(UserSession.class));
-        try {
-            userService.registerUser(request);
-        } catch (ServerException e) {
-            assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
-        }
-
-        verify(userDao)
-                .getByName(anyString(), anyBoolean());
-        verify(userDao)
-                .save(any(User.class));
     }
 
     @Test
@@ -201,9 +170,6 @@ class UserServiceTest {
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
         doNothing()
-                .when(sessionDao)
-                .deleteSession(eq(token));
-        doNothing()
                 .when(userDao)
                 .deactivateById(anyInt());
 
@@ -211,10 +177,9 @@ class UserServiceTest {
 
         verify(sessionDao)
                 .getUserByToken(eq(token));
-        verify(sessionDao)
-                .deleteSession(eq(token));
         verify(userDao)
                 .deactivateById(anyInt());
+        verifyZeroInteractions(sessionDao);
     }
 
     @Test

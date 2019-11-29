@@ -7,7 +7,7 @@ import java.util.List;
 public interface MessageHistoryDao {
     HistoryItem save(HistoryItem history);
 
-    List<HistoryItem> getHistoryOfMessage(int messageId, boolean allVersions, boolean unpublished);
+    List<HistoryItem> getMessageHistory(int messageId, boolean allVersions, boolean unpublished);
 
     void update(HistoryItem history);
 

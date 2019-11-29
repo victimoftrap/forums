@@ -34,8 +34,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    // getMessageHistory
-    public List<HistoryItem> getHistoryOfMessage(int messageId, boolean allVersions, boolean unpublished) {
+    public List<HistoryItem> getMessageHistory(int messageId, boolean allVersions, boolean unpublished) {
         String logMessage;
         if (allVersions) {
             logMessage = "Getting all versions of message";
@@ -48,7 +47,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                return getMessageHistoryMapper(sqlSession).getHistories(messageId, allVersions, unpublished);
+                return getMessageHistoryMapper(sqlSession).getHistory(messageId, allVersions, unpublished);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get message history", ex);
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
