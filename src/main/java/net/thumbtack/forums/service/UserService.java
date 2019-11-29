@@ -36,11 +36,14 @@ public class UserService {
     }
 
     public UserDtoResponse registerUser(final RegisterUserDtoRequest request) {
+    	// REVU см. комментарий в скайп-чате
         if (userDao.getByName(request.getName(), true) != null) {
             throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.USERNAME);
         }
 
         final User user = new User(request.getName(), request.getEmail(), request.getPassword());
+        // REVU лучше сделать трансакцией, то есть одним вызовом DAO, внутри которого несколько вызовов маппера
+        // иначе может быть случай, когда userDao.save не прошел по какой-то причине, а делается sessionDao.upsertSession
         userDao.save(user);
 
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
@@ -49,6 +52,8 @@ public class UserService {
     }
 
     public EmptyDtoResponse deleteUser(final String sessionToken) {
+    	// REVU следующие 3 строчки у Вас в каждом методе
+    	// как насчет User user = getByToken(sessionToken) ? и там проверять
         final User user = sessionDao.getUserByToken(sessionToken);
         if (user == null) {
             throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
@@ -56,6 +61,7 @@ public class UserService {
 
         // TODO made readonly user forums
         user.setDeleted(true);
+        // REVU лучше сделать трансакцией, то есть одним вызовом DAO, внутри которого несколько вызовов маппера
         sessionDao.deleteSession(sessionToken);
         userDao.deactivateById(user.getId());
         return new EmptyDtoResponse();

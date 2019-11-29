@@ -32,6 +32,7 @@ public interface MessageHistoryMapper {
             @Result(property = "state", column = "state", javaType = MessageState.class),
             @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
     })
+    // REVU getHistory. У сообщения одна история, а не много 
     List<HistoryItem> getHistories(@Param("id") int messageId,
                                    @Param("allVersions") boolean allVersions,
                                    @Param("unpublished") boolean unpublished
