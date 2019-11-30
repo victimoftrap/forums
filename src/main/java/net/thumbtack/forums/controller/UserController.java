@@ -3,6 +3,7 @@ package net.thumbtack.forums.controller;
 import net.thumbtack.forums.dto.EmptyDtoResponse;
 import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.user.UserDetailsListDtoResponse;
 import net.thumbtack.forums.dto.user.UserDtoResponse;
 import net.thumbtack.forums.service.UserService;
 
@@ -72,6 +73,14 @@ public class UserController {
             @CookieValue(value = COOKIE_NAME) String token,
             @PathVariable("user") int userId) {
         return ResponseEntity.ok(userService.madeSuperuser(token, userId));
+    }
+
+    @GetMapping(
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<UserDetailsListDtoResponse> getUsers(@CookieValue(value = COOKIE_NAME) String token) {
+        return ResponseEntity.ok(userService.getUsers(token));
     }
 
     @PostMapping(

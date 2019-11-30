@@ -1,15 +1,13 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.configuration.ServerConfigurationProperties;
+import net.thumbtack.forums.service.UserService;
+import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.dto.user.*;
 import net.thumbtack.forums.dto.exception.ExceptionDtoResponse;
 import net.thumbtack.forums.dto.exception.ExceptionListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
-import net.thumbtack.forums.service.UserService;
-import net.thumbtack.forums.dto.user.UserDtoResponse;
-import net.thumbtack.forums.dto.EmptyDtoResponse;
-import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -23,8 +21,11 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
 import javax.servlet.http.Cookie;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -478,5 +479,92 @@ class UserControllerTest {
                 .andExpect(content().string("{}"));
 
         verify(mockUserService).banUser(anyString(), anyInt());
+    }
+
+    @Test
+    void testGetUsers_requestFromRegularUser_shouldReturnNotAllFields() throws Exception {
+        final String token = "token";
+        final List<UserDetailsDtoResponse> users = new ArrayList<>();
+        users.add(new UserDetailsDtoResponse(
+                        1, "user1", null,
+                        LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                        true, false, null,
+                        UserStatus.FULL, null, 0
+                )
+        );
+        users.add(new UserDetailsDtoResponse(
+                        2, "user2", null,
+                        LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                        false, false, null,
+                        UserStatus.FULL, null, 0
+                )
+        );
+        final UserDetailsListDtoResponse expectedUsersResponse = new UserDetailsListDtoResponse(users);
+        when(mockUserService.getUsers(anyString()))
+                .thenReturn(expectedUsersResponse);
+
+        final MvcResult result = mvc.perform(
+                get("/api/users")
+                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.users", hasSize(2)))
+                .andReturn();
+
+        final UserDetailsListDtoResponse actualUsersResponse = mapper.readValue(
+                result.getResponse().getContentAsString(),
+                UserDetailsListDtoResponse.class
+        );
+        assertEquals(expectedUsersResponse, actualUsersResponse);
+    }
+
+    @Test
+    void testGetUsers_requestFromSuperuser_shouldReturnAllFields() throws Exception {
+        final String token = "token";
+        final List<UserDetailsDtoResponse> users = new ArrayList<>();
+        users.add(new UserDetailsDtoResponse(
+                        1, "user1", "user1@email.com",
+                        LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                        true, false, false,
+                        UserStatus.FULL, null, 0
+                )
+        );
+        users.add(new UserDetailsDtoResponse(
+                        2, "user2", "user2@email.com",
+                        LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                        false, false, true,
+                        UserStatus.FULL, null, 0
+                )
+        );
+        users.add(new UserDetailsDtoResponse(
+                        3, "user3", "user3@email.com",
+                        LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                        false, true, false,
+                        UserStatus.FULL, null, 0
+                )
+        );
+        final UserDetailsListDtoResponse expectedUsersResponse = new UserDetailsListDtoResponse(users);
+        when(mockUserService.getUsers(anyString()))
+                .thenReturn(expectedUsersResponse);
+
+        final MvcResult result = mvc.perform(
+                get("/api/users")
+                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.users", hasSize(3)))
+                .andReturn();
+
+        final UserDetailsListDtoResponse actualUsersResponse = mapper.readValue(
+                result.getResponse().getContentAsString(),
+                UserDetailsListDtoResponse.class
+        );
+        assertEquals(expectedUsersResponse, actualUsersResponse);
     }
 }

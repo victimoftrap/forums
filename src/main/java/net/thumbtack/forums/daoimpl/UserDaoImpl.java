@@ -144,6 +144,20 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    public List<UserSession> getAllWithSessions() {
+        LOGGER.debug("Getting all users with they sessions from database");
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                return getUserMapper(sqlSession).getAllWithSessions();
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get users and sessions from database", ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
     public void update(User user) {
         LOGGER.debug("Updating user in database {}", user);
 

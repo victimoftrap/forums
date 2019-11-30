@@ -22,6 +22,8 @@ public interface UserDao {
 
     List<User> getAll(boolean withDeleted);
 
+    List<UserSession> getAllWithSessions();
+
     void update(User user);
 
     void deactivateById(int id);

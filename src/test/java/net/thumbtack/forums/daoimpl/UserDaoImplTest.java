@@ -318,6 +318,43 @@ class UserDaoImplTest extends DaoTestBase {
     }
 
     @Test
+    void testGetAllUsersWithSessions() {
+        User user1 = new User(
+                UserRole.SUPERUSER, "user0",
+                "user0@gmail.com", "user0",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        UserSession user1Session = new UserSession(user1, UUID.randomUUID().toString());
+        userDao.save(user1, user1Session);
+
+        User user2 = new User(
+                UserRole.USER, "user1",
+                "user1@gmail.com", "user1",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user2);
+
+        User user3 = new User(
+                UserRole.USER, "user2",
+                "user2@gmail.com", "user2",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        UserSession user3Session = new UserSession(user3, UUID.randomUUID().toString());
+        userDao.save(user3, user3Session);
+
+        final List<UserSession> expectedUsersWithSessions = Arrays.asList(
+                user1Session,
+                new UserSession(user2, null),
+                user3Session
+        );
+        final List<UserSession> actualUsersWithSessions = userDao.getAllWithSessions();
+        assertEquals(expectedUsersWithSessions, actualUsersWithSessions);
+    }
+
+    @Test
     void testUpdateUser() {
         User user = new User(
                 UserRole.USER,
