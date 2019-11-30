@@ -3,6 +3,7 @@ package net.thumbtack.forums.exception;
 public enum ErrorCode {
     DATABASE_ERROR("Error in database occurred"),
     FORBIDDEN_OPERATION("Operation allowed only for superuser"),
+    FORUM_NOT_FOUND("Forum not found"),
     INVALID_REQUEST_DATA("Request data was invalid"),
     USER_NOT_FOUND("User not found"),
     USER_BANNED("Not available operation while user banned"),
