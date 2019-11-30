@@ -5,7 +5,9 @@ public enum RequestFieldName {
     USERNAME("name"),
     PASSWORD("password"),
     OLD_PASSWORD("oldPassword"),
-    EMAIL("email")
+    EMAIL("email"),
+    FORUM_NAME("name"),
+    FORUM_TYPE("type")
     ;
 
     private String name;
