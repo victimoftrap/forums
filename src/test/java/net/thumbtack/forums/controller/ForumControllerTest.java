@@ -1,5 +1,7 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.dto.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.forum.CreateForumDtoRequest;
@@ -26,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -154,5 +157,42 @@ class ForumControllerTest {
                 .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.FORUM_TYPE.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
         verifyZeroInteractions(mockForumService);
+    }
+
+    @Test
+    void testDeleteForum() throws Exception {
+        final int forumId = 132;
+        when(mockForumService.deleteForum(anyString(), anyInt()))
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                delete("/api/forums/{forum_id}", forumId)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(content().string("{}"));
+
+        verify(mockForumService).deleteForum(anyString(), anyInt());
+    }
+
+    @Test
+    void testDeleteForum_notOwnerTryingToDeleteForum_shouldReturnExceptionDto() throws Exception {
+        when(mockForumService.deleteForum(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
+        mvc.perform(
+                delete("/api/forums/{forum_id}", 456)
+                .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
     }
 }

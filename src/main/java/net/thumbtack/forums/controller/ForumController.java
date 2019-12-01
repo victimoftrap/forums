@@ -1,6 +1,8 @@
 package net.thumbtack.forums.controller;
 
 import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.dto.forum.ForumInfoDtoResponse;
+import net.thumbtack.forums.dto.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.service.ForumService;
 import net.thumbtack.forums.dto.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.forum.CreateForumDtoRequest;
@@ -42,5 +44,25 @@ public class ForumController {
             @CookieValue(value = COOKIE_NAME) String token,
             @PathVariable("forum_id") int forumId) {
         return ResponseEntity.ok(forumService.deleteForum(token, forumId));
+    }
+
+    @GetMapping(
+            value = "/{forum_id}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ForumInfoDtoResponse> getForum(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @PathVariable("forum_id") int forumId) {
+        return ResponseEntity.ok(forumService.getForum(token, forumId));
+    }
+
+    @GetMapping(
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<ForumInfoListDtoResponse> getAll(
+            @CookieValue(value = COOKIE_NAME) String token) {
+        return ResponseEntity.ok(forumService.getForums(token));
     }
 }
