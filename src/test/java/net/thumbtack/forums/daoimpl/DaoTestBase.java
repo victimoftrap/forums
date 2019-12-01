@@ -3,7 +3,6 @@ package net.thumbtack.forums.daoimpl;
 import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dao.UserDao;
-import net.thumbtack.forums.dao.MessageDao;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.junit.jupiter.api.BeforeAll;

@@ -28,7 +28,8 @@
         <mapper class="net.thumbtack.forums.mappers.SessionMapper"/>
         <mapper class="net.thumbtack.forums.mappers.ForumMapper"/>
         <mapper class="net.thumbtack.forums.mappers.TagMapper"/>
-        <mapper class="net.thumbtack.forums.mappers.MessageHistoryMapper"/>
         <mapper class="net.thumbtack.forums.mappers.RatingMapper"/>
+        <mapper class="net.thumbtack.forums.mappers.MessageMapper"/>
+        <mapper class="net.thumbtack.forums.mappers.MessageHistoryMapper"/>
     </mappers>
 </configuration>

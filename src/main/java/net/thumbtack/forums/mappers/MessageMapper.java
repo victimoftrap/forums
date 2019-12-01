@@ -1,57 +1,38 @@
 package net.thumbtack.forums.mappers;
 
+import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.model.MessageItem;
-import net.thumbtack.forums.model.User;
 
-import org.apache.ibatis.annotations.*;
-import org.apache.ibatis.mapping.FetchType;
-
-import java.time.LocalDateTime;
-import java.util.List;
+import org.apache.ibatis.annotations.Delete;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Update;
 
 public interface MessageMapper {
-    @Insert("INSERT INTO messages (owner_id, parent_message, created_at, updated_at) " +
-            "VALUES(#{owner}, #{parentMessage}, #{createdAt}, #{updatedAt})"
-    )
-    @Options(useGeneratedKeys = true)
-    Integer save(MessageItem message);
-
-    @Select("SELECT id, owner_id, parent_message, created_at, updated_at " +
-            "FROM messages WHERE id = #{id}"
-    )
-    @Results({
-            @Result(property = "owner", column = "owner_id", javaType = User.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.UserMapper.getById",
-                            fetchType = FetchType.LAZY
-                    )
-            ),
-            @Result(property = "parentMessage", column = "parent_message", javaType = MessageItem.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.MessageMapper.getById",
-                            fetchType = FetchType.LAZY
-                    )
-            ),
-            @Result(property = "history", column = "id", javaType = List.class,
-                    many = @Many(
-                            select = "net.thumbtack.forums.mappers.MessageHistoryMapper.getByMessageId"
-                    )
-            ),
-            @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
-            @Result(property = "updatedAt", column = "updated_at", javaType = LocalDateTime.class)
+    @Insert({"INSERT INTO messages_tree",
+            "(forum_id, root_message, subject, priority)",
+            "VALUES(#{forum.id}, #{rootMessage.id}, #{subject}, #{priority})"
     })
-    MessageItem getById(@Param("id") int id);
+    @Options(useGeneratedKeys = true)
+    Integer saveMessageTree(MessageTree tree);
 
-    @Update("UPDATE messages SET " +
-            "parent_message = #{parentMessage}, " +
-            "updated_at = #{updatedAt} " +
+    @Insert({"INSERT INTO messages",
+            "(owner_id, parent_message, created_at, updated_at)",
+            "VALUES(#{owner.id}, NULL, #{createdAt}, #{updatedAt})"
+    })
+    @Options(useGeneratedKeys = true)
+    Integer saveMessage(MessageItem item);
+
+    @Insert({"INSERT INTO messages",
+            "(owner_id, parent_message, created_at, updated_at)",
+            "VALUES(#{owner.id}, #{parentMessage.id}, #{createdAt}, #{updatedAt})"
+    })
+    @Options(useGeneratedKeys = true)
+    Integer saveComment(MessageItem item);
+
+    @Update({"UPDATE message",
+            "SET parent_message = NULL",
             "WHERE id = #{id}"
-    )
-    void update(MessageItem message);
-
-    @Delete("DELETE FROM messages WHERE id = #{id}")
-    void deleteById(@Param("id") int id);
-
-    @Delete("DELETE FROM messages")
-    void deleteAll();
+    })
+    void madeNewBranch(int id);
 }
