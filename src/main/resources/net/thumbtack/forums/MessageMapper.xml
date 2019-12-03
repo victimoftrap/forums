@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="net.thumbtack.forums.mappers.MessageMapper">
+    <select id="getMessageTreeByMessage" parameterType="int" resultType="net.thumbtack.forums.model.MessageTree">
+        WITH RECURSIVE msg_cte AS (
+          SELECT id, owner_id, parent_message FROM messages WHERE id = #{id}
+          UNION ALL
+          SELECT m.id, m.owner_id, m.parent_message FROM messages m
+          INNER JOIN msg_cte mc ON m.id = mc.parent_message
+        )
+        SELECT forum_id, root_message, subject, priority FROM messages_tree WHERE root_message = (
+          SELECT id FROM msg_cte mc WHERE parent_message IS NULL
+        )
+    </select>
+</mapper>

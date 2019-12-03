@@ -29,6 +29,7 @@
         <mapper class="net.thumbtack.forums.mappers.ForumMapper"/>
         <mapper class="net.thumbtack.forums.mappers.TagMapper"/>
         <mapper class="net.thumbtack.forums.mappers.RatingMapper"/>
+        <mapper class="net.thumbtack.forums.mappers.MessageTreeMapper"/>
         <mapper class="net.thumbtack.forums.mappers.MessageMapper"/>
         <mapper class="net.thumbtack.forums.mappers.MessageHistoryMapper"/>
     </mappers>

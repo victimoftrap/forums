@@ -1,7 +1,11 @@
 package net.thumbtack.forums.dao;
 
-import net.thumbtack.forums.model.MessageTree;
+import net.thumbtack.forums.model.MessageItem;
 
 public interface MessageDao {
-    MessageTree saveMessage(MessageTree tree);
+    MessageItem saveMessageItem(MessageItem item);
+
+    void deleteById(int id);
+
+    void publish(MessageItem item);
 }
