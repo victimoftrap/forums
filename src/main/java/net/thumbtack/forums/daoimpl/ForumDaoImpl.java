@@ -9,9 +9,11 @@ import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component("forumDao")
 public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(ForumDaoImpl.class);
 
@@ -87,6 +89,23 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
                 getForumMapper(sqlSession).deleteById(id);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to delete forum by ID {}", id);
+
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
+
+    @Override
+    public void deleteAll() {
+        LOGGER.debug("Deleting all forums from database");
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                getForumMapper(sqlSession).deleteAll();
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to delete all forums");
 
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);

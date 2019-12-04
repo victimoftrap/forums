@@ -25,7 +25,7 @@ public interface ForumMapper {
             "FROM forums WHERE id = #{id}"
     })
     @Results({
-            @Result(property = "id", column = "id", javaType = Integer.class),
+            @Result(property = "id", column = "id", javaType = int.class),
             @Result(property = "type", column = "forum_type", javaType = ForumType.class),
             @Result(property = "owner", column = "owner_id", javaType = User.class,
                     one = @One(
@@ -34,7 +34,7 @@ public interface ForumMapper {
                     )
             ),
             @Result(property = "name", column = "name", javaType = String.class),
-            @Result(property = "readonly", column = "readonly", javaType = Boolean.class),
+            @Result(property = "readonly", column = "readonly", javaType = boolean.class),
             @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
     })
     Forum getById(@Param("id") int id);

@@ -14,4 +14,6 @@ public interface ForumDao {
     void update(Forum forum);
 
     void deleteById(int id);
+
+    void deleteAll();
 }

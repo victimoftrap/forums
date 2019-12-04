@@ -5,7 +5,11 @@ import net.thumbtack.forums.model.MessageItem;
 public interface MessageDao {
     MessageItem saveMessageItem(MessageItem item);
 
-    void deleteById(int id);
+    MessageItem getMessageById(int id);
 
     void publish(MessageItem item);
+
+    void deleteById(int id);
+
+    void deleteAll();
 }

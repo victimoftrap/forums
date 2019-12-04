@@ -8,7 +8,9 @@ import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+@Component("debugDao")
 public class DebugDaoImpl extends MapperCreatorDao implements DebugDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(DebugDaoImpl.class);
 
@@ -19,6 +21,8 @@ public class DebugDaoImpl extends MapperCreatorDao implements DebugDao {
         try (SqlSession session = MyBatisConnectionUtils.getSession()) {
             try {
                 getUserMapper(session).deleteAll();
+                getMessageMapper(session).deleteAll();
+                getForumMapper(session).deleteAll();
             } catch (RuntimeException e) {
                 LOGGER.info("Unable to clear database", e);
                 session.rollback();

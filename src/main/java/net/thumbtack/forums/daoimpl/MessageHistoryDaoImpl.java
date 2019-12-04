@@ -1,15 +1,17 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.MessageHistoryDao;
-import net.thumbtack.forums.exception.ErrorCode;
-import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.HistoryItem;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
+import net.thumbtack.forums.exception.ErrorCode;
+import net.thumbtack.forums.exception.ServerException;
 
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
+@Component("messageHistoryDao")
 public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHistoryDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageHistoryDaoImpl.class);
 

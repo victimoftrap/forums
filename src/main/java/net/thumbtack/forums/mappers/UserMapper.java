@@ -27,10 +27,12 @@ public interface UserMapper {
             "registered_at, deleted, banned_until, ban_count " +
             "FROM users WHERE id = #{id}"
     )
-    @Results({
-            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
-    })
+    @Results(id = "userResult",
+            value = {
+                    @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
+                    @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
+            }
+    )
     User getById(int id);
 
     @Select({"<script>",
@@ -43,20 +45,14 @@ public interface UserMapper {
             "</if>",
             "</script>"
     })
-    @Results({
-            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
-    })
+    @ResultMap("userResult")
     User getByIdAndDeleted(@Param("id") int id, @Param("deleted") boolean deleted);
 
     @Select("SELECT id, role, LOWER(username) AS username, email, password, " +
             "registered_at, deleted, banned_until, ban_count " +
             "FROM users WHERE username = LOWER(#{name})"
     )
-    @Results({
-            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
-    })
+    @ResultMap("userResult")
     User getByName(@Param("name") String name);
 
     @Select({"<script>",
@@ -69,19 +65,13 @@ public interface UserMapper {
             "</if>",
             "</script>"
     })
-    @Results({
-            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
-    })
+    @ResultMap("userResult")
     User getByNameAndDeleted(@Param("name") String name, @Param("deleted") boolean deleted);
 
     @Select("SELECT id, role, LOWER(username) AS username, email, password, " +
             "registered_at, deleted, banned_until, ban_count FROM users"
     )
-    @Results({
-            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
-    })
+    @ResultMap("userResult")
     List<User> getAll();
 
     @Select({"<script>",
@@ -93,10 +83,7 @@ public interface UserMapper {
             "</if>",
             "</script>"
     })
-    @Results({
-            @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
-    })
+    @ResultMap("userResult")
     List<User> getAllAndDeleted(@Param("deleted") boolean deleted);
 
     @SelectProvider(method = "getAllUsersWithSessions", type = UserDaoProvider.class)

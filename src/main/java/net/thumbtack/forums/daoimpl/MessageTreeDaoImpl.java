@@ -24,6 +24,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
                 getMessageMapper(sqlSession).saveMessageItem(tree.getRootMessage());
                 getMessageHistoryMapper(sqlSession).saveAllHistory(tree.getRootMessage());
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
+                getTagMapper(sqlSession).saveMessageForAllTags(tree);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to create new tree {}", tree, ex);
                 sqlSession.rollback();
@@ -36,11 +37,12 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
 
     @Override
     public MessageTree newBranch(MessageTree tree) {
-        LOGGER.debug("Creating new tree {} from existing message", tree);
+        LOGGER.debug("Creating new tree {} from message {}", tree, tree.getRootMessage());
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
+                getTagMapper(sqlSession).saveMessageForAllTags(tree);
                 getMessageMapper(sqlSession).deleteParentMessage(tree.getRootMessage().getId());
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to made new branch {} from message", tree, ex);

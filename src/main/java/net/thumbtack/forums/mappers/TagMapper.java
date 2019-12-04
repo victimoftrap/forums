@@ -5,10 +5,12 @@ import net.thumbtack.forums.model.MessageTree;
 
 import org.apache.ibatis.annotations.*;
 
+import java.util.List;
+
 public interface TagMapper {
     @Insert("INSERT INTO available_tags (tag_name) VALUES(#{tag.name})")
     @Options(useGeneratedKeys = true)
-    Integer save(Tag tag);
+    Integer saveTag(Tag tag);
 
     @Insert({"INSERT INTO message_tags (tag_id, message_id) ",
             "VALUES(",
@@ -36,6 +38,12 @@ public interface TagMapper {
 
     @Select("SELECT id, tag_name FROM available_tags WHERE tag_name = #{name}")
     Tag getByName(String name);
+
+    @Select({"SELECT id, tag_name FROM available_tags WHERE id IN (",
+            "SELECT tag_id FROM message_tags WHERE message_id = #{id}",
+            ")"
+    })
+    List<Tag> getMessageTags(int id);
 
     @Delete("DELETE FROM available_tags WHERE id = #{id}")
     void deleteById(int id);

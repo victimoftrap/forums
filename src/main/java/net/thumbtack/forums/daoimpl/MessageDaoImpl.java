@@ -1,8 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
-import net.thumbtack.forums.model.HistoryItem;
 import net.thumbtack.forums.model.MessageItem;
-import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.dao.MessageDao;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import net.thumbtack.forums.exception.ErrorCode;
@@ -36,6 +34,36 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
+    public MessageItem getMessageById(int id) {
+        LOGGER.debug("Getting message by ID {}", id);
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                return getMessageMapper(sqlSession).getMessageById(id);
+            } catch (RuntimeException ex) {
+                LOGGER.debug("Unable to get message by ID {}", id, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public void publish(MessageItem item) {
+        LOGGER.debug("Publishing message version {}", item);
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                getMessageHistoryMapper(sqlSession).publishMessage(item.getHistory().get(0));
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to publish message {}", item, ex);
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
+
+    @Override
     public void deleteById(int id) {
         LOGGER.debug("Deleting message by ID {}", id);
 
@@ -53,14 +81,15 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
-    public void publish(MessageItem item) {
-        LOGGER.debug("Publishing message version {}", item);
+    public void deleteAll() {
+        LOGGER.debug("Deleting all messages from database");
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getMessageHistoryMapper(sqlSession).publishMessage(item.getHistory().get(0));
-            } catch (RuntimeException ex) {
-                LOGGER.info("Unable to publish message {}", item, ex);
+                getMessageMapper(sqlSession).deleteAll();
+                // histories and message tree would be deleted by ON DELETE CASCADE
+            }catch (RuntimeException ex) {
+                LOGGER.info("Unable to delete all messages", ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
