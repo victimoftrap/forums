@@ -4,6 +4,7 @@ import net.thumbtack.forums.dao.UserDao;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
@@ -36,6 +37,25 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    public UserSession save(User user, UserSession session) {
+        LOGGER.debug("Saving new user {} and creating session {} for him", user, session);
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                getUserMapper(sqlSession).save(user);
+                getSessionMapper(sqlSession).upsertSession(session);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to save user {} and session {}", user, session, ex);
+
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+        return session;
+    }
+
+    @Override
     public User getById(int id) {
         LOGGER.debug("Getting user by ID {} from database", id);
 
@@ -65,7 +85,6 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    // REVU нужно ли ? Где унас в задаче поиск юзеров по именам ?
     public User getByName(String name) {
         LOGGER.debug("Getting user by name {} from database", name);
 
@@ -80,7 +99,6 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    // REVU см. выше
     public User getByName(String name, boolean deleted) {
         LOGGER.debug("Getting user that can be deactivated by name {}", name);
 
@@ -126,6 +144,20 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    public List<UserSession> getAllWithSessions() {
+        LOGGER.debug("Getting all users with they sessions from database");
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                return getUserMapper(sqlSession).getAllWithSessions();
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get users and sessions from database", ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
     public void update(User user) {
         LOGGER.debug("Updating user in database {}", user);
 
@@ -144,10 +176,11 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
     @Override
     public void deactivateById(int id) {
-        LOGGER.debug("Deactivating account of user bu ID {}", id);
+        LOGGER.debug("Deactivating user account by ID {} and deleting his session", id);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
+                getSessionMapper(sqlSession).deleteByUser(id);
                 getUserMapper(sqlSession).deactivateById(id);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to deactivate user by ID {}", id, ex);

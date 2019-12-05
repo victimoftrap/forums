@@ -12,7 +12,7 @@ import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ForumDaoImplTest extends DaoTestBase {
+class ForumDaoImplTest extends DaoTestEnvironment {
     @Test
     void testSaveNewForum() {
         User user = new User(

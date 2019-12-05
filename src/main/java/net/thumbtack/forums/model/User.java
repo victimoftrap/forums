@@ -147,7 +147,7 @@ public class User {
                 isDeleted() == user.isDeleted() &&
                 getBanCount() == user.getBanCount() &&
                 getRole() == user.getRole() &&
-                Objects.equals(getUsername(), user.getUsername()) &&
+                getUsername().equalsIgnoreCase(user.getUsername()) &&
                 Objects.equals(getEmail(), user.getEmail()) &&
                 Objects.equals(getPassword(), user.getPassword()) &&
                 Objects.equals(getRegisteredAt(), user.getRegisteredAt()) &&

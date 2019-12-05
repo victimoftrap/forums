@@ -8,10 +8,10 @@ import org.apache.ibatis.annotations.*;
 import java.time.LocalDateTime;
 
 public interface SessionMapper {
-    @Insert("INSERT INTO users_sessions (user_id, session_token) " +
-            "VALUES(#{user.id}, #{token}) " +
+    @Insert({"INSERT INTO users_sessions (user_id, session_token) ",
+            "VALUES(#{user.id}, #{token}) ",
             "ON DUPLICATE KEY UPDATE session_token = #{token}"
-    )
+    })
     Integer upsertSession(UserSession session);
 
     @Select("SELECT user_id, session_token FROM users_sessions WHERE session_token = #{token}")
@@ -36,6 +36,9 @@ public interface SessionMapper {
 
     @Delete("DELETE FROM users_sessions WHERE session_token = #{token}")
     void deleteByToken(String token);
+
+    @Delete("DELETE FROM users_sessions WHERE user_id = #{id}")
+    void deleteByUser(int id);
 
     @Delete("DELETE FROM users_sessions")
     void deleteAll();

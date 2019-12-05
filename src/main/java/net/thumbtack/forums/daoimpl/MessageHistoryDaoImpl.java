@@ -2,29 +2,28 @@ package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.MessageHistoryDao;
 import net.thumbtack.forums.model.HistoryItem;
+import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
-import java.util.List;
-
+@Component("messageHistoryDao")
 public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHistoryDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageHistoryDaoImpl.class);
 
     @Override
-    public HistoryItem save(HistoryItem history) {
-        LOGGER.debug("Saving new version of message body {}", history);
+    public HistoryItem saveNewVersion(int messageId, HistoryItem history) {
+        LOGGER.debug("Saving new version {} of message", history);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getMessageHistoryMapper(sqlSession).save(history);
+                getMessageHistoryMapper(sqlSession).saveHistory(messageId, history);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save new version of message {}", history, ex);
-
+                LOGGER.info("Unable to save new version {} of message", history, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -34,38 +33,14 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    // getMessageHistory
-    public List<HistoryItem> getHistoryOfMessage(int messageId, boolean allVersions, boolean unpublished) {
-        String logMessage;
-        if (allVersions) {
-            logMessage = "Getting all versions of message";
-        } else {
-            logMessage = String.format("Getting current %s version of message",
-                    unpublished ? "unpublished" : "published"
-            );
-        }
-        LOGGER.debug(logMessage);
+    public void editLatestVersion(int messageId, HistoryItem history) {
+        LOGGER.debug("Updating unpublished version of message {}", history);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                return getMessageHistoryMapper(sqlSession).getHistories(messageId, allVersions, unpublished);
+                LOGGER.info("Unable to update unpublished version {} of message", history);
+                getMessageHistoryMapper(sqlSession).editUnpublishedHistory(messageId, history);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to get message history", ex);
-                throw new ServerException(ErrorCode.DATABASE_ERROR);
-            }
-        }
-    }
-
-    @Override
-    public void update(HistoryItem history) {
-        LOGGER.debug("Updating history of message body to {}", history);
-
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
-            try {
-                getMessageHistoryMapper(sqlSession).update(history);
-            } catch (RuntimeException ex) {
-                LOGGER.info("Unable to update history item of message {}", history, ex);
-
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -74,32 +49,14 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    public void delete(HistoryItem history) {
-        LOGGER.debug("Deleting version of message body {}", history);
+    public void unpublishNewVersionBy(int messageId) {
+        LOGGER.debug("Deleting unpublished version of message with ID {}", messageId);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getMessageHistoryMapper(sqlSession).delete(history);
+                getMessageHistoryMapper(sqlSession).deleteRejectedHistory(messageId);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to delete history item of message {}", history, ex);
-
-                sqlSession.rollback();
-                throw new ServerException(ErrorCode.DATABASE_ERROR);
-            }
-            sqlSession.commit();
-        }
-    }
-
-    @Override
-    public void deleteAll() {
-        LOGGER.debug("Deleting all histories of all messages");
-
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
-            try {
-                getMessageHistoryMapper(sqlSession).deleteAll();
-            } catch (RuntimeException ex) {
-                LOGGER.info("Unable to delete histories", ex);
-
+                LOGGER.info("Unable to delete message version by ID {}", messageId, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

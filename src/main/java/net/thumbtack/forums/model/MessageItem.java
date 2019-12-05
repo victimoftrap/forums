@@ -1,6 +1,8 @@
 package net.thumbtack.forums.model;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,6 +40,36 @@ public class MessageItem {
         this(0, owner, messageTree, parentMessage,
                 childrenComments, history, createdAt, updatedAt, rating
         );
+    }
+
+    public MessageItem(int id, User owner, MessageTree messageTree,
+                       List<MessageItem> childrenComments, List<HistoryItem> history,
+                       LocalDateTime createdAt, LocalDateTime updatedAt, int rating) {
+        this(id, owner, messageTree, null,
+                childrenComments, history, createdAt, updatedAt, rating
+        );
+    }
+
+    public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
+                       List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this(0, owner, messageTree, parentMessage,
+                new ArrayList<>(), history, createdAt, updatedAt, 0
+        );
+    }
+
+    public MessageItem(User owner, List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this(0, owner, null, null,
+                new ArrayList<>(), history, createdAt, updatedAt, 0
+        );
+    }
+
+    public MessageItem(User owner, List<HistoryItem> history) {
+        this(0, owner, null, null,
+                new ArrayList<>(), history, null, null, 0
+        );
+        LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        setCreatedAt(createdAt);
+        setUpdatedAt(createdAt);
     }
 
     public int getId() {
@@ -116,16 +148,16 @@ public class MessageItem {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MessageItem)) return false;
-        MessageItem that = (MessageItem) o;
-        return getId() == that.getId() &&
-                getRating() == that.getRating() &&
-                Objects.equals(getOwner(), that.getOwner()) &&
-                Objects.equals(getMessageTree(), that.getMessageTree()) &&
-                Objects.equals(getParentMessage(), that.getParentMessage()) &&
-                Objects.equals(getChildrenComments(), that.getChildrenComments()) &&
-                Objects.equals(getHistory(), that.getHistory()) &&
-                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-                Objects.equals(getUpdatedAt(), that.getUpdatedAt());
+        MessageItem item = (MessageItem) o;
+        return getId() == item.getId() &&
+                getRating() == item.getRating() &&
+                Objects.equals(getOwner(), item.getOwner()) &&
+                Objects.equals(getMessageTree(), item.getMessageTree()) &&
+                Objects.equals(getParentMessage(), item.getParentMessage()) &&
+                Objects.equals(getChildrenComments(), item.getChildrenComments()) &&
+                Objects.equals(getHistory(), item.getHistory()) &&
+                Objects.equals(getCreatedAt(), item.getCreatedAt()) &&
+                Objects.equals(getUpdatedAt(), item.getUpdatedAt());
     }
 
     @Override

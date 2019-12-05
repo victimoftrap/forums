@@ -2,6 +2,7 @@ package net.thumbtack.forums.model;
 
 import net.thumbtack.forums.model.enums.MessagePriority;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,6 +32,10 @@ public class MessageTree {
         this(0, forum, subject, rootMessage, priority, tags);
     }
 
+    public MessageTree(int id, Forum forum, String subject, MessageItem rootMessage, MessagePriority priority) {
+        this(0, forum, subject, rootMessage, priority, new ArrayList<>());
+    }
+
     public MessageTree(int id, Forum forum, String subject, MessageItem rootMessage,
                        String priority, List<Tag> tags) {
         this(id, forum, subject, rootMessage, MessagePriority.valueOf(priority), tags);
@@ -39,6 +44,10 @@ public class MessageTree {
     public MessageTree(Forum forum, String subject, MessageItem rootMessage,
                        String priority, List<Tag> tags) {
         this(0, forum, subject, rootMessage, MessagePriority.valueOf(priority), tags);
+    }
+
+    public MessageTree(Forum forum, String subject, MessageItem rootMessage, MessagePriority priority) {
+        this(0, forum, subject, rootMessage, priority, new ArrayList<>());
     }
 
     public int getId() {
@@ -93,13 +102,13 @@ public class MessageTree {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MessageTree)) return false;
-        MessageTree that = (MessageTree) o;
-        return getId() == that.getId() &&
-                Objects.equals(getForum(), that.getForum()) &&
-                Objects.equals(getSubject(), that.getSubject()) &&
-                Objects.equals(getRootMessage(), that.getRootMessage()) &&
-                getPriority() == that.getPriority() &&
-                Objects.equals(getTags(), that.getTags());
+        MessageTree tree = (MessageTree) o;
+        return getId() == tree.getId() &&
+                Objects.equals(getForum(), tree.getForum()) &&
+                Objects.equals(getSubject(), tree.getSubject()) &&
+                Objects.equals(getRootMessage(), tree.getRootMessage()) &&
+                getPriority() == tree.getPriority() &&
+                Objects.equals(getTags(), tree.getTags());
     }
 
     @Override

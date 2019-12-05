@@ -3,11 +3,11 @@ package net.thumbtack.forums.dao;
 import net.thumbtack.forums.model.MessageItem;
 
 public interface MessageDao {
-    MessageItem saveMessage(MessageItem message);
+    MessageItem saveMessageItem(MessageItem item);
 
-    MessageItem madeNewBranch(MessageItem message);
+    MessageItem getMessageById(int id);
 
-    void update(MessageItem message);
+    void publish(MessageItem item);
 
     void deleteById(int id);
 

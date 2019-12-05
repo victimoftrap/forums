@@ -2,16 +2,10 @@ package net.thumbtack.forums.dao;
 
 import net.thumbtack.forums.model.HistoryItem;
 
-import java.util.List;
-
 public interface MessageHistoryDao {
-    HistoryItem save(HistoryItem history);
+    HistoryItem saveNewVersion(int messageId, HistoryItem history);
 
-    List<HistoryItem> getHistoryOfMessage(int messageId, boolean allVersions, boolean unpublished);
+    void editLatestVersion(int messageId, HistoryItem history);
 
-    void update(HistoryItem history);
-
-    void delete(HistoryItem history);
-
-    void deleteAll();
+    void unpublishNewVersionBy(int messageId);
 }

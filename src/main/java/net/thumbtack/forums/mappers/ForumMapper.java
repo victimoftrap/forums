@@ -11,18 +11,21 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ForumMapper {
-    @Insert("INSERT INTO forums (forum_type, owner_id, name, readonly, created_at) " +
-            "VALUES(" +
-            "#{type.name}, #{owner.id}, " +
-            "#{name}, #{readonly}, #{createdAt}" +
+    @Insert({"INSERT INTO forums (forum_type, owner_id, name, readonly, created_at) ",
+            "VALUES(",
+            "#{type.name}, #{owner.id}, ",
+            "#{name}, #{readonly}, #{createdAt}",
             ")"
-    )
-    @Options(useGeneratedKeys = true)
+    })
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer save(Forum forum);
 
-    @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums WHERE id = #{id}")
-    @Results({
-            @Result(property = "id", column = "id", javaType = Integer.class),
+    @Select({"SELECT id, forum_type, owner_id, name, readonly, created_at",
+            "FROM forums WHERE id = #{id}"
+    })
+    @Results(id = "forumResult",
+            value = {
+            @Result(property = "id", column = "id", javaType = int.class),
             @Result(property = "type", column = "forum_type", javaType = ForumType.class),
             @Result(property = "owner", column = "owner_id", javaType = User.class,
                     one = @One(
@@ -31,18 +34,8 @@ public interface ForumMapper {
                     )
             ),
             @Result(property = "name", column = "name", javaType = String.class),
-            @Result(property = "readonly", column = "readonly", javaType = Boolean.class),
-            @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
-            @Result(property = "messageCount", column = "id", javaType = Integer.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.ForumMapper.getPublishedMessagesCountInForum"
-                    )
-            ),
-            /*@Result(property = "commentCount", column = "id", javaType = Integer.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.MessageMapper.getCommentsCount"
-                    )
-            )*/
+            @Result(property = "readonly", column = "readonly", javaType = boolean.class),
+            @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
     })
     Forum getById(@Param("id") int id);
 
@@ -53,31 +46,7 @@ public interface ForumMapper {
     int getPublishedMessagesCountInForum(@Param("id") int forumId);
 
     @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums")
-    @Results({
-            @Result(property = "id", column = "id", javaType = Integer.class),
-            @Result(property = "type", column = "forum_type", javaType = ForumType.class),
-            @Result(property = "owner", column = "owner_id", javaType = User.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.UserMapper.getById",
-                            fetchType = FetchType.LAZY
-                    )
-            ),
-            @Result(property = "name", column = "name", javaType = String.class),
-            @Result(property = "readonly", column = "readonly", javaType = Boolean.class),
-            @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
-            @Result(property = "messageCount", column = "id", javaType = Integer.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.MessageTreeMapper.getMessagesCount",
-                            fetchType = FetchType.LAZY
-                    )
-            ),
-            @Result(property = "commentCount", column = "id", javaType = Integer.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.MessageMapper.getCommentsCount",
-                            fetchType = FetchType.LAZY
-                    )
-            )
-    })
+    @ResultMap("forumResult")
     List<Forum> getAll();
 
     @Update("UPDATE forums SET readonly = COALESCE(#{forum.readonly}, readonly) WHERE id = #{forum.id}")

@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SessionDaoImplTest extends DaoTestBase {
+class SessionDaoImplTest extends DaoTestEnvironment {
     @Test
     void testSaveAndGetSession() {
         final User user = new User(

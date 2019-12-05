@@ -46,8 +46,16 @@ public class Forum {
         this(0, ForumType.valueOf(type), owner, name, createdAt, readonly, messageCount, commentCount);
     }
 
+    public Forum(int id, ForumType type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
+        this(id, type, owner, name, createdAt, readonly, 0, 0);
+    }
+
     public Forum(int id, String type, User owner, String name, LocalDateTime createdAt, boolean readonly) {
         this(id, ForumType.valueOf(type), owner, name, createdAt, readonly, 0, 0);
+    }
+
+    public Forum(ForumType type, User owner, String name, LocalDateTime createdAt) {
+        this(0, type, owner, name, createdAt, false, 0, 0);
     }
 
     public int getId() {
@@ -131,8 +139,7 @@ public class Forum {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getType(), getOwner(), getName(),
-                getCreatedAt(), isReadonly(), getMessageCount(), getCommentCount()
-        );
+        return Objects.hash(getId(), getType(), getOwner(), getName(), getCreatedAt(),
+                isReadonly(), getMessageCount(), getCommentCount());
     }
 }

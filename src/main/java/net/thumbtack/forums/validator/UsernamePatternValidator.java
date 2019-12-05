@@ -5,7 +5,6 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.Optional;
 import java.util.regex.Pattern;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;

@@ -1,13 +1,10 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.dto.user.LoginUserDtoRequest;
-import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
-import net.thumbtack.forums.dto.user.UserDtoResponse;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.UserSession;
-import net.thumbtack.forums.dto.*;
+import net.thumbtack.forums.dto.user.*;
+import net.thumbtack.forums.dto.EmptyDtoResponse;
 import net.thumbtack.forums.converter.UserConverter;
 import net.thumbtack.forums.dao.UserDao;
 import net.thumbtack.forums.dao.SessionDao;
@@ -19,13 +16,14 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.time.Month;
+import java.time.temporal.ChronoUnit;
 
 @Service("userService")
 public class UserService {
@@ -61,12 +59,8 @@ public class UserService {
         }
 
         final User user = new User(request.getName(), request.getEmail(), request.getPassword());
-        // REVU лучше сделать трансакцией, то есть одним вызовом DAO, внутри которого несколько вызовов маппера
-        // иначе может быть случай, когда userDao.save не прошел по какой-то причине, а делается sessionDao.upsertSession
-        userDao.save(user);
-
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
-        sessionDao.upsertSession(session);
+        userDao.save(user, session);
         return UserConverter.userToUserResponse(user, session.getToken());
     }
 
@@ -75,8 +69,6 @@ public class UserService {
 
         // TODO made readonly user forums
         user.setDeleted(true);
-        // REVU лучше сделать трансакцией, то есть одним вызовом DAO, внутри которого несколько вызовов маппера
-        sessionDao.deleteSession(sessionToken);
         userDao.deactivateById(user.getId());
         return new EmptyDtoResponse();
     }
@@ -123,6 +115,12 @@ public class UserService {
         newSuperUser.setBannedUntil(null);
         userDao.update(newSuperUser);
         return new EmptyDtoResponse();
+    }
+
+    public UserDetailsListDtoResponse getUsers(final String sessionToken) {
+        final User requestingUser = getUserBySessionOrThrowException(sessionToken);
+        final List<UserSession> usersWithSessions = userDao.getAllWithSessions();
+        return UserConverter.usersWithSessionsToResponse(usersWithSessions, requestingUser.getRole());
     }
 
     public EmptyDtoResponse banUser(final String sessionToken, final int restrictedUserId) {

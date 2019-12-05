@@ -1,14 +1,11 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.dto.user.*;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.dao.UserDao;
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.dto.user.UserDtoResponse;
-import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.user.LoginUserDtoRequest;
-import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
@@ -16,6 +13,8 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.time.Month;
 import java.time.LocalDateTime;
@@ -68,20 +67,17 @@ class UserServiceTest {
         doAnswer(invocationOnMock -> {
             User user = invocationOnMock.getArgument(0);
             user.setId(createdUser.getId());
-            return user;
-        }).when(userDao)
-                .save(any(User.class));
-        doNothing()
-                .when(sessionDao)
-                .upsertSession(any(UserSession.class));
+            return invocationOnMock.getArgument(1);
+        })
+                .when(userDao)
+                .save(any(User.class), any(UserSession.class));
 
         final UserDtoResponse actualResponse = userService.registerUser(request);
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
         verify(userDao)
-                .save(any(User.class));
-        verify(sessionDao)
-                .upsertSession(any(UserSession.class));
+                .save(any(User.class), any(UserSession.class));
+        verifyZeroInteractions(sessionDao);
 
         assertEquals(expectedResponse.getId(), actualResponse.getId());
         assertEquals(expectedResponse.getName(), actualResponse.getName());
@@ -120,7 +116,6 @@ class UserServiceTest {
                 "ahoi@jolybell.com",
                 "password123"
         );
-
         when(userDao.getByName(eq(request.getName()), anyBoolean()))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
 
@@ -147,7 +142,7 @@ class UserServiceTest {
 
         when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(null);
-        when(userDao.save(any(User.class)))
+        when(userDao.save(any(User.class), any(UserSession.class)))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
 
         try {
@@ -159,35 +154,8 @@ class UserServiceTest {
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
         verify(userDao)
-                .save(any(User.class));
+                .save(any(User.class), any(UserSession.class));
         verifyZeroInteractions(sessionDao);
-    }
-
-    @Test
-    void testRegisterUser_onSaveSessionDatabaseError_shouldThrowException() {
-        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "jolybell",
-                "ahoi@jolybell.com",
-                "password123"
-        );
-
-        when(userDao.getByName(anyString(), anyBoolean()))
-                .thenReturn(null);
-        when(userDao.save(any(User.class)))
-                .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
-        doThrow(new ServerException(ErrorCode.DATABASE_ERROR))
-                .when(sessionDao)
-                .upsertSession(any(UserSession.class));
-        try {
-            userService.registerUser(request);
-        } catch (ServerException e) {
-            assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
-        }
-
-        verify(userDao)
-                .getByName(anyString(), anyBoolean());
-        verify(userDao)
-                .save(any(User.class));
     }
 
     @Test
@@ -201,9 +169,6 @@ class UserServiceTest {
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
         doNothing()
-                .when(sessionDao)
-                .deleteSession(eq(token));
-        doNothing()
                 .when(userDao)
                 .deactivateById(anyInt());
 
@@ -211,10 +176,9 @@ class UserServiceTest {
 
         verify(sessionDao)
                 .getUserByToken(eq(token));
-        verify(sessionDao)
-                .deleteSession(eq(token));
         verify(userDao)
                 .deactivateById(anyInt());
+        verifyZeroInteractions(sessionDao);
     }
 
     @Test
@@ -777,5 +741,123 @@ class UserServiceTest {
         verifyZeroInteractions(properties);
         verify(userDao, never())
                 .update(any(User.class));
+    }
+
+    @Test
+    void testGetAllUsers_requestFromRegularUser_shouldReturnNotAllFields() {
+        final String sessionToken = UUID.randomUUID().toString();
+        final User user0 = new User("user0", "user0@gamil.com", "user_passwd_0");
+        final User user1 = new User("user1", "user1@gamil.com", "user_passwd_1");
+        final User user2 = new User(
+                UserRole.USER,
+                "user2", "user2@gamil.com", "user_passwd_2",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), true,
+                null, 3
+        );
+        final User superuser = new User(
+                UserRole.SUPERUSER,
+                "superuser", "superuser@gamil.com", "super_passwd",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final List<UserSession> sessions = Arrays.asList(
+                new UserSession(user0, UUID.randomUUID().toString()),
+                new UserSession(user1, null),
+                new UserSession(user2, UUID.randomUUID().toString()),
+                new UserSession(superuser, UUID.randomUUID().toString())
+        );
+
+        final UserDetailsDtoResponse response0 = new UserDetailsDtoResponse(
+                user0.getId(), user0.getUsername(), null, user0.getRegisteredAt(),
+                true, user0.isDeleted(), null, UserStatus.FULL,
+                user0.getBannedUntil(), user0.getBanCount()
+        );
+        final UserDetailsDtoResponse response1 = new UserDetailsDtoResponse(
+                user1.getId(), user1.getUsername(), null, user1.getRegisteredAt(),
+                false, user1.isDeleted(), null, UserStatus.FULL,
+                user1.getBannedUntil(), user1.getBanCount()
+        );
+        final UserDetailsDtoResponse response2 = new UserDetailsDtoResponse(
+                user2.getId(), user2.getUsername(), null, user2.getRegisteredAt(),
+                true, user2.isDeleted(), null, UserStatus.FULL,
+                user2.getBannedUntil(), user2.getBanCount()
+        );
+        final UserDetailsDtoResponse response3 = new UserDetailsDtoResponse(
+                superuser.getId(), superuser.getUsername(), null, superuser.getRegisteredAt(),
+                true, superuser.isDeleted(), null, UserStatus.FULL,
+                superuser.getBannedUntil(), superuser.getBanCount()
+        );
+        final UserDetailsListDtoResponse expectedResponse = new UserDetailsListDtoResponse(
+                Arrays.asList(response0, response1, response2, response3)
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(user0);
+        when(userDao.getAllWithSessions())
+                .thenReturn(sessions);
+
+        final UserDetailsListDtoResponse actualResponse = userService.getUsers(sessionToken);
+
+        verify(sessionDao).getUserByToken(anyString());
+        verify(userDao).getAllWithSessions();
+        assertEquals(expectedResponse, actualResponse);
+    }
+
+    @Test
+    void testGetAllUsers_requestFromSuperuser_shouldReturnAllFields() {
+        final String sessionToken = UUID.randomUUID().toString();
+        final User user0 = new User("user0", "user0@gamil.com", "user_passwd_0");
+        final User user1 = new User("user1", "user1@gamil.com", "user_passwd_1");
+        final User user2 = new User(
+                UserRole.USER,
+                "user2", "user2@gamil.com", "user_passwd_2",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), true,
+                null, 3
+        );
+        final User superuser = new User(
+                UserRole.SUPERUSER,
+                "superuser", "superuser@gamil.com", "super_passwd",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final List<UserSession> sessions = Arrays.asList(
+                new UserSession(user0, UUID.randomUUID().toString()),
+                new UserSession(user1, null),
+                new UserSession(user2, UUID.randomUUID().toString()),
+                new UserSession(superuser, UUID.randomUUID().toString())
+        );
+
+        final UserDetailsDtoResponse response0 = new UserDetailsDtoResponse(
+                user0.getId(), user0.getUsername(), user0.getEmail(), user0.getRegisteredAt(),
+                true, user0.isDeleted(), false, UserStatus.FULL,
+                user0.getBannedUntil(), user0.getBanCount()
+        );
+        final UserDetailsDtoResponse response1 = new UserDetailsDtoResponse(
+                user1.getId(), user1.getUsername(), user1.getEmail(), user1.getRegisteredAt(),
+                false, user1.isDeleted(), false, UserStatus.FULL,
+                user1.getBannedUntil(), user1.getBanCount()
+        );
+        final UserDetailsDtoResponse response2 = new UserDetailsDtoResponse(
+                user2.getId(), user2.getUsername(), user2.getEmail(), user2.getRegisteredAt(),
+                true, user2.isDeleted(), false, UserStatus.FULL,
+                user2.getBannedUntil(), user2.getBanCount()
+        );
+        final UserDetailsDtoResponse response3 = new UserDetailsDtoResponse(
+                superuser.getId(), superuser.getUsername(), superuser.getEmail(), superuser.getRegisteredAt(),
+                true, superuser.isDeleted(), true, UserStatus.FULL,
+                superuser.getBannedUntil(), superuser.getBanCount()
+        );
+        final UserDetailsListDtoResponse expectedResponse = new UserDetailsListDtoResponse(
+                Arrays.asList(response0, response1, response2, response3)
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getAllWithSessions())
+                .thenReturn(sessions);
+
+        final UserDetailsListDtoResponse actualResponse = userService.getUsers(sessionToken);
+
+        verify(sessionDao).getUserByToken(anyString());
+        verify(userDao).getAllWithSessions();
+        assertEquals(expectedResponse, actualResponse);
     }
 }

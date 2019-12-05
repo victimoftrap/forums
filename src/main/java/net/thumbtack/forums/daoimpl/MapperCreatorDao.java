@@ -21,11 +21,19 @@ public class MapperCreatorDao {
         return sqlSession.getMapper(RatingMapper.class);
     }
 
-    protected MessageHistoryMapper getMessageHistoryMapper(final SqlSession sqlSession) {
-        return sqlSession.getMapper(MessageHistoryMapper.class);
-    }
-
     protected TagMapper getTagMapper(final SqlSession sqlSession) {
         return sqlSession.getMapper(TagMapper.class);
+    }
+
+    protected MessageTreeMapper getMessageTreeMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(MessageTreeMapper.class);
+    }
+
+    protected MessageMapper getMessageMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(MessageMapper.class);
+    }
+
+    protected MessageHistoryMapper getMessageHistoryMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(MessageHistoryMapper.class);
     }
 }
