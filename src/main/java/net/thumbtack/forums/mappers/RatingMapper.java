@@ -21,7 +21,7 @@ public interface RatingMapper {
     })
     void deleteRate(@Param("msg") MessageItem message, @Param("rater") User user);
 
-    @Select("SELECT AVG(rating) AS avg_rating FROM message_ratings WHERE message_id = #{msg}")
+    @Select("SELECT IFNULL(AVG(rating), 0) AS avg_rating FROM message_ratings WHERE message_id = #{msg}")
     int getMessageRating(@Param("msg") int messageId);
 
     @Delete("DELETE FROM message_ratings")

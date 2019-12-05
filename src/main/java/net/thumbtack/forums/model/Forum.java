@@ -139,8 +139,7 @@ public class Forum {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getType(), getOwner(), getName(),
-                getCreatedAt(), isReadonly(), getMessageCount(), getCommentCount()
-        );
+        return Objects.hash(getId(), getType(), getOwner(), getName(), getCreatedAt(),
+                isReadonly(), getMessageCount(), getCommentCount());
     }
 }

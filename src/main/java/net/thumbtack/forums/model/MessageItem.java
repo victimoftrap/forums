@@ -50,6 +50,13 @@ public class MessageItem {
         );
     }
 
+    public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
+                       List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this(0, owner, messageTree, parentMessage,
+                new ArrayList<>(), history, createdAt, updatedAt, 0
+        );
+    }
+
     public MessageItem(User owner, List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this(0, owner, null, null,
                 new ArrayList<>(), history, createdAt, updatedAt, 0
@@ -141,16 +148,16 @@ public class MessageItem {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MessageItem)) return false;
-        MessageItem that = (MessageItem) o;
-        return getId() == that.getId() &&
-                getRating() == that.getRating() &&
-                Objects.equals(getOwner(), that.getOwner()) &&
-                Objects.equals(getMessageTree(), that.getMessageTree()) &&
-                Objects.equals(getParentMessage(), that.getParentMessage()) &&
-                Objects.equals(getChildrenComments(), that.getChildrenComments()) &&
-                Objects.equals(getHistory(), that.getHistory()) &&
-                Objects.equals(getCreatedAt(), that.getCreatedAt()) &&
-                Objects.equals(getUpdatedAt(), that.getUpdatedAt());
+        MessageItem item = (MessageItem) o;
+        return getId() == item.getId() &&
+                getRating() == item.getRating() &&
+                Objects.equals(getOwner(), item.getOwner()) &&
+                Objects.equals(getMessageTree(), item.getMessageTree()) &&
+                Objects.equals(getParentMessage(), item.getParentMessage()) &&
+                Objects.equals(getChildrenComments(), item.getChildrenComments()) &&
+                Objects.equals(getHistory(), item.getHistory()) &&
+                Objects.equals(getCreatedAt(), item.getCreatedAt()) &&
+                Objects.equals(getUpdatedAt(), item.getUpdatedAt());
     }
 
     @Override

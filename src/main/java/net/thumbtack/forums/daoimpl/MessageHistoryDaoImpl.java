@@ -16,12 +16,12 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageHistoryDaoImpl.class);
 
     @Override
-    public HistoryItem saveNewVersion(HistoryItem history) {
+    public HistoryItem saveNewVersion(int messageId, HistoryItem history) {
         LOGGER.debug("Saving new version {} of message", history);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getMessageHistoryMapper(sqlSession).saveHistory(history);
+                getMessageHistoryMapper(sqlSession).saveHistory(messageId, history);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to save new version {} of message", history, ex);
                 sqlSession.rollback();
@@ -33,13 +33,13 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    public void editLatestVersion(HistoryItem history) {
+    public void editLatestVersion(int messageId, HistoryItem history) {
         LOGGER.debug("Updating unpublished version of message {}", history);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
                 LOGGER.info("Unable to update unpublished version {} of message", history);
-                getMessageHistoryMapper(sqlSession).editUnpublishedHistory(history);
+                getMessageHistoryMapper(sqlSession).editUnpublishedHistory(messageId, history);
             } catch (RuntimeException ex) {
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
@@ -49,14 +49,14 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    public void deleteHistoryById(int id) {
-        LOGGER.debug("Deleting unpublished version of message with ID {}", id);
+    public void unpublishNewVersionBy(int messageId) {
+        LOGGER.debug("Deleting unpublished version of message with ID {}", messageId);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getMessageHistoryMapper(sqlSession).deleteRejectedHistory(id);
+                getMessageHistoryMapper(sqlSession).deleteRejectedHistory(messageId);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to delete message version by ID {}", id, ex);
+                LOGGER.info("Unable to delete message version by ID {}", messageId, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

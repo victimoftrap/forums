@@ -1,17 +1,18 @@
 package net.thumbtack.forums.daoimpl;
 
-import net.thumbtack.forums.dao.ForumDao;
-import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.dao.UserDao;
+import net.thumbtack.forums.dao.*;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
-public class DaoTestBase {
+public class DaoTestEnvironment {
     protected final UserDao userDao = new UserDaoImpl();
     protected final SessionDao sessionDao = new SessionDaoImpl();
     protected final ForumDao forumDao = new ForumDaoImpl();
+    protected final MessageTreeDao messageTreeDao = new MessageTreeDaoImpl();
+    protected final MessageDao messageDao = new MessageDaoImpl();
+    protected final MessageHistoryDao messageHistoryDao = new MessageHistoryDaoImpl();
 
     @BeforeAll
     static void setupDatabase() {
@@ -21,5 +22,6 @@ public class DaoTestBase {
     @BeforeEach
     void clearDatabase() {
         userDao.deleteAll();
+        messageDao.deleteAll();
     }
 }

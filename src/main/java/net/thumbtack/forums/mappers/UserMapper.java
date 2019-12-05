@@ -20,7 +20,7 @@ public interface UserMapper {
             "#{bannedUntil}, #{banCount}",
             ")"
     })
-    @Options(useGeneratedKeys = true)
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer save(User user);
 
     @Select("SELECT id, role, LOWER(username) AS username, email, password, " +

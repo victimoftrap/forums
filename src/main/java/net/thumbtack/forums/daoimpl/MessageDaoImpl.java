@@ -53,7 +53,7 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getMessageHistoryMapper(sqlSession).publishMessage(item.getHistory().get(0));
+                getMessageHistoryMapper(sqlSession).updateMessageHistory(item.getId(), item.getHistory().get(0));
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to publish message {}", item, ex);
                 sqlSession.rollback();
@@ -71,7 +71,7 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
             try {
                 getMessageMapper(sqlSession).deleteById(id);
                 // histories and message tree would be deleted by ON DELETE CASCADE
-            }catch (RuntimeException ex) {
+            } catch (RuntimeException ex) {
                 LOGGER.info("Unable to delete message by ID {}", id, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
@@ -88,7 +88,7 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
             try {
                 getMessageMapper(sqlSession).deleteAll();
                 // histories and message tree would be deleted by ON DELETE CASCADE
-            }catch (RuntimeException ex) {
+            } catch (RuntimeException ex) {
                 LOGGER.info("Unable to delete all messages", ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);

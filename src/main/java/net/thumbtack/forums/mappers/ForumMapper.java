@@ -17,10 +17,10 @@ public interface ForumMapper {
             "#{name}, #{readonly}, #{createdAt}",
             ")"
     })
-    @Options(useGeneratedKeys = true)
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer save(Forum forum);
 
-    @Select({"SELECT id, forum_type, owner_id, LOWER(name) AS name, readonly, created_at",
+    @Select({"SELECT id, forum_type, owner_id, name, readonly, created_at",
             "FROM forums WHERE id = #{id}"
     })
     @Results(id = "forumResult",
@@ -45,7 +45,7 @@ public interface ForumMapper {
     })
     int getPublishedMessagesCountInForum(@Param("id") int forumId);
 
-    @Select("SELECT id, forum_type, owner_id, LOWER(name) AS name, readonly, created_at FROM forums")
+    @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums")
     @ResultMap("forumResult")
     List<Forum> getAll();
 

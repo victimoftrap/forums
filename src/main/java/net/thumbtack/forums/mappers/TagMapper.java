@@ -9,12 +9,12 @@ import java.util.List;
 
 public interface TagMapper {
     @Insert("INSERT INTO available_tags (tag_name) VALUES(#{tag.name})")
-    @Options(useGeneratedKeys = true)
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer saveTag(Tag tag);
 
-    @Insert({"INSERT INTO message_tags (tag_id, message_id) ",
+    @Insert({"INSERT INTO message_tags (tag_id, message_id)",
             "VALUES(",
-            "(SELECT id FROM available_tags WHERE tag_name = #{tag.name}), ",
+            "(SELECT id FROM available_tags WHERE tag_name = #{tag.name}),",
             "#{msg.rootMessage.id}",
             ")"
     })
@@ -24,11 +24,11 @@ public interface TagMapper {
             "INSERT INTO message_tags (tag_id, message_id) VALUES",
             "<foreach item='tag' collection='msg.tags' separator=','>",
             "(",
-            "(SELECT id FROM available_tags WHERE tag_name = #{tag.name}), ",
+            "(SELECT id FROM available_tags WHERE tag_name = #{tag.name}),",
             "#{msg.rootMessage.id}",
             ")",
             "</foreach>",
-            " ON DUPLICATE KEY UPDATE tag_name = tag_name",
+            "ON DUPLICATE KEY UPDATE tag_name = tag_name",
             "</script>"
     })
     void saveMessageForAllTags(@Param("msg") MessageTree message);

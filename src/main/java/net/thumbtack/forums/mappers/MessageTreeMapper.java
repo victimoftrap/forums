@@ -16,12 +16,11 @@ public interface MessageTreeMapper {
             "(forum_id, root_message, subject, priority)",
             "VALUES(#{forum.id}, #{rootMessage.id}, #{subject}, #{priority.name})"
     })
-    @Options(useGeneratedKeys = true)
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer saveMessageTree(MessageTree tree);
 
     @SelectProvider(method = "getMessageTreeByMessage", type = MessageTreeDaoProvider.class)
     @Results({
-            @Result(property = "id", column = "id", javaType = int.class),
             @Result(property = "forum", column = "forum_id", javaType = Forum.class,
                     one = @One(
                             select = "net.thumbtack.forums.mappers.ForumMapper.getById",
@@ -30,12 +29,11 @@ public interface MessageTreeMapper {
             ),
             @Result(property = "rootMessage", column = "root_message", javaType = MessageItem.class,
                     one = @One(
+//                            select = "net.thumbtack.forums.mappers.MessageMapper.getSimpleMessageById",
                             select = "net.thumbtack.forums.mappers.MessageMapper.getMessageById",
                             fetchType = FetchType.LAZY
                     )
             ),
-            @Result(property = "subject", column = "subject", javaType = String.class),
-            @Result(property = "priority", column = "priority", javaType = MessagePriority.class),
             @Result(property = "tags", column = "root_message", javaType = List.class,
                     many = @Many(
                             select = "net.thumbtack.forums.mappers.TagMapper.getMessageTags",
@@ -45,15 +43,15 @@ public interface MessageTreeMapper {
     })
     MessageTree getMessageTreeByMessage(int id);
 
-    @Update({"UPDATE message_tree",
+    @Update({"UPDATE messages_tree",
             "SET priority = #{priority.name}",
             "WHERE id = #{id}"
     })
     void updateMessagePriority(MessageTree tree);
 
-    @Delete("DELETE FROM message_tree WHERE id = #{id}")
+    @Delete("DELETE FROM messages_tree WHERE id = #{id}")
     void deleteTreeById(int id);
 
-    @Delete("DELETE FROM message_tree")
+    @Delete("DELETE FROM messages_tree")
     void deleteAll();
 }

@@ -6,7 +6,6 @@ import net.thumbtack.forums.model.enums.UserRole;
 
 import org.junit.jupiter.api.Test;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -14,10 +13,10 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class UserDaoImplTest extends DaoTestBase {
+class UserDaoImplTest extends DaoTestEnvironment {
     @Test
     void testSaveUser() {
-        User user = new User(
+        final User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
