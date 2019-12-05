@@ -9,6 +9,7 @@
     <settings>
         <!-- instead of setting here, it is possible to set Configuration properties after creating SqlSessionFactory  -->
         <setting name="aggressiveLazyLoading" value="false"/>
+        <setting name="lazyLoadTriggerMethods" value=""/>
     </settings>
 
     <environments default="DEVELOP">
