@@ -437,7 +437,7 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(eq(sessionToken)))
                 .thenReturn(superuser);
-        when(userDao.getById(anyInt()))
+        when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(user);
         doAnswer(invocationOnMock -> {
             User upd = invocationOnMock.getArgument(0);
@@ -454,7 +454,7 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
-                .getById(anyInt());
+                .getById(anyInt(), anyBoolean());
         verify(userDao)
                 .update(any(User.class));
     }
@@ -475,7 +475,7 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(eq(sessionToken)))
                 .thenReturn(superuser);
-        when(userDao.getById(anyInt()))
+        when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(user);
         doAnswer(invocationOnMock -> {
             User upd = invocationOnMock.getArgument(0);
@@ -493,7 +493,7 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
-                .getById(anyInt());
+                .getById(anyInt(), anyBoolean());
         verify(userDao)
                 .update(any(User.class));
     }
@@ -513,7 +513,7 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
         verify(userDao, never())
-                .getById(anyInt());
+                .getById(anyInt(), anyBoolean());
         verify(userDao, never())
                 .update(any(User.class));
     }
@@ -537,13 +537,13 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
         verify(userDao, never())
-                .getById(anyInt());
+                .getById(anyInt(), anyBoolean());
         verify(userDao, never())
                 .update(any(User.class));
     }
 
     @Test
-    void testMadeSuperuser_userNotFoundById_shouldThrowException() {
+    void testMadeSuperuser_userNotFoundOrDeletedById_shouldThrowException() {
         final String sessionToken = UUID.randomUUID().toString();
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
@@ -552,7 +552,7 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(eq(sessionToken)))
                 .thenReturn(superuser);
-        when(userDao.getById(anyInt()))
+        when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(null);
 
         try {
@@ -564,7 +564,7 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
-                .getById(anyInt());
+                .getById(anyInt(), anyBoolean());
         verify(userDao, never())
                 .update(any(User.class));
     }
@@ -584,7 +584,7 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(superuser);
-        when(userDao.getById(anyInt()))
+        when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(bannedUser);
         when(properties.getMaxBanCount())
                 .thenReturn(5);
@@ -599,7 +599,7 @@ class UserServiceTest {
         assertNotNull(bannedUser.getBannedUntil());
 
         verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt());
+        verify(userDao).getById(anyInt(), anyBoolean());
         verify(properties).getMaxBanCount();
         verify(properties).getBanTime();
         verify(userDao).update(any(User.class));
@@ -620,7 +620,7 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(superuser);
-        when(userDao.getById(anyInt()))
+        when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(bannedUser);
         try {
             userService.banUser(token, bannedUser.getId());
@@ -629,7 +629,7 @@ class UserServiceTest {
         }
 
         verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt());
+        verify(userDao).getById(anyInt(), anyBoolean());
         verifyZeroInteractions(properties);
         verify(userDao, never()).update(any(User.class));
     }
@@ -651,7 +651,8 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(superuser);
-        when(userDao.getById(anyInt())).thenReturn(bannedUser);
+        when(userDao.getById(anyInt(), anyBoolean()))
+                .thenReturn(bannedUser);
         when(properties.getMaxBanCount()).thenReturn(maxBanCount);
         when(properties.getMaxBanCount()).thenReturn(maxBanCount);
         doNothing()
@@ -667,7 +668,7 @@ class UserServiceTest {
         );
 
         verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt());
+        verify(userDao).getById(anyInt(), anyBoolean());
         verify(properties, times(2)).getMaxBanCount();
         verify(userDao).update(any(User.class));
     }
@@ -685,7 +686,7 @@ class UserServiceTest {
         }
 
         verify(sessionDao).getUserByToken(eq(sessionToken));
-        verify(userDao, never()).getById(anyInt());
+        verify(userDao, never()).getById(anyInt(), anyBoolean());
         verifyZeroInteractions(properties);
         verify(userDao, never()).update(any(User.class));
     }
@@ -709,14 +710,14 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
         verify(userDao, never())
-                .getById(anyInt());
+                .getById(anyInt(), anyBoolean());
         verifyZeroInteractions(properties);
         verify(userDao, never())
                 .update(any(User.class));
     }
 
     @Test
-    void testBanUser_userNotFoundById_shouldThrowException() {
+    void testBanUser_userNotFoundOrDeletedById_shouldThrowException() {
         final String sessionToken = UUID.randomUUID().toString();
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
@@ -725,7 +726,7 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(eq(sessionToken)))
                 .thenReturn(superuser);
-        when(userDao.getById(anyInt()))
+        when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(null);
 
         try {
@@ -737,7 +738,7 @@ class UserServiceTest {
         verify(sessionDao)
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
-                .getById(anyInt());
+                .getById(anyInt(), anyBoolean());
         verifyZeroInteractions(properties);
         verify(userDao, never())
                 .update(any(User.class));

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -108,5 +109,68 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         assertEquals(messageTree.getPriority(), selectedTree.getPriority());
         assertEquals(messageTree.getId(), selectedTree.getId());
         assertEquals(messageTree.getRootMessage().getId(), selectedTree.getRootMessage().getId());
+    }
+
+    @Test
+    void testReceiveMyBatisRequestsLoop1() {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.newMessageTree(messageTree);
+
+        messageTree.setPriority(MessagePriority.HIGH);
+        messageTreeDao.changeBranchPriority(messageTree);
+
+        final MessageItem message = messageDao.getMessageById(messageItem.getId());
+        final MessageTree selectedTree = message.getMessageTree();
+        assertEquals(messageItem, message);
+    }
+
+    @Test
+    void testReceiveMyBatisRequestsLoop2() {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.newMessageTree(messageTree);
+
+        messageTree.setPriority(MessagePriority.HIGH);
+        messageTreeDao.changeBranchPriority(messageTree);
+
+        final MessageItem message = messageDao.getMessageById(messageItem.getId());
+        final MessageTree selectedTree = message.getMessageTree();
+        assertEquals(messageTree, selectedTree);
+    }
+    @Test
+    void testReceiveMyBatisRequestsLoop3() {
+        final User user = new User(
+                "otheruser", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(user);
+        forumDao.save(forum);
+        messageTreeDao.newMessageTree(messageTree);
+
+        final HistoryItem historyItem1 = new HistoryItem(
+                "body1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem messageItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(historyItem1),
+                historyItem1.getCreatedAt(), historyItem1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(messageItem1);
+
+        final HistoryItem historyItem2 = new HistoryItem(
+                "body2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem messageItem2 = new MessageItem(
+                user, messageTree, messageItem,
+                Collections.singletonList(historyItem2),
+                historyItem2.getCreatedAt(), historyItem2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(messageItem2);
+
+        final MessageItem selectedItem = messageDao.getMessageById(messageItem.getId());
+        assertEquals(Arrays.asList(messageItem1, messageItem2), selectedItem.getChildrenComments());
     }
 }
