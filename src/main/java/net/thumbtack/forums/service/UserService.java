@@ -48,7 +48,7 @@ public class UserService {
 
     private User getUserByIdOrThrowException(final int id) {
         return Optional
-                .ofNullable(userDao.getById(id))
+                .ofNullable(userDao.getById(id, false))
                 .orElseThrow(() -> new ServerException(ErrorCode.USER_NOT_FOUND));
     }
 
