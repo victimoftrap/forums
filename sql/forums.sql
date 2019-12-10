@@ -50,23 +50,19 @@ CREATE TABLE messages_tree(
 
   KEY priority(priority),
   KEY subject(subject),
-  FOREIGN KEY (forum_id)     REFERENCES forums(id) ON DELETE CASCADE
+  FOREIGN KEY (forum_id) REFERENCES forums(id) ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
-#ALTER TABLE messages ADD tree_id INT(11) NOT NULL;
-#ALTER TABLE messages ADD CONSTRAINT fk_tree_id FOREIGN KEY (tree_id) REFERENCES messages_tree(id) ON DELETE CASCADE;
 
 CREATE TABLE messages(
   id             INT       PRIMARY KEY AUTO_INCREMENT,
   owner_id       INT       NOT NULL,
   tree_id        INT       NOT NULL,
-  root_message   INT       NOT NULL,
   parent_message INT       NULL,
   created_at     TIMESTAMP DEFAULT NOW(),
   updated_at     TIMESTAMP DEFAULT NOW(),
   
   FOREIGN KEY (owner_id)       REFERENCES users(id)         ON DELETE CASCADE,
   FOREIGN KEY (tree_id)        REFERENCES messages_tree(id) ON DELETE CASCADE,
-  FOREIGN KEY (root_message)   REFERENCES messages(id)      ON DELETE CASCADE,
   FOREIGN KEY (parent_message) REFERENCES messages(id)      ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
@@ -97,11 +93,11 @@ CREATE TABLE available_tags(
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE message_tags(
-  tag_id     INT NOT NULL,
-  message_id INT NOT NULL,
+  tag_id  INT NOT NULL,
+  tree_id INT NOT NULL,
 
-  FOREIGN KEY (tag_id)     REFERENCES available_tags(id) ON DELETE CASCADE,
-  FOREIGN KEY (message_id) REFERENCES messages(id)       ON DELETE CASCADE
+  FOREIGN KEY (tag_id)  REFERENCES available_tags(id) ON DELETE CASCADE,
+  FOREIGN KEY (tree_id) REFERENCES messages(id)       ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 INSERT INTO users 
