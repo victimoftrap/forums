@@ -17,14 +17,14 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
 
     @Override
     public MessageItem saveMessageItem(MessageItem item) {
-        LOGGER.debug("Saving new message {} in database ", item);
+        LOGGER.debug("Saving new message in tree with ID {}", item.getMessageTree().getId());
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
                 getMessageMapper(sqlSession).saveMessageItem(item);
                 getMessageHistoryMapper(sqlSession).saveAllHistory(item);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save new message {}", item, ex);
+                LOGGER.info("Unable to save new message in tree {}", item.getMessageTree().getId(), ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -49,7 +49,7 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
 
     @Override
     public void publish(MessageItem item) {
-        LOGGER.debug("Publishing message version {}", item);
+        LOGGER.debug("Publishing version of message with ID {}", item.getId());
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
@@ -64,13 +64,13 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
-    public void deleteById(int id) {
+    public void deleteMessageById(int id) {
         LOGGER.debug("Deleting message by ID {}", id);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
                 getMessageMapper(sqlSession).deleteById(id);
-                // histories and message tree would be deleted by ON DELETE CASCADE
+                // histories would be deleted by ON DELETE CASCADE
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to delete message by ID {}", id, ex);
                 sqlSession.rollback();

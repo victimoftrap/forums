@@ -1,7 +1,8 @@
 package net.thumbtack.forums.daoimpl;
 
-import net.thumbtack.forums.dao.MessageHistoryDao;
 import net.thumbtack.forums.model.HistoryItem;
+import net.thumbtack.forums.model.MessageItem;
+import net.thumbtack.forums.dao.MessageHistoryDao;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
@@ -16,31 +17,34 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageHistoryDaoImpl.class);
 
     @Override
-    public HistoryItem saveNewVersion(int messageId, HistoryItem history) {
-        LOGGER.debug("Saving new version {} of message", history);
+    public HistoryItem saveNewVersion(MessageItem item) {
+        LOGGER.debug("Saving new version of message with ID {}", item.getId());
+        final HistoryItem newVersion = item.getHistory().get(0);
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                getMessageHistoryMapper(sqlSession).saveHistory(messageId, history);
+                getMessageHistoryMapper(sqlSession).saveHistory(item.getId(), newVersion);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save new version {} of message", history, ex);
+                LOGGER.info("Unable to save new version of message {}", item.getId(), ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
             sqlSession.commit();
         }
-        return history;
+        return newVersion;
     }
 
     @Override
-    public void editLatestVersion(int messageId, HistoryItem history) {
-        LOGGER.debug("Updating unpublished version of message {}", history);
+    public void editLatestVersion(MessageItem item) {
+        LOGGER.debug("Updating unpublished version of message with ID {}", item.getId());
 
         try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
             try {
-                LOGGER.info("Unable to update unpublished version {} of message", history);
-                getMessageHistoryMapper(sqlSession).editUnpublishedHistory(messageId, history);
+                getMessageHistoryMapper(sqlSession).editUnpublishedHistory(
+                        item.getId(), item.getHistory().get(0)
+                );
             } catch (RuntimeException ex) {
+                LOGGER.info("Unable to update unpublished version of message {}", item.getId());
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -56,7 +60,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
             try {
                 getMessageHistoryMapper(sqlSession).deleteRejectedHistory(messageId);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to delete message version by ID {}", messageId, ex);
+                LOGGER.info("Unable to delete unpublished version by message ID {}", messageId, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

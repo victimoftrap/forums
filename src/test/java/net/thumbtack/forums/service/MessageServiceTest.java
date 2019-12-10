@@ -11,8 +11,6 @@ import net.thumbtack.forums.model.enums.MessagePriority;
 import net.thumbtack.forums.model.enums.MessageState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -67,14 +65,14 @@ class MessageServiceTest {
             return tree;
         })
                 .when(mockMessageTreeDao)
-                .newMessageTree(any(MessageTree.class));
+                .saveMessageTree(any(MessageTree.class));
 
         final MessageDtoResponse actualResponse = messageService.addMessage(token, forumId, request);
         assertEquals(expectedResponse, actualResponse);
 
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockForumDao).getById(anyInt());
-        verify(mockMessageTreeDao).newMessageTree(any(MessageTree.class));
+        verify(mockMessageTreeDao).saveMessageTree(any(MessageTree.class));
     }
 
     @Test

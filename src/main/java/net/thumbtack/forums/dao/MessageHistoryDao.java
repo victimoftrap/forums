@@ -1,11 +1,12 @@
 package net.thumbtack.forums.dao;
 
 import net.thumbtack.forums.model.HistoryItem;
+import net.thumbtack.forums.model.MessageItem;
 
 public interface MessageHistoryDao {
-    HistoryItem saveNewVersion(int messageId, HistoryItem history);
+    HistoryItem saveNewVersion(MessageItem item);
 
-    void editLatestVersion(int messageId, HistoryItem history);
+    void editLatestVersion(MessageItem item);
 
     void unpublishNewVersionBy(int messageId);
 }

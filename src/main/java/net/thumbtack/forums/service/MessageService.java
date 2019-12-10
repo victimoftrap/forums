@@ -100,7 +100,7 @@ public class MessageService {
         );
         messageItem.setMessageTree(tree);
 
-        messageTreeDao.newMessageTree(tree);
+        messageTreeDao.saveMessageTree(tree);
         return new MessageDtoResponse(messageItem.getId(), state);
     }
 

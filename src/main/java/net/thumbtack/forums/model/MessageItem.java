@@ -149,21 +149,21 @@ public class MessageItem {
         if (this == o) return true;
         if (!(o instanceof MessageItem)) return false;
         MessageItem item = (MessageItem) o;
-        return getId() == item.getId() &&
-                getRating() == item.getRating() &&
-                Objects.equals(getOwner(), item.getOwner()) &&
-                Objects.equals(getMessageTree(), item.getMessageTree()) &&
-                Objects.equals(getParentMessage(), item.getParentMessage()) &&
-                Objects.equals(getChildrenComments(), item.getChildrenComments()) &&
-                Objects.equals(getHistory(), item.getHistory()) &&
-                Objects.equals(getCreatedAt(), item.getCreatedAt()) &&
-                Objects.equals(getUpdatedAt(), item.getUpdatedAt());
+        return id == item.id &&
+                rating == item.rating &&
+                Objects.equals(owner, item.owner) &&
+                Objects.equals(messageTree, item.messageTree) &&
+                Objects.equals(parentMessage, item.parentMessage) &&
+                Objects.equals(childrenComments, item.childrenComments) &&
+                Objects.equals(history, item.history) &&
+                Objects.equals(createdAt, item.createdAt) &&
+                Objects.equals(updatedAt, item.updatedAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getOwner(), getMessageTree(), getParentMessage(),
-                getChildrenComments(), getHistory(), getCreatedAt(), getUpdatedAt(), getRating()
+        return Objects.hash(id, owner, messageTree, parentMessage,
+                childrenComments, history, createdAt, updatedAt, rating
         );
     }
 }

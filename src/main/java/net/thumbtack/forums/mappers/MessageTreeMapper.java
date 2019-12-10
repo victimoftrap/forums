@@ -13,35 +13,37 @@ import java.util.List;
 
 public interface MessageTreeMapper {
     @Insert({"INSERT INTO messages_tree",
-            "(forum_id, root_message, subject, priority)",
-            "VALUES(#{forum.id}, #{rootMessage.id}, #{subject}, #{priority.name})"
+            "(forum_id, subject, priority)",
+            "VALUES(#{forum.id}, #{subject}, #{priority.name})"
     })
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer saveMessageTree(MessageTree tree);
 
-    @SelectProvider(method = "getMessageTreeByMessage", type = MessageTreeDaoProvider.class)
-    @Results({
-            @Result(property = "forum", column = "forum_id", javaType = Forum.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.ForumMapper.getById",
-                            fetchType = FetchType.LAZY
+    @Select("SELECT id, forum_id, subject, priority FROM messages_tree WHERE id = #{id}")
+    @Results(id = "treeResult",
+            value = {
+                    @Result(property = "id", column = "id", javaType = int.class),
+                    @Result(property = "forum", column = "forum_id", javaType = Forum.class,
+                            one = @One(
+                                    select = "net.thumbtack.forums.mappers.ForumMapper.getById",
+                                    fetchType = FetchType.LAZY
+                            )
+                    ),
+                    @Result(property = "rootMessage", column = "id", javaType = MessageItem.class,
+                            one = @One(
+                                    select = "net.thumbtack.forums.mappers.MessageMapper.getRootMessageById",
+                                    fetchType = FetchType.LAZY
+                            )
+                    ),
+                    @Result(property = "tags", column = "id", javaType = List.class,
+                            many = @Many(
+                                    select = "net.thumbtack.forums.mappers.TagMapper.getMessageTreeTags",
+                                    fetchType = FetchType.LAZY
+                            )
                     )
-            ),
-            @Result(property = "rootMessage", column = "root_message", javaType = MessageItem.class,
-                    one = @One(
-//                            select = "net.thumbtack.forums.mappers.MessageMapper.getSimpleMessageById",
-                            select = "net.thumbtack.forums.mappers.MessageMapper.getMessageById",
-                            fetchType = FetchType.LAZY
-                    )
-            ),
-            @Result(property = "tags", column = "root_message", javaType = List.class,
-                    many = @Many(
-                            select = "net.thumbtack.forums.mappers.TagMapper.getMessageTags",
-                            fetchType = FetchType.LAZY
-                    )
-            )
-    })
-    MessageTree getMessageTreeByMessage(int id);
+            }
+    )
+    MessageTree getTreeById(int id);
 
     @Update({"UPDATE messages_tree",
             "SET priority = #{priority.name}",
