@@ -15,14 +15,14 @@ public class MessageItem {
     private List<HistoryItem> history;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private int rating;
+    private double rating;
 
     public MessageItem() {
     }
 
     public MessageItem(int id, User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
-                       LocalDateTime createdAt, LocalDateTime updatedAt, int rating) {
+                       LocalDateTime createdAt, LocalDateTime updatedAt, double rating) {
         this.id = id;
         this.owner = owner;
         this.messageTree = messageTree;
@@ -36,7 +36,7 @@ public class MessageItem {
 
     public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
-                       LocalDateTime createdAt, LocalDateTime updatedAt, int rating) {
+                       LocalDateTime createdAt, LocalDateTime updatedAt, double rating) {
         this(0, owner, messageTree, parentMessage,
                 childrenComments, history, createdAt, updatedAt, rating
         );
@@ -44,7 +44,7 @@ public class MessageItem {
 
     public MessageItem(int id, User owner, MessageTree messageTree,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
-                       LocalDateTime createdAt, LocalDateTime updatedAt, int rating) {
+                       LocalDateTime createdAt, LocalDateTime updatedAt, double rating) {
         this(id, owner, messageTree, null,
                 childrenComments, history, createdAt, updatedAt, rating
         );
@@ -53,19 +53,19 @@ public class MessageItem {
     public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this(0, owner, messageTree, parentMessage,
-                new ArrayList<>(), history, createdAt, updatedAt, 0
+                new ArrayList<>(), history, createdAt, updatedAt, 0.
         );
     }
 
     public MessageItem(User owner, List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this(0, owner, null, null,
-                new ArrayList<>(), history, createdAt, updatedAt, 0
+                new ArrayList<>(), history, createdAt, updatedAt, 0.
         );
     }
 
     public MessageItem(User owner, List<HistoryItem> history) {
         this(0, owner, null, null,
-                new ArrayList<>(), history, null, null, 0
+                new ArrayList<>(), history, null, null, 0.
         );
         LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         setCreatedAt(createdAt);
@@ -136,11 +136,11 @@ public class MessageItem {
         this.updatedAt = updatedAt;
     }
 
-    public int getRating() {
+    public double getRating() {
         return rating;
     }
 
-    public void setRating(int rating) {
+    public void setRating(double rating) {
         this.rating = rating;
     }
 

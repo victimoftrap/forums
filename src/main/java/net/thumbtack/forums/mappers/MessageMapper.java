@@ -57,7 +57,7 @@ public interface MessageMapper {
                     ),
                     @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
                     @Result(property = "updatedAt", column = "updated_at", javaType = LocalDateTime.class),
-                    @Result(property = "rating", column = "id", javaType = int.class,
+                    @Result(property = "rating", column = "id", javaType = double.class,
                             one = @One(
                                     select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRating",
                                     fetchType = FetchType.LAZY
@@ -70,37 +70,6 @@ public interface MessageMapper {
     @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at",
             "FROM messages WHERE tree_id = #{treeId} AND parent_message IS NULL"
     })
-//    @Results(id = "simpleMessageResult",
-//            value = {
-//                    @Result(property = "id", column = "id", javaType = int.class),
-//                    @Result(property = "owner", column = "owner_id", javaType = User.class,
-//                            one = @One(
-//                                    select = "net.thumbtack.forums.mappers.UserMapper.getById",
-//                                    fetchType = FetchType.LAZY
-//                            )
-//                    ),
-//                    @Result(property = "childrenComments", column = "id", javaType = List.class,
-//                            many = @Many(
-//                                    select = "net.thumbtack.forums.mappers.MessageMapper.getChildrenMessages",
-//                                    fetchType = FetchType.LAZY
-//                            )
-//                    ),
-//                    @Result(property = "history", column = "id", javaType = List.class,
-//                            many = @Many(
-//                                    select = "net.thumbtack.forums.mappers.MessageHistoryMapper.getMessageHistory",
-//                                    fetchType = FetchType.LAZY
-//                            )
-//                    ),
-//                    @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
-//                    @Result(property = "updatedAt", column = "updated_at", javaType = LocalDateTime.class),
-//                    @Result(property = "rating", column = "id", javaType = int.class,
-//                            one = @One(
-//                                    select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRating",
-//                                    fetchType = FetchType.LAZY
-//                            )
-//                    )
-//            }
-//    )
     @ResultMap("messageResult")
     MessageItem getRootMessageById(int treeId);
 

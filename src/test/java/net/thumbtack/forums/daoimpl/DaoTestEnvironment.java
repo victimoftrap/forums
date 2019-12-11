@@ -13,6 +13,7 @@ public class DaoTestEnvironment {
     protected final MessageTreeDao messageTreeDao = new MessageTreeDaoImpl();
     protected final MessageDao messageDao = new MessageDaoImpl();
     protected final MessageHistoryDao messageHistoryDao = new MessageHistoryDaoImpl();
+    protected final RatingDao ratingDao = new RatingDaoImpl();
 
     @BeforeAll
     static void setupDatabase() {
