@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -153,6 +154,47 @@ class MessageDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(messageItem.getParentMessage(), selectedItem.getParentMessage()),
                 () -> assertFalse(selectedItem.getChildrenComments().isEmpty())
         );
+    }
+
+    @Test
+    void testGetMessageWithMultipleVersions() {
+        userDao.save(creator);
+        forumDao.save(forum);
+
+        final HistoryItem version1 = new HistoryItem(
+                "1st body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        messageItem = new MessageItem(
+                creator, messageTree, null,
+                Collections.singletonList(version1),
+                version1.getCreatedAt(), version1.getCreatedAt()
+        );
+        messageTree.setRootMessage(messageItem);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem version2 = new HistoryItem(
+                "version 2.0", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).plus(1, ChronoUnit.HOURS)
+        );
+        List<HistoryItem> updatedVersions = Arrays.asList(version2, version1);
+        messageItem.setHistory(updatedVersions);
+        messageHistoryDao.saveNewVersion(messageItem);
+
+        final HistoryItem version3 = new HistoryItem(
+                "version 3.0", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).plus(1, ChronoUnit.DAYS)
+        );
+        updatedVersions = Arrays.asList(version3, version2, version1);
+        messageItem.setHistory(updatedVersions);
+        messageHistoryDao.saveNewVersion(messageItem);
+
+        final MessageItem selectedMessage = messageDao.getMessageById(messageItem.getId());
+        assertEquals(messageItem.getId(), selectedMessage.getId());
+        assertEquals(messageItem.getHistory(), selectedMessage.getHistory());
+        assertEquals(version3, selectedMessage.getHistory().get(0));
+        assertEquals(version2, selectedMessage.getHistory().get(1));
+        assertEquals(version1, selectedMessage.getHistory().get(2));
     }
 
     @Test
