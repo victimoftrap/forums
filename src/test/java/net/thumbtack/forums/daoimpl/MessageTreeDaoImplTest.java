@@ -181,4 +181,18 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
         assertNull(selectedRootAfterDeletion);
     }
+
+    @Test
+    void testDeleteMessageTreeByRootMessageId() {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNotNull(selectedRootBeforeDeletion);
+
+        messageTreeDao.deleteTreeByRootMessageId(messageItem.getId());
+        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNull(selectedRootAfterDeletion);
+    }
 }

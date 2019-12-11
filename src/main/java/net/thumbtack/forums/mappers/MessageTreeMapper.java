@@ -54,6 +54,12 @@ public interface MessageTreeMapper {
     @Delete("DELETE FROM messages_tree WHERE id = #{id}")
     void deleteTreeById(int id);
 
+    @Delete({"DELETE FROM messages_tree WHERE id = (",
+            "SELECT tree_id FROM messages WHERE id = #{messageId} AND parent_message IS NULL",
+            ")"
+    })
+    void deleteTreeByRootMessageId(int messageId);
+
     @Delete("DELETE FROM messages_tree")
     void deleteAll();
 }

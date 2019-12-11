@@ -10,4 +10,6 @@ public interface MessageTreeDao {
     void changeBranchPriority(MessageTree tree);
 
     void deleteTreeById(int id);
+
+    void deleteTreeByRootMessageId(int messageId);
 }

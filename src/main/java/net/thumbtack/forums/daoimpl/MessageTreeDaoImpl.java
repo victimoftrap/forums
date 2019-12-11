@@ -96,4 +96,21 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
             sqlSession.commit();
         }
     }
+
+    @Override
+    public void deleteTreeByRootMessageId(int messageId) {
+        LOGGER.debug("Deleting message tree with root message ID {}", messageId);
+
+        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+            try {
+                getMessageTreeMapper(sqlSession).deleteTreeByRootMessageId(messageId);
+                // histories and message item would be deleted by ON DELETE CASCADE
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to delete message tree with root message ID {}", messageId, ex);
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
 }
