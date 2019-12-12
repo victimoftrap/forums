@@ -5,24 +5,31 @@ import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.UserSession;
-import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
 @Component("userDao")
 public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserDaoImpl.class);
+    private final SqlSessionFactory sqlSessionFactory;
+
+    @Autowired
+    public UserDaoImpl(final SqlSessionFactory sqlSessionFactory) {
+        this.sqlSessionFactory = sqlSessionFactory;
+    }
 
     @Override
     public User save(User user) {
         LOGGER.debug("Inserting new user in database {}", user);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).save(user);
             } catch (RuntimeException ex) {
@@ -40,7 +47,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public UserSession save(User user, UserSession session) {
         LOGGER.debug("Saving new user {} and creating session {} for him", user, session);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).save(user);
                 getSessionMapper(sqlSession).upsertSession(session);
@@ -59,7 +66,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public User getById(int id) {
         LOGGER.debug("Getting user by ID {} from database", id);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getUserMapper(sqlSession).getById(id);
             } catch (RuntimeException ex) {
@@ -74,7 +81,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public User getById(int id, boolean deleted) {
         LOGGER.debug("Getting user that can be deactivated by ID {}", id);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getUserMapper(sqlSession).getByIdAndDeleted(id, deleted);
             } catch (RuntimeException ex) {
@@ -88,7 +95,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public User getByName(String name) {
         LOGGER.debug("Getting user by name {} from database", name);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getUserMapper(sqlSession).getByName(name);
             } catch (RuntimeException ex) {
@@ -102,7 +109,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public User getByName(String name, boolean deleted) {
         LOGGER.debug("Getting user that can be deactivated by name {}", name);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getUserMapper(sqlSession).getByNameAndDeleted(name, deleted);
             } catch (RuntimeException ex) {
@@ -116,7 +123,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public List<User> getAll() {
         LOGGER.debug("Getting all users from database");
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getUserMapper(sqlSession).getAll();
             } catch (RuntimeException ex) {
@@ -133,7 +140,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 withDeleted ? "existing and deleted" : "existing"
         ));
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getUserMapper(sqlSession).getAllAndDeleted(withDeleted);
             } catch (RuntimeException ex) {
@@ -147,7 +154,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public List<UserSession> getAllWithSessions() {
         LOGGER.debug("Getting all users with they sessions from database");
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getUserMapper(sqlSession).getAllWithSessions();
             } catch (RuntimeException ex) {
@@ -161,7 +168,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public void update(User user) {
         LOGGER.debug("Updating user in database {}", user);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).update(user);
             } catch (RuntimeException ex) {
@@ -178,7 +185,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public void deactivateById(int id) {
         LOGGER.debug("Deactivating user account by ID {} and deleting his session", id);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getSessionMapper(sqlSession).deleteByUser(id);
                 getUserMapper(sqlSession).deactivateById(id);
@@ -196,7 +203,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     public void deleteAll() {
         LOGGER.debug("Deleting all users from database");
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).deleteAll();
             } catch (RuntimeException ex) {

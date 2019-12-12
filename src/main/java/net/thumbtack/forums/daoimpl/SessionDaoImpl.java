@@ -5,22 +5,29 @@ import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Component("sessionDao")
 public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionDaoImpl.class);
+    private final SqlSessionFactory sqlSessionFactory;
+
+    @Autowired
+    public SessionDaoImpl(final SqlSessionFactory sqlSessionFactory) {
+        this.sqlSessionFactory = sqlSessionFactory;
+    }
 
     @Override
     public void upsertSession(UserSession session) {
         LOGGER.debug("Creating new session for user {}", session.getUser());
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getSessionMapper(sqlSession).upsertSession(session);
             } catch (RuntimeException ex) {
@@ -39,7 +46,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     public UserSession getSessionByToken(String token) {
         LOGGER.debug("Getting user session by session token {}", token);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getSessionMapper(sqlSession).getSessionByToken(token);
             } catch (RuntimeException ex) {
@@ -53,7 +60,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     public User getUserByToken(String token) {
         LOGGER.debug("Getting user by session token {}", token);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getSessionMapper(sqlSession).getUserByToken(token);
             } catch (RuntimeException ex) {
@@ -67,7 +74,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     public void deleteSession(String token) {
         LOGGER.debug("Deleting user session by token {}", token);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getSessionMapper(sqlSession).deleteByToken(token);
             } catch (RuntimeException ex) {
@@ -84,7 +91,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     public void deleteAll() {
         LOGGER.debug("Deleting all sessions for all users");
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getSessionMapper(sqlSession).deleteAll();
             } catch (RuntimeException ex) {

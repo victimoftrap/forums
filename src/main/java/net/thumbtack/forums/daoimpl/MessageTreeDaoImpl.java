@@ -4,16 +4,23 @@ import net.thumbtack.forums.dao.MessageTreeDao;
 import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Component("messageTreeDao")
 public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageTreeDaoImpl.class);
+    private final SqlSessionFactory sqlSessionFactory;
+
+    @Autowired
+    public MessageTreeDaoImpl(final SqlSessionFactory sqlSessionFactory) {
+        this.sqlSessionFactory = sqlSessionFactory;
+    }
 
     @Override
     public MessageTree saveMessageTree(MessageTree tree) {
@@ -21,7 +28,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
                 tree.getSubject(), tree.getForum().getId()
         );
 
-        try(SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try(SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
                 getMessageMapper(sqlSession).saveMessageItem(tree.getRootMessage());
@@ -45,7 +52,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
                 tree.getRootMessage().getId(), tree.getForum().getId()
         );
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
                 if (!tree.getTags().isEmpty()) {
@@ -68,7 +75,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
                 tree.getRootMessage().getId(), tree.getId()
         );
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageTreeMapper(sqlSession).updateMessagePriority(tree);
             } catch (RuntimeException ex) {
@@ -84,7 +91,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     public void deleteTreeById(int id) {
         LOGGER.debug("Deleting message tree by ID {}", id);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageTreeMapper(sqlSession).deleteTreeById(id);
                 // histories and message item would be deleted by ON DELETE CASCADE
@@ -101,7 +108,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     public void deleteTreeByRootMessageId(int messageId) {
         LOGGER.debug("Deleting message tree with root message ID {}", messageId);
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageTreeMapper(sqlSession).deleteTreeByRootMessageId(messageId);
                 // histories and message item would be deleted by ON DELETE CASCADE

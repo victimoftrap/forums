@@ -5,16 +5,23 @@ import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.dao.RatingDao;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component("ratingDao")
 public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(RatingDaoImpl.class);
+    private final SqlSessionFactory sqlSessionFactory;
+
+    @Autowired
+    public RatingDaoImpl(final SqlSessionFactory sqlSessionFactory) {
+        this.sqlSessionFactory = sqlSessionFactory;
+    }
 
     @Override
     public void upsertRating(MessageItem message, User user, int rating) {
@@ -22,7 +29,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
                 message.getId(), user.getId()
         );
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).upsertRating(message, user, rating);
             } catch (RuntimeException ex) {
@@ -38,7 +45,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     public void rate(MessageItem message, User user, int rating) {
         LOGGER.debug("Saving new rate for message {} from user {}", message.getId(), user.getId());
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).rate(message, user, rating);
             } catch (RuntimeException ex) {
@@ -54,7 +61,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     public void changeRating(MessageItem message, User user, int rating) {
         LOGGER.debug("Changing rating for message {} from user {}", message.getId(), user.getId());
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).changeRating(message, user, rating);
             } catch (RuntimeException ex) {
@@ -70,7 +77,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     public void deleteRate(MessageItem message, User user) {
         LOGGER.debug("Deleting rating for message {} from user {}", message.getId(), user.getId());
 
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).deleteRate(message, user);
             } catch (RuntimeException ex) {
@@ -85,7 +92,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     @Override
     public double getMessageRating(MessageItem item) {
         LOGGER.debug("Getting rating of message with ID {}", item.getId());
-        try (SqlSession sqlSession = MyBatisConnectionUtils.getSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getRatingMapper(sqlSession).getMessageRating(item.getId());
             } catch (RuntimeException ex) {

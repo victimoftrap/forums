@@ -10,12 +10,12 @@ import java.io.Reader;
 public class MyBatisConnectionUtils {
     private static SqlSessionFactory sqlSessionFactory;
 
-    public static boolean initSqlSessionFactory() {
+    public static boolean createSqlSessionFactory() {
         try (Reader reader = Resources.getResourceAsReader("mybatis-config.xml")) {
             sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
             return true;
         } catch (Exception e) {
-            return false;
+            throw new RuntimeException("Unable to create SqlSessionFactory", e);
         }
     }
 
