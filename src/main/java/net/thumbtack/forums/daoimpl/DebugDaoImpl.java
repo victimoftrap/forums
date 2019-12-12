@@ -21,7 +21,8 @@ public class DebugDaoImpl extends MapperCreatorDao implements DebugDao {
         try (SqlSession session = MyBatisConnectionUtils.getSession()) {
             try {
                 getUserMapper(session).deleteAll();
-                getMessageMapper(session).deleteAll();
+                getTagMapper(session).deleteAll();
+                getMessageTreeMapper(session).deleteAll();
                 getForumMapper(session).deleteAll();
             } catch (RuntimeException e) {
                 LOGGER.info("Unable to clear database", e);
