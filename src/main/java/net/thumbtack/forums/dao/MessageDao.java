@@ -9,7 +9,7 @@ public interface MessageDao {
 
     void publish(MessageItem item);
 
-    void deleteById(int id);
+    void deleteMessageById(int id);
 
     void deleteAll();
 }

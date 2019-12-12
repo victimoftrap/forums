@@ -23,7 +23,7 @@ public interface UserMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer save(User user);
 
-    @Select("SELECT id, role, LOWER(username) AS username, email, password, " +
+    @Select("SELECT id, role, username, email, password, " +
             "registered_at, deleted, banned_until, ban_count " +
             "FROM users WHERE id = #{id}"
     )
@@ -36,7 +36,7 @@ public interface UserMapper {
     User getById(int id);
 
     @Select({"<script>",
-            "SELECT id, role, LOWER(username) AS username, email, password,",
+            "SELECT id, role, username, email, password,",
             "registered_at, deleted, banned_until, ban_count",
             "FROM users",
             "WHERE id = #{id}",
@@ -48,18 +48,18 @@ public interface UserMapper {
     @ResultMap("userResult")
     User getByIdAndDeleted(@Param("id") int id, @Param("deleted") boolean deleted);
 
-    @Select("SELECT id, role, LOWER(username) AS username, email, password, " +
+    @Select("SELECT id, role, username, email, password, " +
             "registered_at, deleted, banned_until, ban_count " +
-            "FROM users WHERE username = LOWER(#{name})"
+            "FROM users WHERE LOWER(username) = LOWER(#{name})"
     )
     @ResultMap("userResult")
     User getByName(@Param("name") String name);
 
     @Select({"<script>",
-            "SELECT id, role, LOWER(username) AS username, email, password,",
+            "SELECT id, role, username, email, password,",
             "registered_at, deleted, banned_until, ban_count",
             "FROM users",
-            "WHERE username = LOWER(#{name})",
+            "WHERE LOWER(username) = LOWER(#{name})",
             "<if test='deleted == false'>",
             " AND deleted = FALSE",
             "</if>",
@@ -68,14 +68,14 @@ public interface UserMapper {
     @ResultMap("userResult")
     User getByNameAndDeleted(@Param("name") String name, @Param("deleted") boolean deleted);
 
-    @Select("SELECT id, role, LOWER(username) AS username, email, password, " +
+    @Select("SELECT id, role, username, email, password, " +
             "registered_at, deleted, banned_until, ban_count FROM users"
     )
     @ResultMap("userResult")
     List<User> getAll();
 
     @Select({"<script>",
-            "SELECT id, role, LOWER(username) AS username, email, password,",
+            "SELECT id, role, username, email, password,",
             "registered_at, deleted, banned_until, ban_count",
             "FROM users",
             "<if test='deleted == false'>",

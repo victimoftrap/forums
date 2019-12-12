@@ -3,9 +3,13 @@ package net.thumbtack.forums.dao;
 import net.thumbtack.forums.model.MessageTree;
 
 public interface MessageTreeDao {
-    MessageTree newMessageTree(MessageTree tree);
+    MessageTree saveMessageTree(MessageTree tree);
 
     MessageTree newBranch(MessageTree tree);
 
     void changeBranchPriority(MessageTree tree);
+
+    void deleteTreeById(int id);
+
+    void deleteTreeByRootMessageId(int messageId);
 }

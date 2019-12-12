@@ -56,7 +56,7 @@ public interface MessageHistoryMapper {
 
     @Update({"UPDATE message_history",
             "SET state = COALESCE(#{hist.state.name}, state),",
-            "SET created_at = COALESCE(#{hist.createdAt}, created_at)",
+            "created_at = COALESCE(#{hist.createdAt}, created_at)",
             "WHERE message_id = #{id} AND state = 'UNPUBLISHED'"
     })
     void updateMessageHistory(@Param("id") int messageId, @Param("hist") HistoryItem history);

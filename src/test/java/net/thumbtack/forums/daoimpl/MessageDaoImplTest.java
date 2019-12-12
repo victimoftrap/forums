@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -37,36 +39,60 @@ class MessageDaoImplTest extends DaoTestEnvironment {
         singleHistory = new HistoryItem(
                 "1st body", MessageState.UNPUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
+        messageTree = new MessageTree(
+                forum, "TestTree", null, MessagePriority.NORMAL
+        );
         messageItem = new MessageItem(
-                creator, Collections.singletonList(singleHistory),
+                creator, messageTree, null,
+                Collections.singletonList(singleHistory),
                 singleHistory.getCreatedAt(), singleHistory.getCreatedAt()
         );
-        messageTree = new MessageTree(
-                forum, "TestTree", messageItem, MessagePriority.NORMAL
+        messageTree.setRootMessage(messageItem);
+    }
+
+    @Test
+    void testCreateAndGetComment() {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final User commentCreator = new User(
+                "otherUser", "other@email.com", "passwd"
         );
-    }
+        final HistoryItem commentHistory = new HistoryItem(
+                "comment body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment = new MessageItem(
+                commentCreator, messageTree, messageItem, Collections.singletonList(commentHistory),
+                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+        );
+        userDao.save(commentCreator);
+        messageDao.saveMessageItem(comment);
 
-    @Test
-    void testSaveMessageItem() {
-        userDao.save(creator);
-        messageDao.saveMessageItem(messageItem);
-        assertNotEquals(0, messageItem.getId());
-    }
-
-    @Test
-    void testGetMessageItemByHisId() {
-        userDao.save(creator);
-        messageDao.saveMessageItem(messageItem);
-
-        final MessageItem selectedMessage = messageDao.getMessageById(messageItem.getId());
-        assertEquals(messageItem, selectedMessage);
+        final MessageItem rootMessage = messageDao.getMessageById(messageItem.getId());
+        final List<MessageItem> commentsList = rootMessage.getChildrenComments();
+        assertAll(
+                () -> assertNotEquals(0, comment.getId()),
+                () -> assertEquals(messageItem.getId(), rootMessage.getId()),
+                () -> assertEquals(messageItem.getOwner(), rootMessage.getOwner()),
+                () -> assertEquals(1, commentsList.size()),
+                () -> assertEquals(comment.getId(), commentsList.get(0).getId()),
+                () -> assertEquals(comment.getOwner(), commentsList.get(0).getOwner()),
+                () -> assertEquals(comment.getHistory(), commentsList.get(0).getHistory()),
+                () -> assertEquals(comment.getRating(), commentsList.get(0).getRating()),
+                () -> assertEquals(comment.getCreatedAt(), commentsList.get(0).getCreatedAt()),
+                () -> assertEquals(comment.getUpdatedAt(), commentsList.get(0).getUpdatedAt()),
+                () -> assertEquals(comment.getParentMessage().getId(), commentsList.get(0).getParentMessage().getId()),
+                () -> assertEquals(comment.getMessageTree().getId(), commentsList.get(0).getMessageTree().getId()),
+                () -> assertEquals(comment.getChildrenComments(), commentsList.get(0).getChildrenComments())
+        );
     }
 
     @Test
     void testGetRootMessageInTree() {
         userDao.save(creator);
         forumDao.save(forum);
-        messageTreeDao.newMessageTree(messageTree);
+        messageTreeDao.saveMessageTree(messageTree);
 
         final MessageItem selectedItem = messageDao.getMessageById(messageItem.getId());
         assertAll(
@@ -88,16 +114,16 @@ class MessageDaoImplTest extends DaoTestEnvironment {
 
     @Test
     void testGetRootMessageInTreeWithComments() {
-        final User user = new User(
-                "otheruser", "user@gmail.com", "passwd"
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
         );
         userDao.save(creator);
-        userDao.save(user);
+        userDao.save(commentMaker);
         forumDao.save(forum);
-        messageTreeDao.newMessageTree(messageTree);
+        messageTreeDao.saveMessageTree(messageTree);
 
         final HistoryItem historyItem1 = new HistoryItem(
-                "body1", MessageState.PUBLISHED,
+                "comment body 1", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem messageItem1 = new MessageItem(
@@ -108,11 +134,11 @@ class MessageDaoImplTest extends DaoTestEnvironment {
         messageDao.saveMessageItem(messageItem1);
 
         final HistoryItem historyItem2 = new HistoryItem(
-                "body2", MessageState.PUBLISHED,
+                "comment body 2", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem messageItem2 = new MessageItem(
-                user, messageTree, messageItem,
+                commentMaker, messageTree, messageItem,
                 Collections.singletonList(historyItem2),
                 historyItem2.getCreatedAt(), historyItem2.getCreatedAt()
         );
@@ -131,12 +157,87 @@ class MessageDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteMessageById() {
+    void testGetMessageWithMultipleVersions() {
         userDao.save(creator);
-        messageDao.saveMessageItem(messageItem);
+        forumDao.save(forum);
 
-        messageDao.deleteById(messageItem.getId());
-        final MessageItem deletedMessage = messageDao.getMessageById(messageItem.getId());
+        final HistoryItem version1 = new HistoryItem(
+                "1st body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        messageItem = new MessageItem(
+                creator, messageTree, null,
+                Collections.singletonList(version1),
+                version1.getCreatedAt(), version1.getCreatedAt()
+        );
+        messageTree.setRootMessage(messageItem);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem version2 = new HistoryItem(
+                "version 2.0", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).plus(1, ChronoUnit.HOURS)
+        );
+        List<HistoryItem> updatedVersions = Arrays.asList(version2, version1);
+        messageItem.setHistory(updatedVersions);
+        messageHistoryDao.saveNewVersion(messageItem);
+
+        final HistoryItem version3 = new HistoryItem(
+                "version 3.0", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).plus(1, ChronoUnit.DAYS)
+        );
+        updatedVersions = Arrays.asList(version3, version2, version1);
+        messageItem.setHistory(updatedVersions);
+        messageHistoryDao.saveNewVersion(messageItem);
+
+        final MessageItem selectedMessage = messageDao.getMessageById(messageItem.getId());
+        assertEquals(messageItem.getId(), selectedMessage.getId());
+        assertEquals(messageItem.getHistory(), selectedMessage.getHistory());
+        assertEquals(version3, selectedMessage.getHistory().get(0));
+        assertEquals(version2, selectedMessage.getHistory().get(1));
+        assertEquals(version1, selectedMessage.getHistory().get(2));
+    }
+
+    @Test
+    void testPublishMessage() {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final MessageItem messageBeforePublication = messageDao.getMessageById(messageItem.getId());
+        final HistoryItem unpublishedHistory = messageBeforePublication.getHistory().get(0);
+        assertEquals(MessageState.UNPUBLISHED, singleHistory.getState());
+        assertEquals(MessageState.UNPUBLISHED, unpublishedHistory.getState());
+
+        singleHistory.setState(MessageState.PUBLISHED);
+        messageDao.publish(messageItem);
+
+        final MessageItem messageAfterPublication = messageDao.getMessageById(messageItem.getId());
+        final HistoryItem publishedHistory = messageAfterPublication.getHistory().get(0);
+        assertEquals(MessageState.PUBLISHED, publishedHistory.getState());
+        assertNotEquals(unpublishedHistory.getState(), publishedHistory.getState());
+    }
+
+    @Test
+    void testDeleteCommentById() {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final User commentCreator = new User(
+                "otherUser", "other@email.com", "passwd"
+        );
+        final HistoryItem commentHistory = new HistoryItem(
+                "comment body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment = new MessageItem(
+                commentCreator, messageTree, messageItem, Collections.singletonList(commentHistory),
+                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+        );
+        userDao.save(commentCreator);
+        messageDao.saveMessageItem(comment);
+
+        messageDao.deleteMessageById(comment.getId());
+        final MessageItem deletedMessage = messageDao.getMessageById(comment.getId());
         assertNull(deletedMessage);
     }
 }

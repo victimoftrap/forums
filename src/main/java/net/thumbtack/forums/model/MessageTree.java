@@ -103,16 +103,16 @@ public class MessageTree {
         if (this == o) return true;
         if (!(o instanceof MessageTree)) return false;
         MessageTree tree = (MessageTree) o;
-        return getId() == tree.getId() &&
-                Objects.equals(getForum(), tree.getForum()) &&
-                Objects.equals(getSubject(), tree.getSubject()) &&
-                Objects.equals(getRootMessage(), tree.getRootMessage()) &&
-                getPriority() == tree.getPriority() &&
-                Objects.equals(getTags(), tree.getTags());
+        return id == tree.id &&
+                Objects.equals(forum, tree.forum) &&
+                Objects.equals(subject, tree.subject) &&
+                Objects.equals(rootMessage, tree.rootMessage) &&
+                priority == tree.priority &&
+                Objects.equals(tags, tree.tags);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getForum(), getSubject(), getRootMessage(), getPriority(), getTags());
+        return Objects.hash(id, forum, subject, rootMessage, priority, tags);
     }
 }
