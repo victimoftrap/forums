@@ -1,6 +1,7 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.MessageTreeDao;
+import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
@@ -30,9 +31,12 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
 
         try(SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
+                final MessageItem rootMessage = tree.getRootMessage();
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
-                getMessageMapper(sqlSession).saveMessageItem(tree.getRootMessage());
-                getMessageHistoryMapper(sqlSession).saveAllHistory(tree.getRootMessage());
+                getMessageMapper(sqlSession).saveMessageItem(rootMessage);
+                getMessageHistoryMapper(sqlSession).saveHistory(
+                        rootMessage.getId(), rootMessage.getHistory().get(0)
+                );
                 if (!tree.getTags().isEmpty()) {
                     getTagMapper(sqlSession).saveMessageForAllTags(tree);
                 }

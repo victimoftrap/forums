@@ -29,7 +29,9 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageMapper(sqlSession).saveMessageItem(item);
-                getMessageHistoryMapper(sqlSession).saveAllHistory(item);
+                getMessageHistoryMapper(sqlSession).saveHistory(
+                        item.getId(), item.getHistory().get(0)
+                );
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to save new message in tree {}", item.getMessageTree().getId(), ex);
                 sqlSession.rollback();
