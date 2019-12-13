@@ -1,10 +1,10 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.enums.ForumType;
-import net.thumbtack.forums.dto.forum.ForumDtoResponse;
-import net.thumbtack.forums.dto.forum.CreateForumDtoRequest;
+import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
+import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
 import net.thumbtack.forums.service.ForumService;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
@@ -23,8 +23,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import javax.servlet.http.Cookie;
 
+import java.util.UUID;
+
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -46,8 +47,7 @@ class ForumControllerTest {
     private ForumService mockForumService;
 
     private final String COOKIE_NAME = "JAVASESSIONID";
-    // REVU возьмите Uuid в качестве значения
-    private final String COOKIE_VALUE = "VALUE";
+    private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
     @Test
     void testCreateForum() throws Exception {

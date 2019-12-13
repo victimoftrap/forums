@@ -1,6 +1,6 @@
 package net.thumbtack.forums.integration.webClient;
 
-import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
 

@@ -5,12 +5,12 @@ import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.converter.ForumConverter;
-import net.thumbtack.forums.dto.forum.CreateForumDtoRequest;
-import net.thumbtack.forums.dto.forum.ForumDtoResponse;
-import net.thumbtack.forums.dto.forum.ForumInfoDtoResponse;
-import net.thumbtack.forums.dto.forum.ForumInfoListDtoResponse;
+import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
+import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 

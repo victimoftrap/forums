@@ -1,11 +1,11 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.dto.EmptyDtoResponse;
-import net.thumbtack.forums.dto.forum.ForumInfoDtoResponse;
-import net.thumbtack.forums.dto.forum.ForumInfoListDtoResponse;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.service.ForumService;
-import net.thumbtack.forums.dto.forum.ForumDtoResponse;
-import net.thumbtack.forums.dto.forum.CreateForumDtoRequest;
+import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
+import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;

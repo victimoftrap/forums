@@ -7,16 +7,15 @@ import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.model.enums.MessagePriority;
-import net.thumbtack.forums.dto.message.CreateCommentDtoRequest;
-import net.thumbtack.forums.dto.message.CreateMessageDtoRequest;
-import net.thumbtack.forums.dto.message.MessageDtoResponse;
+import net.thumbtack.forums.dto.requests.message.CreateCommentDtoRequest;
+import net.thumbtack.forums.dto.requests.message.CreateMessageDtoRequest;
+import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

@@ -1,9 +1,10 @@
 package net.thumbtack.forums.service;
 
 import net.thumbtack.forums.dao.*;
-import net.thumbtack.forums.dto.message.*;
-import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.message.*;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.converter.TagConverter;
+import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessagePriority;

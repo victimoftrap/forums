@@ -1,9 +1,9 @@
 package net.thumbtack.forums.integration;
 
-import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
-import net.thumbtack.forums.dto.user.UserDtoResponse;
-import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 
 import org.junit.jupiter.api.Test;

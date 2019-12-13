@@ -3,7 +3,7 @@ package net.thumbtack.forums.service;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.dto.settings.SettingsDtoResponse;
+import net.thumbtack.forums.dto.responses.settings.SettingsDtoResponse;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.springframework.beans.factory.annotation.Autowired;

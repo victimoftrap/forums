@@ -1,8 +1,8 @@
 package net.thumbtack.forums.converter;
 
 import net.thumbtack.forums.model.Forum;
-import net.thumbtack.forums.dto.forum.ForumInfoDtoResponse;
-import net.thumbtack.forums.dto.forum.ForumInfoListDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 
 import java.util.ArrayList;
 import java.util.List;

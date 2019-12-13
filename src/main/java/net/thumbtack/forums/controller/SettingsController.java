@@ -1,7 +1,7 @@
 package net.thumbtack.forums.controller;
 
 import net.thumbtack.forums.service.SettingsService;
-import net.thumbtack.forums.dto.settings.SettingsDtoResponse;
+import net.thumbtack.forums.dto.responses.settings.SettingsDtoResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;

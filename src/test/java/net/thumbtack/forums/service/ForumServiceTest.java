@@ -5,15 +5,14 @@ import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.dto.forum.CreateForumDtoRequest;
-import net.thumbtack.forums.dto.forum.ForumDtoResponse;
+import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
+import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
 import net.thumbtack.forums.model.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;

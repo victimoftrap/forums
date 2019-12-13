@@ -1,10 +1,10 @@
 package net.thumbtack.forums.converter;
 
-import net.thumbtack.forums.dto.user.UserDetailsDtoResponse;
-import net.thumbtack.forums.dto.user.UserDetailsListDtoResponse;
-import net.thumbtack.forums.dto.user.UserStatus;
+import net.thumbtack.forums.dto.responses.user.UserDetailsDtoResponse;
+import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
+import net.thumbtack.forums.dto.responses.user.UserStatus;
 import net.thumbtack.forums.model.User;
-import net.thumbtack.forums.dto.user.UserDtoResponse;
+import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.model.enums.UserRole;
 
