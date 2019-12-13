@@ -46,6 +46,7 @@ class ForumControllerTest {
     private ForumService mockForumService;
 
     private final String COOKIE_NAME = "JAVASESSIONID";
+    // REVU возьмите Uuid в качестве значения
     private final String COOKIE_VALUE = "VALUE";
 
     @Test

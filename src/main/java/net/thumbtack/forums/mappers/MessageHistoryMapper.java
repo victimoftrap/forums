@@ -25,6 +25,10 @@ public interface MessageHistoryMapper {
             "</foreach>",
             "</script>"
     })
+    // REVU необходимость такого метода мне не очевидна
+    // копирования истории у нас нет
+    // а в остальном элементы в историю добавляются по одному
+    // зачем же вставлять весь список ?
     void saveAllHistory(@Param("item") MessageItem item);
 
     @Select({"SELECT body, state, created_at",

@@ -43,6 +43,8 @@ public class MessageService {
         this.ratingDao = ratingDao;
     }
 
+    // REVU просто  getUserBySession. То. что он должен будет выбросить исключение
+    // можно сделать понятным без труда, если сделать ServerException checked
     private User getUserBySessionOrThrowException(final String token) {
         final User user = sessionDao.getUserByToken(token);
         if (user == null) {
@@ -51,6 +53,7 @@ public class MessageService {
         return user;
     }
 
+    // REVU то же
     private Forum getForumByIdOrThrowException(final int id) {
         final Forum forum = forumDao.getById(id);
         if (forum == null) {
@@ -60,6 +63,7 @@ public class MessageService {
     }
 
     private MessagePriority getMessagePriority(final MessagePriority priority) {
+    	// return priority == null ? ...
         if (priority == null) {
             return MessagePriority.NORMAL;
         }
@@ -67,6 +71,7 @@ public class MessageService {
     }
 
     private MessageState getMessageStateByForumType(final ForumType type) {
+    	// REVU return type == ForumType.UNMODERATED ? ...
         if (type == ForumType.UNMODERATED) {
             return MessageState.PUBLISHED;
         }
@@ -81,12 +86,15 @@ public class MessageService {
         return item;
     }
 
+    // REVU checkIsUserMessageCreator
+    // REVU private
     void checkAreUserMessageOwner(final MessageItem item, final User user) {
         if (!item.getOwner().equals(user)) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
     }
 
+    // REVU checkUserBanned
     void checkAreUserBanned(final User user) {
         if (user.getBannedUntil() != null) {
             throw new ServerException(ErrorCode.USER_BANNED);
