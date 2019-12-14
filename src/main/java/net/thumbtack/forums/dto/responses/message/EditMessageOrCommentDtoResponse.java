@@ -11,6 +11,10 @@ public class EditMessageOrCommentDtoResponse {
         this.state = state;
     }
 
+    public MessageState getState() {
+        return state;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -44,9 +45,7 @@ public class MessageService {
         this.ratingDao = ratingDao;
     }
 
-    // REVU просто  getUserBySession. То. что он должен будет выбросить исключение
-    // можно сделать понятным без труда, если сделать ServerException checked
-    private User getUserBySessionOrThrowException(final String token) throws ServerException {
+    private User getUserBySession(final String token) throws ServerException {
         final User user = sessionDao.getUserByToken(token);
         if (user == null) {
             throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
@@ -54,8 +53,7 @@ public class MessageService {
         return user;
     }
 
-    // REVU то же
-    private Forum getForumByIdOrThrowException(final int id) throws ServerException {
+    private Forum getForumById(final int id) throws ServerException {
         final Forum forum = forumDao.getById(id);
         if (forum == null) {
             throw new ServerException(ErrorCode.FORUM_NOT_FOUND);
@@ -96,10 +94,10 @@ public class MessageService {
             final int forumId,
             final CreateMessageDtoRequest request
     ) throws ServerException {
-        final User creator = getUserBySessionOrThrowException(token);
+        final User creator = getUserBySession(token);
         checkUserBanned(creator);
 
-        final Forum forum = getForumByIdOrThrowException(forumId);
+        final Forum forum = getForumById(forumId);
         final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageState state = getMessageStateByForumType(forum.getType());
         final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
@@ -125,7 +123,7 @@ public class MessageService {
             final int parentId,
             final CreateCommentDtoRequest request
     ) throws ServerException {
-        final User creator = getUserBySessionOrThrowException(token);
+        final User creator = getUserBySession(token);
         checkUserBanned(creator);
 
         final MessageItem parentMessage = getMessageOrThrowException(parentId);
@@ -148,8 +146,11 @@ public class MessageService {
         return new MessageDtoResponse(messageItem.getId(), state);
     }
 
-    public EmptyDtoResponse deleteMessage(final String token, final int messageId) throws ServerException {
-        final User requesterUser = getUserBySessionOrThrowException(token);
+    public EmptyDtoResponse deleteMessage(
+            final String token,
+            final int messageId
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
         final MessageItem deletingMessage = getMessageOrThrowException(messageId);
         checkIsUserMessageCreator(deletingMessage, requesterUser);
         // TODO check are user banned permanently
@@ -171,8 +172,7 @@ public class MessageService {
             final int messageId,
             final EditMessageOrCommentDtoRequest request
     ) throws ServerException {
-        final User requesterUser = getUserBySessionOrThrowException(token);
-
+        final User requesterUser = getUserBySession(token);
         final MessageItem editingMessage = getMessageOrThrowException(messageId);
         checkIsUserMessageCreator(editingMessage, requesterUser);
         checkUserBanned(requesterUser);
@@ -184,6 +184,7 @@ public class MessageService {
 
         MessageState messageState = MessageState.UNPUBLISHED;
         if (latestHistory.getState() == MessageState.PUBLISHED) {
+            final List<HistoryItem> newHistory = new ArrayList<>(editingMessage.getHistory());
             if (type == ForumType.UNMODERATED || requesterUser.equals(forumOwner)) {
                 messageState = MessageState.PUBLISHED;
             }
@@ -193,7 +194,8 @@ public class MessageService {
             final HistoryItem newVersion = new HistoryItem(
                     request.getBody(), messageState, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
             );
-            editingMessage.getHistory().add(0, newVersion);
+            newHistory.add(0, newVersion);
+            editingMessage.setHistory(newHistory);
             messageHistoryDao.saveNewVersion(editingMessage);
         } else {
             messageState = MessageState.UNPUBLISHED;
@@ -207,7 +209,7 @@ public class MessageService {
             final int messageId,
             final ChangeMessagePriorityDtoRequest request
     ) throws ServerException {
-        final User requesterUser = getUserBySessionOrThrowException(token);
+        final User requesterUser = getUserBySession(token);
         final MessageItem editingMessage = getMessageOrThrowException(messageId);
         checkIsUserMessageCreator(editingMessage, requesterUser);
         checkUserBanned(requesterUser);
@@ -223,7 +225,7 @@ public class MessageService {
             final int messageId,
             final MadeBranchFromCommentDtoRequest request
     ) throws ServerException {
-        final User requesterUser = getUserBySessionOrThrowException(token);
+        final User requesterUser = getUserBySession(token);
         final MessageItem newRootMessage = getMessageOrThrowException(messageId);
         checkIsUserMessageCreator(newRootMessage, requesterUser);
         checkUserBanned(requesterUser);
@@ -243,7 +245,7 @@ public class MessageService {
             final int messageId,
             final PublicationDecisionDtoRequest request
     ) throws ServerException {
-        final User requesterUser = getUserBySessionOrThrowException(token);
+        final User requesterUser = getUserBySession(token);
         final MessageItem publishingMessage = getMessageOrThrowException(messageId);
 
         final MessageTree tree = publishingMessage.getMessageTree();
@@ -280,7 +282,7 @@ public class MessageService {
             final int messageId,
             final RateMessageDtoRequest request
     ) throws ServerException {
-        final User requesterUser = getUserBySessionOrThrowException(token);
+        final User requesterUser = getUserBySession(token);
         final MessageItem ratedMessage = getMessageOrThrowException(messageId);
         // TODO check are user banned permanently
 

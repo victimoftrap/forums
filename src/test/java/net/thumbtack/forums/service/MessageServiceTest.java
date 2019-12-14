@@ -1,6 +1,9 @@
 package net.thumbtack.forums.service;
 
 import net.thumbtack.forums.dao.*;
+import net.thumbtack.forums.dto.requests.message.ChangeMessagePriorityDtoRequest;
+import net.thumbtack.forums.dto.requests.message.EditMessageOrCommentDtoRequest;
+import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.*;
@@ -12,13 +15,20 @@ import net.thumbtack.forums.dto.requests.message.CreateMessageDtoRequest;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -283,7 +293,7 @@ class MessageServiceTest {
         );
         final MessageItem comment1 = new MessageItem(
                 messageOwner, tree, null,
-               Collections.singletonList(comment1History),
+                Collections.singletonList(comment1History),
                 comment1History.getCreatedAt(), comment1History.getCreatedAt()
         );
         final List<MessageItem> comments = Arrays.asList(comment1);
@@ -423,5 +433,360 @@ class MessageServiceTest {
                 .deleteMessageById(anyInt());
         verify(mockMessageTreeDao, never())
                 .deleteTreeById(anyInt());
+    }
+
+    static Stream<Arguments> userAndForumParams() {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        return Stream.of(
+                Arguments.arguments(messageOwner, forumOwner, ForumType.UNMODERATED, MessageState.PUBLISHED),
+                Arguments.arguments(messageOwner, forumOwner, ForumType.MODERATED, MessageState.UNPUBLISHED),
+                Arguments.arguments(forumOwner, forumOwner, ForumType.UNMODERATED, MessageState.PUBLISHED),
+                Arguments.arguments(forumOwner, forumOwner, ForumType.MODERATED, MessageState.PUBLISHED)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("userAndForumParams")
+    void testEditPublishedMessage(User messageOwner, User forumOwner, ForumType forumType, MessageState expectedState)
+            throws ServerException {
+        final Forum forum = new Forum(
+                forumType, forumOwner,
+                "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final EditMessageOrCommentDtoRequest request = new EditMessageOrCommentDtoRequest(
+                "New Root Message Body"
+        );
+        final HistoryItem newHistory = new HistoryItem(
+                request.getBody(), expectedState,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+        when(mockMessageHistoryDao.saveNewVersion(any(MessageItem.class)))
+                .thenReturn(newHistory);
+
+        final EditMessageOrCommentDtoResponse response = messageService.editMessage(
+                token, messageId, request
+        );
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageHistoryDao).saveNewVersion(any(MessageItem.class));
+        verify(mockMessageHistoryDao, never()).editLatestVersion(any(MessageItem.class));
+        assertEquals(expectedState, response.getState());
+    }
+
+    @Test
+    @DisplayName("Unublished message from regular user in moderated forum = replace message body, unpublished")
+    void testEditMessage_unpublishedMessageFromRegularUserInModeratedForum_shouldAndUnpublishedHistory()
+            throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final EditMessageOrCommentDtoRequest request = new EditMessageOrCommentDtoRequest(
+                "New Root Message Body"
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+        doNothing()
+                .when(mockMessageHistoryDao)
+                .editLatestVersion(any(MessageItem.class));
+
+        final EditMessageOrCommentDtoResponse response = messageService.editMessage(
+                token, messageId, request
+        );
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageHistoryDao, never()).saveNewVersion(any(MessageItem.class));
+        verify(mockMessageHistoryDao).editLatestVersion(any(MessageItem.class));
+        assertEquals(MessageState.UNPUBLISHED, response.getState());
+    }
+
+    @Test
+    void testEditMessage_userNotMessageOwner_shouldThrowException() throws ServerException {
+        final User otherUser = new User(
+                "OtherUser", "OtherUser@email.com", "passwordOfBannedUser"
+        );
+        final User victimUser = new User(
+                "VictimUser", "VictimUser@email.com", "passwordOfBannedUser"
+        );
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                victimUser, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int forumId = 1939;
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(otherUser);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.editMessage(token, forumId, null);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORBIDDEN_OPERATION, se.getErrorCode());
+        }
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageHistoryDao, never()).saveNewVersion(any(MessageItem.class));
+        verify(mockMessageHistoryDao, never()).editLatestVersion(any(MessageItem.class));
+    }
+
+    @Test
+    void testEditMessage_userBanned_shouldThrowException() throws ServerException {
+        final User bannedUser = new User(
+                "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
+        );
+        bannedUser.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                bannedUser, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int forumId = 1939;
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(bannedUser);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.editMessage(token, forumId, null);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
+        }
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageHistoryDao, never()).saveNewVersion(any(MessageItem.class));
+        verify(mockMessageHistoryDao, never()).editLatestVersion(any(MessageItem.class));
+    }
+
+    @Test
+    void testChangePriority() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
+                MessagePriority.HIGH
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+        doAnswer(invocationOnMock -> {
+            MessageTree aTree = invocationOnMock.getArgument(0);
+            aTree.setPriority(request.getPriority());
+            return aTree;
+        })
+                .when(mockMessageTreeDao)
+                .changeBranchPriority(any(MessageTree.class));
+
+        messageService.changeMessagePriority(token, messageId, request);
+
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageTreeDao).changeBranchPriority(any(MessageTree.class));
+    }
+
+    @Test
+    void testChangePriority_userNotMessageOwner_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final User strangeGuy = new User(
+                "strangeGuy", "strangeGuy@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
+                MessagePriority.HIGH
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(strangeGuy);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.changeMessagePriority(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORBIDDEN_OPERATION, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .changeBranchPriority(any(MessageTree.class));
+    }
+
+    @Test
+    void testChangePriority_userBanned_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User bannedUser = new User(
+                "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
+        );
+        bannedUser.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                bannedUser, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
+                MessagePriority.HIGH
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(bannedUser);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.changeMessagePriority(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .changeBranchPriority(any(MessageTree.class));
     }
 }
