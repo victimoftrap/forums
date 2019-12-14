@@ -46,7 +46,7 @@ public class MessageService {
 
     // REVU просто  getUserBySession. То. что он должен будет выбросить исключение
     // можно сделать понятным без труда, если сделать ServerException checked
-    private User getUserBySessionOrThrowException(final String token) {
+    private User getUserBySessionOrThrowException(final String token) throws ServerException {
         final User user = sessionDao.getUserByToken(token);
         if (user == null) {
             throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
@@ -55,7 +55,7 @@ public class MessageService {
     }
 
     // REVU то же
-    private Forum getForumByIdOrThrowException(final int id) {
+    private Forum getForumByIdOrThrowException(final int id) throws ServerException {
         final Forum forum = forumDao.getById(id);
         if (forum == null) {
             throw new ServerException(ErrorCode.FORUM_NOT_FOUND);
@@ -71,7 +71,7 @@ public class MessageService {
         return type == ForumType.UNMODERATED ? MessageState.PUBLISHED : MessageState.UNPUBLISHED;
     }
 
-    private MessageItem getMessageOrThrowException(final int messageId) {
+    private MessageItem getMessageOrThrowException(final int messageId) throws ServerException {
         final MessageItem item = messageDao.getMessageById(messageId);
         if (item == null) {
             throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
@@ -79,21 +79,23 @@ public class MessageService {
         return item;
     }
 
-    private void checkIsUserMessageCreator(final MessageItem item, final User user) {
+    private void checkIsUserMessageCreator(final MessageItem item, final User user) throws ServerException {
         if (!item.getOwner().equals(user)) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
     }
 
-    private void checkUserBanned(final User user) {
+    private void checkUserBanned(final User user) throws ServerException {
         if (user.getBannedUntil() != null) {
             throw new ServerException(ErrorCode.USER_BANNED);
         }
     }
 
-    public MessageDtoResponse addMessage(final String token,
-                                         final int forumId,
-                                         final CreateMessageDtoRequest request) {
+    public MessageDtoResponse addMessage(
+            final String token,
+            final int forumId,
+            final CreateMessageDtoRequest request
+    ) throws ServerException {
         final User creator = getUserBySessionOrThrowException(token);
         checkUserBanned(creator);
 
@@ -118,9 +120,11 @@ public class MessageService {
         return new MessageDtoResponse(messageItem.getId(), state);
     }
 
-    public MessageDtoResponse addComment(final String token,
-                                         final int parentId,
-                                         final CreateCommentDtoRequest request) {
+    public MessageDtoResponse addComment(
+            final String token,
+            final int parentId,
+            final CreateCommentDtoRequest request
+    ) throws ServerException {
         final User creator = getUserBySessionOrThrowException(token);
         checkUserBanned(creator);
 
@@ -144,7 +148,7 @@ public class MessageService {
         return new MessageDtoResponse(messageItem.getId(), state);
     }
 
-    public EmptyDtoResponse deleteMessage(final String token, final int messageId) {
+    public EmptyDtoResponse deleteMessage(final String token, final int messageId) throws ServerException {
         final User requesterUser = getUserBySessionOrThrowException(token);
         final MessageItem deletingMessage = getMessageOrThrowException(messageId);
         checkIsUserMessageCreator(deletingMessage, requesterUser);
@@ -162,9 +166,11 @@ public class MessageService {
         return new EmptyDtoResponse();
     }
 
-    public EditMessageOrCommentDtoResponse editMessage(final String token,
-                                                       final int messageId,
-                                                       final EditMessageOrCommentDtoRequest request) {
+    public EditMessageOrCommentDtoResponse editMessage(
+            final String token,
+            final int messageId,
+            final EditMessageOrCommentDtoRequest request
+    ) throws ServerException {
         final User requesterUser = getUserBySessionOrThrowException(token);
 
         final MessageItem editingMessage = getMessageOrThrowException(messageId);
@@ -196,9 +202,11 @@ public class MessageService {
         return new EditMessageOrCommentDtoResponse(messageState);
     }
 
-    public EmptyDtoResponse changeMessagePriority(final String token,
-                                                  final int messageId,
-                                                  final ChangeMessagePriorityDtoRequest request) {
+    public EmptyDtoResponse changeMessagePriority(
+            final String token,
+            final int messageId,
+            final ChangeMessagePriorityDtoRequest request
+    ) throws ServerException {
         final User requesterUser = getUserBySessionOrThrowException(token);
         final MessageItem editingMessage = getMessageOrThrowException(messageId);
         checkIsUserMessageCreator(editingMessage, requesterUser);
@@ -210,9 +218,11 @@ public class MessageService {
         return new EmptyDtoResponse();
     }
 
-    public MadeBranchFromCommentDtoResponse newBranchFromComment(final String token,
-                                                                 final int messageId,
-                                                                 final MadeBranchFromCommentDtoRequest request) {
+    public MadeBranchFromCommentDtoResponse newBranchFromComment(
+            final String token,
+            final int messageId,
+            final MadeBranchFromCommentDtoRequest request
+    ) throws ServerException {
         final User requesterUser = getUserBySessionOrThrowException(token);
         final MessageItem newRootMessage = getMessageOrThrowException(messageId);
         checkIsUserMessageCreator(newRootMessage, requesterUser);
@@ -228,9 +238,11 @@ public class MessageService {
         return new MadeBranchFromCommentDtoResponse(newRootMessage.getId());
     }
 
-    public EmptyDtoResponse publish(final String token,
-                                    final int messageId,
-                                    final PublicationDecisionDtoRequest request) {
+    public EmptyDtoResponse publish(
+            final String token,
+            final int messageId,
+            final PublicationDecisionDtoRequest request
+    ) throws ServerException {
         final User requesterUser = getUserBySessionOrThrowException(token);
         final MessageItem publishingMessage = getMessageOrThrowException(messageId);
 
@@ -263,9 +275,11 @@ public class MessageService {
         return new EmptyDtoResponse();
     }
 
-    public EmptyDtoResponse rate(final String token,
-                                 final int messageId,
-                                 final RateMessageDtoRequest request) {
+    public EmptyDtoResponse rate(
+            final String token,
+            final int messageId,
+            final RateMessageDtoRequest request
+    ) throws ServerException {
         final User requesterUser = getUserBySessionOrThrowException(token);
         final MessageItem ratedMessage = getMessageOrThrowException(messageId);
         // TODO check are user banned permanently

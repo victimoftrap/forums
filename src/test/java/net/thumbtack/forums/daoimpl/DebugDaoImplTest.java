@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessagePriority;
@@ -52,7 +53,7 @@ class DebugDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testClearDatabase() {
+    void testClearDatabase() throws ServerException {
         final UserSession creatorSession = new UserSession(creator, UUID.randomUUID().toString());
         userDao.save(creator, creatorSession);
         forumDao.save(forum);

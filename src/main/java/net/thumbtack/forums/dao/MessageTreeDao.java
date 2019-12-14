@@ -1,15 +1,16 @@
 package net.thumbtack.forums.dao;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.MessageTree;
 
 public interface MessageTreeDao {
-    MessageTree saveMessageTree(MessageTree tree);
+    MessageTree saveMessageTree(MessageTree tree) throws ServerException;
 
-    MessageTree newBranch(MessageTree tree);
+    MessageTree newBranch(MessageTree tree) throws ServerException;
 
-    void changeBranchPriority(MessageTree tree);
+    void changeBranchPriority(MessageTree tree) throws ServerException;
 
-    void deleteTreeById(int id);
+    void deleteTreeById(int id) throws ServerException;
 
-    void deleteTreeByRootMessageId(int messageId);
+    void deleteTreeByRootMessageId(int messageId) throws ServerException;
 }

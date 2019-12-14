@@ -3,6 +3,7 @@ package net.thumbtack.forums.controller;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.service.UserService;
 
 import org.springframework.http.MediaType;
@@ -30,7 +31,7 @@ public class SessionController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<UserDtoResponse> login(@RequestBody @Valid LoginUserDtoRequest request,
-                                                 HttpServletResponse response) {
+                                                 HttpServletResponse response) throws ServerException {
         final UserDtoResponse userResponse = userService.login(request);
 
         final Cookie sessionCookie = new Cookie(COOKIE_NAME, userResponse.getSessionToken());
@@ -43,7 +44,8 @@ public class SessionController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<EmptyDtoResponse> logout(@CookieValue(value = COOKIE_NAME) String token) {
+    public ResponseEntity<EmptyDtoResponse> logout(
+            @CookieValue(value = COOKIE_NAME) String token) throws ServerException {
         return ResponseEntity.ok(userService.logout(token));
     }
 }

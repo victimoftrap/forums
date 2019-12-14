@@ -24,7 +24,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    public HistoryItem saveNewVersion(MessageItem item) {
+    public HistoryItem saveNewVersion(MessageItem item) throws ServerException {
         LOGGER.debug("Saving new version of message with ID {}", item.getId());
         final HistoryItem newVersion = item.getHistory().get(0);
 
@@ -42,7 +42,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    public void editLatestVersion(MessageItem item) {
+    public void editLatestVersion(MessageItem item) throws ServerException {
         LOGGER.debug("Updating unpublished version of message with ID {}", item.getId());
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -60,7 +60,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    public void unpublishNewVersionBy(int messageId) {
+    public void unpublishNewVersionBy(int messageId) throws ServerException {
         LOGGER.debug("Deleting unpublished version of message with ID {}", messageId);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {

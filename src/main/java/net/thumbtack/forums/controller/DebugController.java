@@ -1,5 +1,6 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.service.DebugService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ public class DebugController {
     }
 
     @PostMapping("/clear")
-    public ResponseEntity<Void> clearDatabase() {
+    public ResponseEntity<Void> clearDatabase() throws ServerException {
         debugService.clearDatabase();
         return ResponseEntity
                 .ok()

@@ -50,7 +50,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testCreateMessage() {
+    void testCreateMessage() throws ServerException {
         final User user = new User("MarvinGaye", "gaye@motown.com", "whatsGoingOn");
         final Forum forum = new Forum(ForumType.UNMODERATED, user,
                 "Soul Music", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
@@ -84,7 +84,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testCreateMessage_creatorAreBanned_shouldThrowException() {
+    void testCreateMessage_creatorAreBanned_shouldThrowException() throws ServerException {
         final User bannedUser = new User(
                 "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
         );
@@ -114,7 +114,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testCreateComment() {
+    void testCreateComment() throws ServerException {
         final User user = new User("MarvinGaye", "gaye@motown.com", "whatsGoingOn");
         final Forum forum = new Forum(ForumType.UNMODERATED, user,
                 "Soul Music", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
@@ -158,7 +158,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testCreateComment_creatorAreBanned_shouldThrowException() {
+    void testCreateComment_creatorAreBanned_shouldThrowException() throws ServerException {
         final User bannedUser = new User(
                 "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
         );
@@ -185,7 +185,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testCreateComment_parentMessageNotPublished_shouldThrowException() {
+    void testCreateComment_parentMessageNotPublished_shouldThrowException() throws ServerException {
         final User user = new User("MarvinGaye", "gaye@motown.com", "whatsGoingOn");
         final Forum forum = new Forum(ForumType.UNMODERATED, user,
                 "Soul Music", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
@@ -226,7 +226,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testDeleteMessage_itsRootMessageTree_successfullyDeleted() {
+    void testDeleteMessage_itsRootMessageTree_successfullyDeleted() throws ServerException {
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
@@ -266,7 +266,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testDeleteMessage_itsCommentForMessage_successfullyDeleted() {
+    void testDeleteMessage_itsCommentForMessage_successfullyDeleted() throws ServerException {
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
@@ -320,7 +320,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testDeleteMessage_requestFromNotMessageCreator_shouldThrowException() {
+    void testDeleteMessage_requestFromNotMessageCreator_shouldThrowException() throws ServerException {
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
@@ -368,7 +368,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testDeleteRootMessage_messageHasComments_shouldThrowException() {
+    void testDeleteRootMessage_messageHasComments_shouldThrowException() throws ServerException {
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );

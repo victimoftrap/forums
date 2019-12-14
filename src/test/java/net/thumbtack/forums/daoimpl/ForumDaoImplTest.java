@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.ForumType;
@@ -14,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ForumDaoImplTest extends DaoTestEnvironment {
     @Test
-    void testSaveNewForum() {
+    void testSaveNewForum() throws ServerException {
         User user = new User(
                 UserRole.USER,
                 "g.house", "greg.house@gmail.com", "cuddy",
@@ -40,7 +41,7 @@ class ForumDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetForumById() {
+    void testGetForumById() throws ServerException {
         User user = new User(
                 UserRole.USER,
                 "g.house", "greg.house@gmail.com", "cuddy",
@@ -64,13 +65,13 @@ class ForumDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetForumById_forumNotExists_notFound() {
+    void testGetForumById_forumNotExists_notFound() throws ServerException {
         Forum forum = forumDao.getById(481516);
         assertNull(forum);
     }
 
     @Test
-    void testUpdateReadonlyForumFlag() {
+    void testUpdateReadonlyForumFlag() throws ServerException {
         User user = new User(
                 UserRole.USER,
                 "g.house", "greg.house@gmail.com", "cuddy",
@@ -106,7 +107,7 @@ class ForumDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteForum() {
+    void testDeleteForum() throws ServerException {
         User user = new User(
                 UserRole.USER,
                 "g.house", "greg.house@gmail.com", "cuddy",

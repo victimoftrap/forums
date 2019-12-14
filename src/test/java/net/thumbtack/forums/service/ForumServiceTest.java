@@ -34,7 +34,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testCreateForum() {
+    void testCreateForum() throws ServerException {
         final String token = "token";
         final CreateForumDtoRequest request = new CreateForumDtoRequest("testForum", ForumType.UNMODERATED);
         final User user = new User("user", "user@email.com", "password=pass");
@@ -63,7 +63,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testCreateForum_userNotFoundByToken_shouldThrowException() {
+    void testCreateForum_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String token = "token";
         final CreateForumDtoRequest request = new CreateForumDtoRequest("testForum", ForumType.UNMODERATED);
         when(mockSessionDao.getUserByToken(anyString()))
@@ -79,7 +79,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testCreateForum_userBanned_shouldThrowException() {
+    void testCreateForum_userBanned_shouldThrowException() throws ServerException {
         final String token = "token";
         final CreateForumDtoRequest request = new CreateForumDtoRequest("testForum", ForumType.UNMODERATED);
         final User user = new User("user", "user@email.com", "password=pass");
@@ -99,7 +99,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testDeleteForum() {
+    void testDeleteForum() throws ServerException {
         final String token = "token";
         final User user = new User("user", "user@email.com", "password=pass");
         final Forum forum = new Forum(
@@ -122,7 +122,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testDeleteForum_userNotForumOwner_shouldThrowException() {
+    void testDeleteForum_userNotForumOwner_shouldThrowException() throws ServerException {
         final String token = "token";
         final User user = new User("user", "user@email.com", "password=pass");
         final User forumOwner = new User("owner", "owner@email.com", "owner_passwd");
@@ -148,7 +148,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testDeleteForum_userHasRoleSuperuser_shouldDeleteForum() {
+    void testDeleteForum_userHasRoleSuperuser_shouldDeleteForum() throws ServerException {
         final String token = "token";
         final User user = new User("super", "super@email.com", "password=pass");
         user.setRole(UserRole.SUPERUSER);

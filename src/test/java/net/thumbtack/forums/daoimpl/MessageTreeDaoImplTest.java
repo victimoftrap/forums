@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessagePriority;
@@ -51,7 +52,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testCreateMessageTree() {
+    void testCreateMessageTree() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
 
@@ -63,7 +64,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testCreateAndGetTreeFromComment() {
+    void testCreateAndGetTreeFromComment() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -99,7 +100,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetRootMessageInTreeWithComments() {
+    void testGetRootMessageInTreeWithComments() throws ServerException {
         final User commentMaker = new User(
                 "commentMaker", "user@gmail.com", "passwd"
         );
@@ -143,7 +144,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testChangeTreePriority() {
+    void testChangeTreePriority() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -169,7 +170,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteMessageTreeById() {
+    void testDeleteMessageTreeById() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -183,7 +184,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteMessageTreeByRootMessageId() {
+    void testDeleteMessageTreeByRootMessageId() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);

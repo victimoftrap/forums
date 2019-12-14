@@ -1,15 +1,16 @@
 package net.thumbtack.forums.dao;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.MessageItem;
 
 public interface MessageDao {
-    MessageItem saveMessageItem(MessageItem item);
+    MessageItem saveMessageItem(MessageItem item) throws ServerException;
 
-    MessageItem getMessageById(int id);
+    MessageItem getMessageById(int id) throws ServerException;
 
-    void publish(MessageItem item);
+    void publish(MessageItem item) throws ServerException;
 
-    void deleteMessageById(int id);
+    void deleteMessageById(int id) throws ServerException;
 
-    void deleteAll();
+    void deleteAll() throws ServerException;
 }
