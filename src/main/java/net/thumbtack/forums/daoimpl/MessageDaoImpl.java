@@ -5,12 +5,15 @@ import net.thumbtack.forums.dao.MessageDao;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
+import net.thumbtack.forums.model.enums.MessageOrder;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 @Component("messageDao")
 public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
@@ -50,7 +53,21 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
             try {
                 return getMessageMapper(sqlSession).getMessageById(id);
             } catch (RuntimeException ex) {
-                LOGGER.debug("Unable to get message by ID {}", id, ex);
+                LOGGER.info("Unable to get message by ID {}", id, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public List<MessageItem> getComments(int messageId, MessageOrder order) throws ServerException {
+        LOGGER.debug("Getting comments of message with ID {} ordered by {}", messageId, order);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getMessageMapper(sqlSession).getComments(messageId, order);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get comments of message with ID {}", messageId, ex);
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }

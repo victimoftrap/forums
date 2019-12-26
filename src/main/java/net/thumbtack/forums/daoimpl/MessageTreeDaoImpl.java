@@ -6,12 +6,15 @@ import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
+import net.thumbtack.forums.model.enums.MessageOrder;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 @Component("messageTreeDao")
 public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeDao {
@@ -71,6 +74,37 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
             sqlSession.commit();
         }
         return tree;
+    }
+
+    @Override
+    public MessageTree getMessageTreeById(int id) throws ServerException {
+        LOGGER.debug("Getting root message with ID {}", id);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getMessageTreeMapper(sqlSession).getTreeById(id);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get root message with ID {}", id, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public List<MessageTree> getTreesByForum(int forumId, MessageOrder order, int offset, int limit)
+            throws ServerException {
+        LOGGER.debug("Getting {} trees started from {} of forum with ID {} ordered {}",
+                limit, offset, forumId, order
+        );
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getMessageTreeMapper(sqlSession).getTreeList(forumId, order, offset, limit);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get trees of forum {}", forumId, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
     }
 
     @Override
