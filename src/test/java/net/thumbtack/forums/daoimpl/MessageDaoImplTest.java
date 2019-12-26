@@ -80,7 +80,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(comment.getId(), commentsList.get(0).getId()),
                 () -> assertEquals(comment.getOwner(), commentsList.get(0).getOwner()),
                 () -> assertEquals(comment.getHistory(), commentsList.get(0).getHistory()),
-                () -> assertEquals(comment.getRating(), commentsList.get(0).getRating()),
+                () -> assertEquals(comment.getAverageRating(), commentsList.get(0).getAverageRating()),
                 () -> assertEquals(comment.getCreatedAt(), commentsList.get(0).getCreatedAt()),
                 () -> assertEquals(comment.getUpdatedAt(), commentsList.get(0).getUpdatedAt()),
                 () -> assertEquals(comment.getParentMessage().getId(), commentsList.get(0).getParentMessage().getId()),

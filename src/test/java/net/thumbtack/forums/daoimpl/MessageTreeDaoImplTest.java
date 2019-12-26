@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -89,7 +88,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedNewTreeRootMessage = messageDao.getMessageById(comment.getId());
         assertEquals(comment.getId(), selectedNewTreeRootMessage.getId());
         assertEquals(comment.getOwner(), selectedNewTreeRootMessage.getOwner());
-        assertEquals(comment.getRating(), selectedNewTreeRootMessage.getRating());
+        assertEquals(comment.getAverageRating(), selectedNewTreeRootMessage.getAverageRating());
         assertEquals(comment.getCreatedAt(), selectedNewTreeRootMessage.getCreatedAt());
         assertEquals(comment.getUpdatedAt(), selectedNewTreeRootMessage.getUpdatedAt());
         assertEquals(comment.getChildrenComments(), selectedNewTreeRootMessage.getChildrenComments());
@@ -160,7 +159,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(messageItem.getHistory(), message.getHistory()),
                 () -> assertEquals(messageItem.getUpdatedAt(), message.getUpdatedAt()),
                 () -> assertEquals(messageItem.getCreatedAt(), message.getCreatedAt()),
-                () -> assertEquals(messageItem.getRating(), message.getRating()),
+                () -> assertEquals(messageItem.getAverageRating(), message.getAverageRating()),
                 () -> assertEquals(messageItem.getChildrenComments(), message.getChildrenComments()),
                 () -> assertEquals(messageItem.getMessageTree().getId(), message.getMessageTree().getId()),
                 () -> assertNull(messageItem.getParentMessage()),

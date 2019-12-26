@@ -63,7 +63,7 @@ class RatingDaoImplTest extends DaoTestEnvironment {
         ratingDao.rate(messageItem, otherUser, rating);
 
         final MessageItem message = messageDao.getMessageById(messageItem.getId());
-        assertEquals(rating, message.getRating());
+        assertEquals(rating, message.getAverageRating());
     }
 
     @Test
@@ -80,7 +80,7 @@ class RatingDaoImplTest extends DaoTestEnvironment {
         ratingDao.upsertRating(messageItem, otherUser, rating);
 
         final MessageItem message = messageDao.getMessageById(messageItem.getId());
-        assertEquals(rating, message.getRating());
+        assertEquals(rating, message.getAverageRating());
     }
 
     @Test
@@ -99,8 +99,8 @@ class RatingDaoImplTest extends DaoTestEnvironment {
         ratingDao.upsertRating(messageItem, otherUser, newRating);
 
         final MessageItem message = messageDao.getMessageById(messageItem.getId());
-        assertEquals(newRating, message.getRating());
-        assertNotEquals(rating, message.getRating());
+        assertEquals(newRating, message.getAverageRating());
+        assertNotEquals(rating, message.getAverageRating());
     }
 
     @Test
@@ -119,8 +119,8 @@ class RatingDaoImplTest extends DaoTestEnvironment {
         ratingDao.changeRating(messageItem, otherUser, newRating);
 
         final MessageItem message = messageDao.getMessageById(messageItem.getId());
-        assertEquals(newRating, message.getRating());
-        assertNotEquals(rating, message.getRating());
+        assertEquals(newRating, message.getAverageRating());
+        assertNotEquals(rating, message.getAverageRating());
     }
 
     @Test
@@ -136,11 +136,11 @@ class RatingDaoImplTest extends DaoTestEnvironment {
         userDao.save(otherUser);
         ratingDao.upsertRating(messageItem, otherUser, rating);
         final MessageItem messageBeforeDeletingRating = messageDao.getMessageById(messageItem.getId());
-        assertEquals(rating, messageBeforeDeletingRating.getRating());
+        assertEquals(rating, messageBeforeDeletingRating.getAverageRating());
 
         ratingDao.deleteRate(messageItem, otherUser);
         final MessageItem messageAfterDeletingRating = messageDao.getMessageById(messageItem.getId());
-        assertEquals(0, messageAfterDeletingRating.getRating());
+        assertEquals(0, messageAfterDeletingRating.getAverageRating());
     }
 
     @Test

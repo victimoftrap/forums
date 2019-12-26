@@ -1477,7 +1477,7 @@ class MessageServiceTest {
                 .thenReturn(parentMessage);
         doAnswer(invocationOnMock -> {
             MessageItem aMessage = invocationOnMock.getArgument(0);
-            aMessage.setRating(request.getValue());
+            aMessage.setAverageRating(request.getValue());
             return invocationOnMock;
         })
                 .when(mockRatingDao)
@@ -1510,7 +1510,7 @@ class MessageServiceTest {
                 messageOwner, Collections.singletonList(parentHistory),
                 parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
         );
-        parentMessage.setRating(oldRate);
+        parentMessage.setAverageRating(oldRate);
         final MessageTree tree = new MessageTree(
                 forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
         );
@@ -1526,7 +1526,7 @@ class MessageServiceTest {
                 .thenReturn(parentMessage);
         doAnswer(invocationOnMock -> {
             MessageItem aMessage = invocationOnMock.getArgument(0);
-            aMessage.setRating(request.getValue());
+            aMessage.setAverageRating(request.getValue());
             return invocationOnMock;
         })
                 .when(mockRatingDao)
@@ -1559,7 +1559,7 @@ class MessageServiceTest {
                 messageOwner, Collections.singletonList(parentHistory),
                 parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
         );
-        parentMessage.setRating(oldRate);
+        parentMessage.setAverageRating(oldRate);
         final MessageTree tree = new MessageTree(
                 forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
         );
@@ -1575,7 +1575,7 @@ class MessageServiceTest {
                 .thenReturn(parentMessage);
         doAnswer(invocationOnMock -> {
             MessageItem aMessage = invocationOnMock.getArgument(0);
-            aMessage.setRating(0);
+            aMessage.setAverageRating(0);
             return invocationOnMock;
         })
                 .when(mockRatingDao)
