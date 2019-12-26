@@ -1,6 +1,5 @@
 package net.thumbtack.forums.model;
 
-import io.netty.util.CharsetUtil;
 import net.thumbtack.forums.model.enums.MessagePriority;
 
 import java.time.LocalDateTime;

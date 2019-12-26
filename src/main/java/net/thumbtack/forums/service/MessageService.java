@@ -1,5 +1,6 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.converter.MessageConverter;
 import net.thumbtack.forums.dao.*;
 import net.thumbtack.forums.dto.responses.message.*;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
@@ -7,6 +8,7 @@ import net.thumbtack.forums.converter.TagConverter;
 import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
+import net.thumbtack.forums.model.enums.MessageOrder;
 import net.thumbtack.forums.model.enums.MessagePriority;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.exception.ErrorCode;
@@ -109,7 +111,8 @@ public class MessageService {
                 creator, Collections.singletonList(historyItem), createdAt, createdAt
         );
         final MessageTree tree = new MessageTree(
-                forum, request.getSubject(), messageItem, priority,
+                forum, request.getSubject(), messageItem,
+                priority, createdAt,
                 TagConverter.tagNamesToTagList(request.getTags())
         );
         messageItem.setMessageTree(tree);
@@ -237,7 +240,8 @@ public class MessageService {
 
         final MessageTree newTree = new MessageTree(
                 oldTree.getForum(), request.getSubject(), newRootMessage,
-                request.getPriority(), TagConverter.tagNamesToTagList(request.getTags())
+                request.getPriority(), LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                TagConverter.tagNamesToTagList(request.getTags())
         );
 
         messageTreeDao.newBranch(newTree);
@@ -296,5 +300,43 @@ public class MessageService {
             ratingDao.upsertRating(ratedMessage, requesterUser, request.getValue());
         }
         return new EmptyDtoResponse();
+    }
+
+    public MessageInfoDtoResponse getMessage(
+            final String token,
+            final int messageId,
+            final boolean allVersions,
+            final boolean noComments,
+            final boolean unpublished,
+            final String order
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageTree messageTree = messageTreeDao.getMessageTreeById(messageId);
+        if (messageTree == null) {
+            throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
+        }
+
+        final MessageItem item = messageTree.getRootMessage();
+        final Forum forum = messageTree.getForum();
+        final MessageOrder messageOrder = MessageOrder.valueOf(order);
+
+        boolean usedUnpublished = false;
+        if (requesterUser.equals(forum.getOwner()) && forum.getType() == ForumType.MODERATED) {
+            usedUnpublished = unpublished;
+        }
+
+        List<MessageItem> comments;
+        if (noComments) {
+            comments = new ArrayList<>();
+        } else {
+            comments = messageDao.getComments(messageId, messageOrder);
+        }
+
+        final List<HistoryItem> history = messageHistoryDao.getMessageHistory(
+                messageId, allVersions, usedUnpublished
+        );
+        item.setChildrenComments(comments);
+        item.setHistory(history);
+        return MessageConverter.messageToMessageInfoDto(messageTree);
     }
 }

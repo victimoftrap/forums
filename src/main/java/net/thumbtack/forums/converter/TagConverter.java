@@ -2,8 +2,8 @@ package net.thumbtack.forums.converter;
 
 import net.thumbtack.forums.model.Tag;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 
 public class TagConverter {
     public static List<Tag> tagNamesToTagList(final List<String> tagNames) {
@@ -13,5 +13,14 @@ public class TagConverter {
         final List<Tag> tags = new ArrayList<>();
         tagNames.forEach(tag -> tags.add(new Tag(tag)));
         return tags;
+    }
+
+    public static List<String> tagListToTagNamesList(final List<Tag> tags) {
+        if (tags == null) {
+            return new ArrayList<>();
+        }
+        final List<String> tagNames = new ArrayList<>();
+        tags.forEach(tag -> tagNames.add(tag.getName()));
+        return tagNames;
     }
 }
