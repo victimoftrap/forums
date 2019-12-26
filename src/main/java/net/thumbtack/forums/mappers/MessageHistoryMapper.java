@@ -28,6 +28,23 @@ public interface MessageHistoryMapper {
     )
     List<HistoryItem> getMessageHistory(@Param("id") int messageId);
 
+    @Select({"<script>",
+            "SELECT body, state, created_at FROM message_history",
+            "WHERE message_id = #{id}",
+            "<if test='unpublished == false'>",
+            "AND state == 'PUBLISHED'",
+            "</if>",
+            "ORDER BY created_at DESC",
+            "<if test='allVersions == false'>",
+            "LIMIT 1",
+            "</if>",
+            "</script>"
+    })
+    @ResultMap("historyResult")
+    List<HistoryItem> getMessageHistoryByOptions(@Param("id") int messageId,
+                                                 @Param("allVersions") boolean allVersions,
+                                                 @Param("unpublished") boolean unpublished);
+
     @Select({"SELECT body, state, created_at",
             "FROM message_history",
             "WHERE message_id = #{id} AND state = #{state.name}",

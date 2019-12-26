@@ -47,6 +47,7 @@ CREATE TABLE messages_tree(
   forum_id     INT          NOT NULL,
   subject      VARCHAR(256) NOT NULL,
   priority     ENUM('LOW', 'NORMAL', 'HIGH'),
+  created_at   TIMESTAMP DEFAULT NOW(),
 
   KEY priority(priority),
   KEY subject(subject),

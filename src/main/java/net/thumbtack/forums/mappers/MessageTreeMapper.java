@@ -3,23 +3,23 @@ package net.thumbtack.forums.mappers;
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.model.MessageItem;
-import net.thumbtack.forums.model.enums.MessagePriority;
-import net.thumbtack.forums.daoimpl.provider.MessageTreeDaoProvider;
+import net.thumbtack.forums.model.enums.MessageOrder;
 
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.mapping.FetchType;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MessageTreeMapper {
     @Insert({"INSERT INTO messages_tree",
-            "(forum_id, subject, priority)",
-            "VALUES(#{forum.id}, #{subject}, #{priority.name})"
+            "(forum_id, subject, priority, created_at)",
+            "VALUES(#{forum.id}, #{subject}, #{priority.name}, #{createdAt})"
     })
     @Options(useGeneratedKeys = true, keyProperty = "id")
     Integer saveMessageTree(MessageTree tree);
 
-    @Select("SELECT id, forum_id, subject, priority FROM messages_tree WHERE id = #{id}")
+    @Select("SELECT id, forum_id, subject, priority, created_at FROM messages_tree WHERE id = #{id}")
     @Results(id = "treeResult",
             value = {
                     @Result(property = "id", column = "id", javaType = int.class),
@@ -40,10 +40,22 @@ public interface MessageTreeMapper {
                                     select = "net.thumbtack.forums.mappers.TagMapper.getMessageTreeTags",
                                     fetchType = FetchType.LAZY
                             )
-                    )
+                    ),
+                    @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
             }
     )
     MessageTree getTreeById(int id);
+
+    @Select({"SELECT id, forum_id, subject, priority, created_at",
+            "FROM messages_tree WHERE forum_id = #{forumId}",
+            "ORDER BY priority DESC, created_at #{order.name}",
+            "OFFSET #{offset} LIMIT #{limit}"
+    })
+    @ResultMap("treeResult")
+    List<MessageTree> getTreeList(@Param("forumId") int forumId,
+                                  @Param("order") MessageOrder order,
+                                  @Param("offset") int offset,
+                                  @Param("limit") int limit);
 
     @Update({"UPDATE messages_tree",
             "SET priority = #{priority.name}",
