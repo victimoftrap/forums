@@ -2,6 +2,7 @@ package net.thumbtack.forums.service;
 
 import net.thumbtack.forums.dao.*;
 import net.thumbtack.forums.dto.requests.message.*;
+import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
@@ -10,7 +11,6 @@ import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.model.enums.MessagePriority;
-import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,8 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -1381,6 +1379,35 @@ class MessageServiceTest {
     }
 
     @Test
+    void testPublishMessage_userNotFound_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
+                PublicationDecision.YES
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.publish(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageDao, never())
+                .publish(any(MessageItem.class));
+        verify(mockMessageTreeDao, never())
+                .deleteTreeById(anyInt());
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+        verify(mockMessageHistoryDao, never())
+                .unpublishNewVersionBy(anyInt());
+    }
+
+    @Test
     void testPublishMessage_messageNotFound_shouldThrowException() throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
@@ -1416,17 +1443,160 @@ class MessageServiceTest {
     }
 
     @Test
-    void testPublishMessage_userNotFound_shouldThrowException() throws ServerException {
+    void testRateMessage() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
         final String token = "token";
         final int messageId = 123;
-        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+        doAnswer(invocationOnMock -> {
+            MessageItem aMessage = invocationOnMock.getArgument(0);
+            aMessage.setRating(request.getValue());
+            return invocationOnMock;
+        })
+                .when(mockRatingDao)
+                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
+
+        messageService.rate(token, messageId, request);
+
+        verify(mockRatingDao).upsertRating(any(MessageItem.class), any(User.class), anyInt());
+        verify(mockRatingDao, never()).deleteRate(any(MessageItem.class), any(User.class));
+    }
+
+    @Test
+    void testUpdateRating() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final int oldRate = 5;
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        parentMessage.setRating(oldRate);
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(3);
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+        doAnswer(invocationOnMock -> {
+            MessageItem aMessage = invocationOnMock.getArgument(0);
+            aMessage.setRating(request.getValue());
+            return invocationOnMock;
+        })
+                .when(mockRatingDao)
+                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
+
+        messageService.rate(token, messageId, request);
+
+        verify(mockRatingDao).upsertRating(any(MessageItem.class), any(User.class), anyInt());
+        verify(mockRatingDao, never()).deleteRate(any(MessageItem.class), any(User.class));
+    }
+
+    @Test
+    void testRemoveRating() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final int oldRate = 5;
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        parentMessage.setRating(oldRate);
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(null);
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+        doAnswer(invocationOnMock -> {
+            MessageItem aMessage = invocationOnMock.getArgument(0);
+            aMessage.setRating(0);
+            return invocationOnMock;
+        })
+                .when(mockRatingDao)
+                .deleteRate(any(MessageItem.class), any(User.class));
+
+        messageService.rate(token, messageId, request);
+
+        verify(mockRatingDao).deleteRate(any(MessageItem.class), any(User.class));
+        verify(mockRatingDao, never()).upsertRating(any(MessageItem.class), any(User.class), anyInt());
+    }
+
+    @Test
+    void testRateMessage_userNotFound_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(null);
 
         try {
-            messageService.publish(token, messageId, request);
+            messageService.rate(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
         }
@@ -1434,13 +1604,38 @@ class MessageServiceTest {
                 .getUserByToken(anyString());
         verify(mockMessageDao, never())
                 .getMessageById(anyInt());
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verify(mockRatingDao, never())
+                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
+        verify(mockRatingDao, never())
+                .deleteRate(any(MessageItem.class), any(User.class));
+    }
+
+    @Test
+    void testRateMessage_messageNotFound_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+
+        final String token = "token";
+        final int messageId = 123;
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(null);
+
+        try {
+            messageService.rate(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockRatingDao, never())
+                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
+        verify(mockRatingDao, never())
+                .deleteRate(any(MessageItem.class), any(User.class));
     }
 }
