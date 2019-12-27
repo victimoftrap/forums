@@ -3,10 +3,10 @@ package net.thumbtack.forums.daoimpl;
 import net.thumbtack.forums.dao.MessageTreeDao;
 import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.model.MessageTree;
+import net.thumbtack.forums.model.enums.MessageOrder;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
-import net.thumbtack.forums.model.enums.MessageOrder;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component("messageTreeDao")
@@ -85,6 +86,33 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
                 return getMessageTreeMapper(sqlSession).getTreeById(id);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get root message with ID {}", id, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public MessageTree getTreeWithOptions(
+            int id,
+            MessageOrder order,
+            boolean noComments,
+            boolean allVersions,
+            boolean unpublished
+    ) throws ServerException {
+        LOGGER.debug("Getting message tree by ID {} with options: all versions {}, unpublished {}, order {}",
+                id, allVersions, unpublished, order.name()
+        );
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                final MessageTree tree = getMessageTreeMapper(sqlSession)
+                        .getTreeWithOptions(id, order, allVersions, unpublished);
+                if (noComments) {
+                    tree.getRootMessage().setChildrenComments(new ArrayList<>());
+                }
+                return tree;
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get tree with ID {}", id, ex);
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }

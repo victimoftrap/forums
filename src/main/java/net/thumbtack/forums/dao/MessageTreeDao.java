@@ -1,8 +1,8 @@
 package net.thumbtack.forums.dao;
 
-import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.model.enums.MessageOrder;
+import net.thumbtack.forums.exception.ServerException;
 
 import java.util.List;
 
@@ -12,6 +12,14 @@ public interface MessageTreeDao {
     MessageTree newBranch(MessageTree tree) throws ServerException;
 
     MessageTree getMessageTreeById(int id) throws ServerException;
+
+    MessageTree getTreeWithOptions(
+            int id,
+            MessageOrder order,
+            boolean noComments,
+            boolean allVersions,
+            boolean unpublished
+    ) throws ServerException;
 
     List<MessageTree> getTreesByForum(int forumId,
                                       MessageOrder order,
