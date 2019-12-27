@@ -1,6 +1,6 @@
 package net.thumbtack.forums.exception;
 
-public class ServerException extends RuntimeException {
+public class ServerException extends Exception {
     private ErrorCode errorCode;
     private RequestFieldName errorField;
 

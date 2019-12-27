@@ -1,7 +1,8 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.service.SettingsService;
-import net.thumbtack.forums.dto.settings.SettingsDtoResponse;
+import net.thumbtack.forums.dto.responses.settings.SettingsDtoResponse;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -28,7 +29,7 @@ public class SettingsController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<SettingsDtoResponse> getSettings(
-            @CookieValue(value = COOKIE_NAME, required = false) String token) {
+            @CookieValue(value = COOKIE_NAME, required = false) String token) throws ServerException {
         final SettingsDtoResponse response = settingsService.getSettings(token);
         return ResponseEntity.ok(response);
     }

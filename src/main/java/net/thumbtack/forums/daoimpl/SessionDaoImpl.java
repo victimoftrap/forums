@@ -24,7 +24,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     }
 
     @Override
-    public void upsertSession(UserSession session) {
+    public void upsertSession(UserSession session) throws ServerException {
         LOGGER.debug("Creating new session for user {}", session.getUser());
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -43,7 +43,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     }
 
     @Override
-    public UserSession getSessionByToken(String token) {
+    public UserSession getSessionByToken(String token) throws ServerException {
         LOGGER.debug("Getting user session by session token {}", token);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -57,7 +57,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     }
 
     @Override
-    public User getUserByToken(String token) {
+    public User getUserByToken(String token) throws ServerException {
         LOGGER.debug("Getting user by session token {}", token);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -71,7 +71,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     }
 
     @Override
-    public void deleteSession(String token) {
+    public void deleteSession(String token) throws ServerException {
         LOGGER.debug("Deleting user session by token {}", token);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -88,7 +88,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
     }
 
     @Override
-    public void deleteAll() {
+    public void deleteAll() throws ServerException {
         LOGGER.debug("Deleting all sessions for all users");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {

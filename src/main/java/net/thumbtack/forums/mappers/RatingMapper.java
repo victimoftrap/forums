@@ -2,9 +2,13 @@ package net.thumbtack.forums.mappers;
 
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.MessageItem;
+import net.thumbtack.forums.model.Rating;
 import net.thumbtack.forums.model.User;
 
 import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.mapping.FetchType;
+
+import java.util.List;
 
 public interface RatingMapper {
     @Insert({"INSERT INTO message_ratings (message_id, user_id, rating)",
@@ -38,6 +42,24 @@ public interface RatingMapper {
             "FROM message_ratings WHERE message_id = #{msg}"
     })
     double getMessageRating(@Param("msg") int messageId);
+
+    @Select({"SELECT COUNT(*) AS rated",
+            "FROM message_ratings WHERE message_id = #{msg}"
+    })
+    int getMessageRatedCount(@Param("msg") int messageId);
+
+    @Select({"SELECT message_id, user_id, rating",
+            "FROM message_ratings WHERE message_id = #{msg}"
+    })
+    @Results(value = {
+            @Result(column = "user_id", property = "rater", javaType = User.class,
+                    one = @One(
+                            select = "net.thumbtack.forums.mappers.UserMapper.getById",
+                            fetchType = FetchType.LAZY
+                    )
+            )
+    })
+    List<Rating> getMessageRatingsList(@Param("msg") int messageId);
 
     @Delete("DELETE FROM message_ratings")
     void deleteAll();

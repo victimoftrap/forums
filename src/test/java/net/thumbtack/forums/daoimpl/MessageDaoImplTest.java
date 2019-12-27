@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessagePriority;
@@ -51,7 +52,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testCreateAndGetComment() {
+    void testCreateAndGetComment() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -79,7 +80,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(comment.getId(), commentsList.get(0).getId()),
                 () -> assertEquals(comment.getOwner(), commentsList.get(0).getOwner()),
                 () -> assertEquals(comment.getHistory(), commentsList.get(0).getHistory()),
-                () -> assertEquals(comment.getRating(), commentsList.get(0).getRating()),
+                () -> assertEquals(comment.getAverageRating(), commentsList.get(0).getAverageRating()),
                 () -> assertEquals(comment.getCreatedAt(), commentsList.get(0).getCreatedAt()),
                 () -> assertEquals(comment.getUpdatedAt(), commentsList.get(0).getUpdatedAt()),
                 () -> assertEquals(comment.getParentMessage().getId(), commentsList.get(0).getParentMessage().getId()),
@@ -89,7 +90,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetRootMessageInTree() {
+    void testGetRootMessageInTree() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -113,7 +114,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetRootMessageInTreeWithComments() {
+    void testGetRootMessageInTreeWithComments() throws ServerException {
         final User commentMaker = new User(
                 "commentMaker", "user@gmail.com", "passwd"
         );
@@ -157,7 +158,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetMessageWithMultipleVersions() {
+    void testGetMessageWithMultipleVersions() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
 
@@ -198,7 +199,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testPublishMessage() {
+    void testPublishMessage() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -218,7 +219,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteCommentById() {
+    void testDeleteCommentById() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);

@@ -5,12 +5,15 @@ import net.thumbtack.forums.dao.MessageDao;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
+import net.thumbtack.forums.model.enums.MessageOrder;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 @Component("messageDao")
 public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
@@ -23,13 +26,15 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
-    public MessageItem saveMessageItem(MessageItem item) {
+    public MessageItem saveMessageItem(MessageItem item) throws ServerException {
         LOGGER.debug("Saving new message in tree with ID {}", item.getMessageTree().getId());
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageMapper(sqlSession).saveMessageItem(item);
-                getMessageHistoryMapper(sqlSession).saveAllHistory(item);
+                getMessageHistoryMapper(sqlSession).saveHistory(
+                        item.getId(), item.getHistory().get(0)
+                );
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to save new message in tree {}", item.getMessageTree().getId(), ex);
                 sqlSession.rollback();
@@ -41,21 +46,35 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
-    public MessageItem getMessageById(int id) {
+    public MessageItem getMessageById(int id) throws ServerException {
         LOGGER.debug("Getting message by ID {}", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 return getMessageMapper(sqlSession).getMessageById(id);
             } catch (RuntimeException ex) {
-                LOGGER.debug("Unable to get message by ID {}", id, ex);
+                LOGGER.info("Unable to get message by ID {}", id, ex);
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }
     }
 
     @Override
-    public void publish(MessageItem item) {
+    public List<MessageItem> getComments(int messageId, MessageOrder order) throws ServerException {
+        LOGGER.debug("Getting comments of message with ID {} ordered by {}", messageId, order);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getMessageMapper(sqlSession).getComments(messageId, order);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get comments of message with ID {}", messageId, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public void publish(MessageItem item) throws ServerException {
         LOGGER.debug("Publishing version of message with ID {}", item.getId());
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -71,7 +90,7 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
-    public void deleteMessageById(int id) {
+    public void deleteMessageById(int id) throws ServerException {
         LOGGER.debug("Deleting message by ID {}", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -88,7 +107,7 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
-    public void deleteAll() {
+    public void deleteAll() throws ServerException {
         LOGGER.debug("Deleting all messages from database");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {

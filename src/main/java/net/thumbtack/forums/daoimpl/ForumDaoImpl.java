@@ -25,7 +25,7 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
     }
 
     @Override
-    public Forum save(Forum forum) {
+    public Forum save(Forum forum) throws ServerException {
         LOGGER.debug("Saving new forum in database {}", forum);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -43,7 +43,7 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
     }
 
     @Override
-    public Forum getById(int id) {
+    public Forum getById(int id) throws ServerException {
         LOGGER.debug("Getting forum by ID {} from database", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -57,7 +57,7 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
     }
 
     @Override
-    public List<Forum> getAll() {
+    public List<Forum> getAll() throws ServerException {
         LOGGER.debug("Getting all forums");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -71,7 +71,7 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
     }
 
     @Override
-    public void update(Forum forum) {
+    public void update(Forum forum) throws ServerException {
         LOGGER.debug("Updating forum in database {}", forum);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -88,7 +88,7 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
     }
 
     @Override
-    public void deleteById(int id) {
+    public void deleteById(int id) throws ServerException {
         LOGGER.debug("Deleting forum by ID {} in database", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -105,7 +105,7 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
     }
 
     @Override
-    public void deleteAll() {
+    public void deleteAll() throws ServerException {
         LOGGER.debug("Deleting all forums from database");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {

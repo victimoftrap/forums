@@ -26,7 +26,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public User save(User user) {
+    public User save(User user) throws ServerException {
         LOGGER.debug("Inserting new user in database {}", user);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -44,7 +44,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public UserSession save(User user, UserSession session) {
+    public UserSession save(User user, UserSession session) throws ServerException {
         LOGGER.debug("Saving new user {} and creating session {} for him", user, session);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -63,7 +63,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public User getById(int id) {
+    public User getById(int id) throws ServerException {
         LOGGER.debug("Getting user by ID {} from database", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -78,7 +78,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
     @Override
     // REVU зачем 2 метода. Можно скрипт использовать <if.. AND deleted 
-    public User getById(int id, boolean deleted) {
+    public User getById(int id, boolean deleted) throws ServerException {
         LOGGER.debug("Getting user that can be deactivated by ID {}", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -92,7 +92,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public User getByName(String name) {
+    public User getByName(String name) throws ServerException {
         LOGGER.debug("Getting user by name {} from database", name);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -106,7 +106,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public User getByName(String name, boolean deleted) {
+    public User getByName(String name, boolean deleted) throws ServerException {
         LOGGER.debug("Getting user that can be deactivated by name {}", name);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -120,7 +120,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public List<User> getAll() {
+    public List<User> getAll() throws ServerException {
         LOGGER.debug("Getting all users from database");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -135,7 +135,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
     @Override
     // REVU см. выше
-    public List<User> getAll(boolean withDeleted) {
+    public List<User> getAll(boolean withDeleted) throws ServerException {
         LOGGER.debug(String.format("Getting all %s users from database",
                 withDeleted ? "existing and deleted" : "existing"
         ));
@@ -151,7 +151,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public List<UserSession> getAllWithSessions() {
+    public List<UserSession> getAllWithSessions() throws ServerException {
         LOGGER.debug("Getting all users with they sessions from database");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -165,7 +165,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public void update(User user) {
+    public void update(User user) throws ServerException {
         LOGGER.debug("Updating user in database {}", user);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -182,7 +182,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public void deactivateById(int id) {
+    public void deactivateById(int id) throws ServerException {
         LOGGER.debug("Deactivating user account by ID {} and deleting his session", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -200,7 +200,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
-    public void deleteAll() {
+    public void deleteAll() throws ServerException {
         LOGGER.debug("Deleting all users from database");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {

@@ -2,6 +2,7 @@ package net.thumbtack.forums.service;
 
 import net.thumbtack.forums.dao.DebugDao;
 
+import net.thumbtack.forums.exception.ServerException;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -14,7 +15,7 @@ public class DebugService {
         this.debugDao = debugDao;
     }
 
-    public void clearDatabase() {
+    public void clearDatabase() throws ServerException {
         debugDao.clear();
     }
 }

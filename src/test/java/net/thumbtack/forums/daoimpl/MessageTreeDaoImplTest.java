@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessagePriority;
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,7 +51,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testCreateMessageTree() {
+    void testCreateMessageTree() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
 
@@ -63,7 +63,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testCreateAndGetTreeFromComment() {
+    void testCreateAndGetTreeFromComment() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -88,7 +88,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedNewTreeRootMessage = messageDao.getMessageById(comment.getId());
         assertEquals(comment.getId(), selectedNewTreeRootMessage.getId());
         assertEquals(comment.getOwner(), selectedNewTreeRootMessage.getOwner());
-        assertEquals(comment.getRating(), selectedNewTreeRootMessage.getRating());
+        assertEquals(comment.getAverageRating(), selectedNewTreeRootMessage.getAverageRating());
         assertEquals(comment.getCreatedAt(), selectedNewTreeRootMessage.getCreatedAt());
         assertEquals(comment.getUpdatedAt(), selectedNewTreeRootMessage.getUpdatedAt());
         assertEquals(comment.getChildrenComments(), selectedNewTreeRootMessage.getChildrenComments());
@@ -99,7 +99,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetRootMessageInTreeWithComments() {
+    void testGetRootMessageInTreeWithComments() throws ServerException {
         final User commentMaker = new User(
                 "commentMaker", "user@gmail.com", "passwd"
         );
@@ -143,7 +143,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testChangeTreePriority() {
+    void testChangeTreePriority() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -159,7 +159,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(messageItem.getHistory(), message.getHistory()),
                 () -> assertEquals(messageItem.getUpdatedAt(), message.getUpdatedAt()),
                 () -> assertEquals(messageItem.getCreatedAt(), message.getCreatedAt()),
-                () -> assertEquals(messageItem.getRating(), message.getRating()),
+                () -> assertEquals(messageItem.getAverageRating(), message.getAverageRating()),
                 () -> assertEquals(messageItem.getChildrenComments(), message.getChildrenComments()),
                 () -> assertEquals(messageItem.getMessageTree().getId(), message.getMessageTree().getId()),
                 () -> assertNull(messageItem.getParentMessage()),
@@ -169,7 +169,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteMessageTreeById() {
+    void testDeleteMessageTreeById() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);
@@ -183,7 +183,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteMessageTreeByRootMessageId() {
+    void testDeleteMessageTreeByRootMessageId() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
         messageTreeDao.saveMessageTree(messageTree);

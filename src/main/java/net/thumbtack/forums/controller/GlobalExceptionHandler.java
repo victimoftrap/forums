@@ -2,8 +2,8 @@ package net.thumbtack.forums.controller;
 
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.dto.exception.ExceptionDtoResponse;
-import net.thumbtack.forums.dto.exception.ExceptionListDtoResponse;
+import net.thumbtack.forums.dto.responses.exception.ExceptionDtoResponse;
+import net.thumbtack.forums.dto.responses.exception.ExceptionListDtoResponse;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;

@@ -1,10 +1,12 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.service.UserService;
-import net.thumbtack.forums.dto.EmptyDtoResponse;
-import net.thumbtack.forums.dto.user.*;
-import net.thumbtack.forums.dto.exception.ExceptionDtoResponse;
-import net.thumbtack.forums.dto.exception.ExceptionListDtoResponse;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.user.*;
+import net.thumbtack.forums.dto.responses.exception.ExceptionDtoResponse;
+import net.thumbtack.forums.dto.responses.exception.ExceptionListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;

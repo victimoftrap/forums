@@ -24,7 +24,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     }
 
     @Override
-    public void upsertRating(MessageItem message, User user, int rating) {
+    public void upsertRating(MessageItem message, User user, int rating) throws ServerException {
         LOGGER.debug("Inserting or updating rating for message {} from user {}",
                 message.getId(), user.getId()
         );
@@ -42,7 +42,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     }
 
     @Override
-    public void rate(MessageItem message, User user, int rating) {
+    public void rate(MessageItem message, User user, int rating) throws ServerException {
         LOGGER.debug("Saving new rate for message {} from user {}", message.getId(), user.getId());
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -58,7 +58,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     }
 
     @Override
-    public void changeRating(MessageItem message, User user, int rating) {
+    public void changeRating(MessageItem message, User user, int rating) throws ServerException {
         LOGGER.debug("Changing rating for message {} from user {}", message.getId(), user.getId());
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -74,7 +74,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     }
 
     @Override
-    public void deleteRate(MessageItem message, User user) {
+    public void deleteRate(MessageItem message, User user) throws ServerException {
         LOGGER.debug("Deleting rating for message {} from user {}", message.getId(), user.getId());
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -90,7 +90,7 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     }
 
     @Override
-    public double getMessageRating(MessageItem item) {
+    public double getMessageRating(MessageItem item) throws ServerException {
         LOGGER.debug("Getting rating of message with ID {}", item.getId());
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {

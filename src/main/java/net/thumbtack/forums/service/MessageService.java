@@ -1,11 +1,14 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.converter.MessageConverter;
 import net.thumbtack.forums.dao.*;
-import net.thumbtack.forums.dto.message.*;
-import net.thumbtack.forums.dto.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.message.*;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.converter.TagConverter;
+import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
+import net.thumbtack.forums.model.enums.MessageOrder;
 import net.thumbtack.forums.model.enums.MessagePriority;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.exception.ErrorCode;
@@ -16,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -43,9 +47,7 @@ public class MessageService {
         this.ratingDao = ratingDao;
     }
 
-    // REVU просто  getUserBySession. То. что он должен будет выбросить исключение
-    // можно сделать понятным без труда, если сделать ServerException checked
-    private User getUserBySessionOrThrowException(final String token) {
+    private User getUserBySession(final String token) throws ServerException {
         final User user = sessionDao.getUserByToken(token);
         if (user == null) {
             throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
@@ -53,8 +55,7 @@ public class MessageService {
         return user;
     }
 
-    // REVU то же
-    private Forum getForumByIdOrThrowException(final int id) {
+    private Forum getForumById(final int id) throws ServerException {
         final Forum forum = forumDao.getById(id);
         if (forum == null) {
             throw new ServerException(ErrorCode.FORUM_NOT_FOUND);
@@ -63,22 +64,14 @@ public class MessageService {
     }
 
     private MessagePriority getMessagePriority(final MessagePriority priority) {
-    	// return priority == null ? ...
-        if (priority == null) {
-            return MessagePriority.NORMAL;
-        }
-        return priority;
+        return priority == null ? MessagePriority.NORMAL : priority;
     }
 
     private MessageState getMessageStateByForumType(final ForumType type) {
-    	// REVU return type == ForumType.UNMODERATED ? ...
-        if (type == ForumType.UNMODERATED) {
-            return MessageState.PUBLISHED;
-        }
-        return MessageState.UNPUBLISHED;
+        return type == ForumType.UNMODERATED ? MessageState.PUBLISHED : MessageState.UNPUBLISHED;
     }
 
-    private MessageItem getMessageOrThrowException(final int messageId) {
+    private MessageItem getMessageById(final int messageId) throws ServerException {
         final MessageItem item = messageDao.getMessageById(messageId);
         if (item == null) {
             throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
@@ -86,28 +79,27 @@ public class MessageService {
         return item;
     }
 
-    // REVU checkIsUserMessageCreator
-    // REVU private
-    void checkAreUserMessageOwner(final MessageItem item, final User user) {
+    private void checkIsUserMessageCreator(final MessageItem item, final User user) throws ServerException {
         if (!item.getOwner().equals(user)) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
     }
 
-    // REVU checkUserBanned
-    void checkAreUserBanned(final User user) {
+    private void checkUserBanned(final User user) throws ServerException {
         if (user.getBannedUntil() != null) {
             throw new ServerException(ErrorCode.USER_BANNED);
         }
     }
 
-    public MessageDtoResponse addMessage(final String token,
-                                         final int forumId,
-                                         final CreateMessageDtoRequest request) {
-        final User creator = getUserBySessionOrThrowException(token);
-        checkAreUserBanned(creator);
+    public MessageDtoResponse addMessage(
+            final String token,
+            final int forumId,
+            final CreateMessageDtoRequest request
+    ) throws ServerException {
+        final User creator = getUserBySession(token);
+        checkUserBanned(creator);
 
-        final Forum forum = getForumByIdOrThrowException(forumId);
+        final Forum forum = getForumById(forumId);
         final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageState state = getMessageStateByForumType(forum.getType());
         final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
@@ -119,7 +111,8 @@ public class MessageService {
                 creator, Collections.singletonList(historyItem), createdAt, createdAt
         );
         final MessageTree tree = new MessageTree(
-                forum, request.getSubject(), messageItem, priority,
+                forum, request.getSubject(), messageItem,
+                priority, createdAt,
                 TagConverter.tagNamesToTagList(request.getTags())
         );
         messageItem.setMessageTree(tree);
@@ -128,13 +121,15 @@ public class MessageService {
         return new MessageDtoResponse(messageItem.getId(), state);
     }
 
-    public MessageDtoResponse addComment(final String token,
-                                         final int parentId,
-                                         final CreateCommentDtoRequest request) {
-        final User creator = getUserBySessionOrThrowException(token);
-        checkAreUserBanned(creator);
+    public MessageDtoResponse addComment(
+            final String token,
+            final int parentId,
+            final CreateCommentDtoRequest request
+    ) throws ServerException {
+        final User creator = getUserBySession(token);
+        checkUserBanned(creator);
 
-        final MessageItem parentMessage = getMessageOrThrowException(parentId);
+        final MessageItem parentMessage = getMessageById(parentId);
         if (parentMessage.getHistory().get(0).getState() == MessageState.UNPUBLISHED) {
             throw new ServerException(ErrorCode.MESSAGE_NOT_PUBLISHED);
         }
@@ -154,10 +149,13 @@ public class MessageService {
         return new MessageDtoResponse(messageItem.getId(), state);
     }
 
-    public EmptyDtoResponse deleteMessage(final String token, final int messageId) {
-        final User requesterUser = getUserBySessionOrThrowException(token);
-        final MessageItem deletingMessage = getMessageOrThrowException(messageId);
-        checkAreUserMessageOwner(deletingMessage, requesterUser);
+    public EmptyDtoResponse deleteMessage(
+            final String token,
+            final int messageId
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageItem deletingMessage = getMessageById(messageId);
+        checkIsUserMessageCreator(deletingMessage, requesterUser);
         // TODO check are user banned permanently
 
         if (!deletingMessage.getChildrenComments().isEmpty()) {
@@ -172,14 +170,15 @@ public class MessageService {
         return new EmptyDtoResponse();
     }
 
-    public EditMessageOrCommentDtoResponse editMessage(final String token,
-                                                       final int messageId,
-                                                       final EditMessageOrCommentDtoRequest request) {
-        final User requesterUser = getUserBySessionOrThrowException(token);
-
-        final MessageItem editingMessage = getMessageOrThrowException(messageId);
-        checkAreUserMessageOwner(editingMessage, requesterUser);
-        checkAreUserBanned(requesterUser);
+    public EditMessageOrCommentDtoResponse editMessage(
+            final String token,
+            final int messageId,
+            final EditMessageOrCommentDtoRequest request
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageItem editingMessage = getMessageById(messageId);
+        checkIsUserMessageCreator(editingMessage, requesterUser);
+        checkUserBanned(requesterUser);
 
         final Forum forum = editingMessage.getMessageTree().getForum();
         final ForumType type = forum.getType();
@@ -188,6 +187,7 @@ public class MessageService {
 
         MessageState messageState = MessageState.UNPUBLISHED;
         if (latestHistory.getState() == MessageState.PUBLISHED) {
+            final List<HistoryItem> newHistory = new ArrayList<>(editingMessage.getHistory());
             if (type == ForumType.UNMODERATED || requesterUser.equals(forumOwner)) {
                 messageState = MessageState.PUBLISHED;
             }
@@ -197,7 +197,8 @@ public class MessageService {
             final HistoryItem newVersion = new HistoryItem(
                     request.getBody(), messageState, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
             );
-            editingMessage.getHistory().add(0, newVersion);
+            newHistory.add(0, newVersion);
+            editingMessage.setHistory(newHistory);
             messageHistoryDao.saveNewVersion(editingMessage);
         } else {
             messageState = MessageState.UNPUBLISHED;
@@ -206,13 +207,15 @@ public class MessageService {
         return new EditMessageOrCommentDtoResponse(messageState);
     }
 
-    public EmptyDtoResponse changeMessagePriority(final String token,
-                                                  final int messageId,
-                                                  final ChangeMessagePriorityDtoRequest request) {
-        final User requesterUser = getUserBySessionOrThrowException(token);
-        final MessageItem editingMessage = getMessageOrThrowException(messageId);
-        checkAreUserMessageOwner(editingMessage, requesterUser);
-        checkAreUserBanned(requesterUser);
+    public EmptyDtoResponse changeMessagePriority(
+            final String token,
+            final int messageId,
+            final ChangeMessagePriorityDtoRequest request
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageItem editingMessage = getMessageById(messageId);
+        checkIsUserMessageCreator(editingMessage, requesterUser);
+        checkUserBanned(requesterUser);
 
         final MessageTree tree = editingMessage.getMessageTree();
         tree.setPriority(request.getPriority());
@@ -220,29 +223,38 @@ public class MessageService {
         return new EmptyDtoResponse();
     }
 
-    public MadeBranchFromCommentDtoResponse newBranchFromComment(final String token,
-                                                                 final int messageId,
-                                                                 final MadeBranchFromCommentDtoRequest request) {
-        final User requesterUser = getUserBySessionOrThrowException(token);
-        final MessageItem newRootMessage = getMessageOrThrowException(messageId);
-        checkAreUserMessageOwner(newRootMessage, requesterUser);
-        checkAreUserBanned(requesterUser);
+    public MadeBranchFromCommentDtoResponse newBranchFromComment(
+            final String token,
+            final int messageId,
+            final MadeBranchFromCommentDtoRequest request
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageItem newRootMessage = getMessageById(messageId);
+        checkUserBanned(requesterUser);
 
         final MessageTree oldTree = newRootMessage.getMessageTree();
+        final Forum forum = oldTree.getForum();
+        if (!forum.getOwner().equals(requesterUser)) {
+            throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
+        }
+
         final MessageTree newTree = new MessageTree(
                 oldTree.getForum(), request.getSubject(), newRootMessage,
-                request.getPriority(), TagConverter.tagNamesToTagList(request.getTags())
+                request.getPriority(), LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                TagConverter.tagNamesToTagList(request.getTags())
         );
 
         messageTreeDao.newBranch(newTree);
-        return new MadeBranchFromCommentDtoResponse(newRootMessage.getId());
+        return new MadeBranchFromCommentDtoResponse(newTree.getId());
     }
 
-    public EmptyDtoResponse publish(final String token,
-                                    final int messageId,
-                                    final PublicationDecisionDtoRequest request) {
-        final User requesterUser = getUserBySessionOrThrowException(token);
-        final MessageItem publishingMessage = getMessageOrThrowException(messageId);
+    public EmptyDtoResponse publish(
+            final String token,
+            final int messageId,
+            final PublicationDecisionDtoRequest request
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageItem publishingMessage = getMessageById(messageId);
 
         final MessageTree tree = publishingMessage.getMessageTree();
         final User forumOwner = tree.getForum().getOwner();
@@ -273,11 +285,13 @@ public class MessageService {
         return new EmptyDtoResponse();
     }
 
-    public EmptyDtoResponse rate(final String token,
-                                 final int messageId,
-                                 final RateMessageDtoRequest request) {
-        final User requesterUser = getUserBySessionOrThrowException(token);
-        final MessageItem ratedMessage = getMessageOrThrowException(messageId);
+    public EmptyDtoResponse rate(
+            final String token,
+            final int messageId,
+            final RateMessageDtoRequest request
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageItem ratedMessage = getMessageById(messageId);
         // TODO check are user banned permanently
 
         if (request.getValue() == null) {
@@ -286,5 +300,43 @@ public class MessageService {
             ratingDao.upsertRating(ratedMessage, requesterUser, request.getValue());
         }
         return new EmptyDtoResponse();
+    }
+
+    public MessageInfoDtoResponse getMessage(
+            final String token,
+            final int messageId,
+            final boolean allVersions,
+            final boolean noComments,
+            final boolean unpublished,
+            final String order
+    ) throws ServerException {
+        final User requesterUser = getUserBySession(token);
+        final MessageTree messageTree = messageTreeDao.getMessageTreeById(messageId);
+        if (messageTree == null) {
+            throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
+        }
+
+        final MessageItem item = messageTree.getRootMessage();
+        final Forum forum = messageTree.getForum();
+        final MessageOrder messageOrder = MessageOrder.valueOf(order);
+
+        boolean usedUnpublished = false;
+        if (requesterUser.equals(forum.getOwner()) && forum.getType() == ForumType.MODERATED) {
+            usedUnpublished = unpublished;
+        }
+
+        List<MessageItem> comments;
+        if (noComments) {
+            comments = new ArrayList<>();
+        } else {
+            comments = messageDao.getComments(messageId, messageOrder);
+        }
+
+        final List<HistoryItem> history = messageHistoryDao.getMessageHistory(
+                messageId, allVersions, usedUnpublished
+        );
+        item.setChildrenComments(comments);
+        item.setHistory(history);
+        return MessageConverter.messageToMessageInfoDto(messageTree);
     }
 }

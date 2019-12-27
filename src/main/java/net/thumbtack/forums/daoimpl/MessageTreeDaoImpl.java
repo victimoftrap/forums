@@ -1,7 +1,9 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.MessageTreeDao;
+import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.model.MessageTree;
+import net.thumbtack.forums.model.enums.MessageOrder;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
@@ -11,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Component("messageTreeDao")
 public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeDao {
@@ -23,16 +28,19 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     }
 
     @Override
-    public MessageTree saveMessageTree(MessageTree tree) {
+    public MessageTree saveMessageTree(MessageTree tree) throws ServerException {
         LOGGER.debug("Creating new message tree with subject {} in forum {}",
                 tree.getSubject(), tree.getForum().getId()
         );
 
         try(SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
+                final MessageItem rootMessage = tree.getRootMessage();
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
-                getMessageMapper(sqlSession).saveMessageItem(tree.getRootMessage());
-                getMessageHistoryMapper(sqlSession).saveAllHistory(tree.getRootMessage());
+                getMessageMapper(sqlSession).saveMessageItem(rootMessage);
+                getMessageHistoryMapper(sqlSession).saveHistory(
+                        rootMessage.getId(), rootMessage.getHistory().get(0)
+                );
                 if (!tree.getTags().isEmpty()) {
                     getTagMapper(sqlSession).saveMessageForAllTags(tree);
                 }
@@ -47,7 +55,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     }
 
     @Override
-    public MessageTree newBranch(MessageTree tree) {
+    public MessageTree newBranch(MessageTree tree) throws ServerException {
         LOGGER.debug("Creating new tree from message with ID {} in forum {}",
                 tree.getRootMessage().getId(), tree.getForum().getId()
         );
@@ -70,7 +78,65 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     }
 
     @Override
-    public void changeBranchPriority(MessageTree tree) {
+    public MessageTree getMessageTreeById(int id) throws ServerException {
+        LOGGER.debug("Getting root message with ID {}", id);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getMessageTreeMapper(sqlSession).getTreeById(id);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get root message with ID {}", id, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public MessageTree getTreeWithOptions(
+            int id,
+            MessageOrder order,
+            boolean noComments,
+            boolean allVersions,
+            boolean unpublished
+    ) throws ServerException {
+        LOGGER.debug("Getting message tree by ID {} with options: all versions {}, unpublished {}, order {}",
+                id, allVersions, unpublished, order.name()
+        );
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                final MessageTree tree = getMessageTreeMapper(sqlSession)
+                        .getTreeWithOptions(id, order, allVersions, unpublished);
+                if (noComments) {
+                    tree.getRootMessage().setChildrenComments(new ArrayList<>());
+                }
+                return tree;
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get tree with ID {}", id, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public List<MessageTree> getTreesByForum(int forumId, MessageOrder order, int offset, int limit)
+            throws ServerException {
+        LOGGER.debug("Getting {} trees started from {} of forum with ID {} ordered {}",
+                limit, offset, forumId, order
+        );
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getMessageTreeMapper(sqlSession).getTreeList(forumId, order, offset, limit);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get trees of forum {}", forumId, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public void changeBranchPriority(MessageTree tree) throws ServerException {
         LOGGER.debug("Changing priority of message tree with ID {} in tree {}",
                 tree.getRootMessage().getId(), tree.getId()
         );
@@ -88,7 +154,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     }
 
     @Override
-    public void deleteTreeById(int id) {
+    public void deleteTreeById(int id) throws ServerException {
         LOGGER.debug("Deleting message tree by ID {}", id);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
@@ -105,7 +171,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     }
 
     @Override
-    public void deleteTreeByRootMessageId(int messageId) {
+    public void deleteTreeByRootMessageId(int messageId) throws ServerException {
         LOGGER.debug("Deleting message tree with root message ID {}", messageId);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {

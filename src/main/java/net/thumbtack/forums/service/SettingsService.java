@@ -1,9 +1,10 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.dao.SessionDao;
-import net.thumbtack.forums.dto.settings.SettingsDtoResponse;
+import net.thumbtack.forums.dto.responses.settings.SettingsDtoResponse;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ public class SettingsService {
         this.properties = properties;
     }
 
-    public SettingsDtoResponse getSettings(final String sessionToken) {
+    public SettingsDtoResponse getSettings(final String sessionToken) throws ServerException {
         final User user = sessionDao.getUserByToken(sessionToken);
         if (user == null) {
             return new SettingsDtoResponse(null, null,

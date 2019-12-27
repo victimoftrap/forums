@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.enums.ForumType;
@@ -45,7 +46,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testSaveNewMessageVersion() {
+    void testSaveNewMessageVersion() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
 
@@ -71,7 +72,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testEditLatestUnpublishedVersion() {
+    void testEditLatestUnpublishedVersion() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
 
@@ -101,7 +102,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testUnpublishLatestVersion() {
+    void testUnpublishLatestVersion() throws ServerException {
         userDao.save(creator);
         forumDao.save(forum);
 

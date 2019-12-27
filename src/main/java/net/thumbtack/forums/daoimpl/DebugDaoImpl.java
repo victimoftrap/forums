@@ -22,7 +22,7 @@ public class DebugDaoImpl extends MapperCreatorDao implements DebugDao {
     }
 
     @Override
-    public void clear() {
+    public void clear() throws ServerException {
         LOGGER.debug("Clearing database");
 
         try (SqlSession session = sqlSessionFactory.openSession()) {

@@ -1,7 +1,6 @@
 package net.thumbtack.forums.mappers;
 
 import net.thumbtack.forums.model.HistoryItem;
-import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.model.enums.MessageState;
 
 import org.apache.ibatis.annotations.*;
@@ -16,21 +15,6 @@ public interface MessageHistoryMapper {
     })
     void saveHistory(@Param("id") int messageId, @Param("hist") HistoryItem history);
 
-    @Insert({"<script>",
-            "INSERT INTO message_history",
-            "(message_id, body, state, created_at)",
-            "VALUES",
-            "<foreach item='hist' collection='item.history' separator=','>",
-            "(#{item.id}, #{hist.body}, #{hist.state.name}, #{hist.createdAt})",
-            "</foreach>",
-            "</script>"
-    })
-    // REVU необходимость такого метода мне не очевидна
-    // копирования истории у нас нет
-    // а в остальном элементы в историю добавляются по одному
-    // зачем же вставлять весь список ?
-    void saveAllHistory(@Param("item") MessageItem item);
-
     @Select({"SELECT body, state, created_at",
             "FROM message_history WHERE message_id = #{id}",
             "ORDER BY created_at DESC"
@@ -43,6 +27,23 @@ public interface MessageHistoryMapper {
             }
     )
     List<HistoryItem> getMessageHistory(@Param("id") int messageId);
+
+    @Select({"<script>",
+            "SELECT body, state, created_at FROM message_history",
+            "WHERE message_id = #{id}",
+            "<if test='unpublished == false'>",
+            "AND state == 'PUBLISHED'",
+            "</if>",
+            "ORDER BY created_at DESC",
+            "<if test='allVersions == false'>",
+            "LIMIT 1",
+            "</if>",
+            "</script>"
+    })
+    @ResultMap("historyResult")
+    List<HistoryItem> getMessageHistoryByOptions(@Param("id") int messageId,
+                                                 @Param("allVersions") boolean allVersions,
+                                                 @Param("unpublished") boolean unpublished);
 
     @Select({"SELECT body, state, created_at",
             "FROM message_history",

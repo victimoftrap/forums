@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.model.enums.UserRole;
@@ -14,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SessionDaoImplTest extends DaoTestEnvironment {
     @Test
-    void testSaveAndGetSession() {
+    void testSaveAndGetSession() throws ServerException {
         final User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
@@ -32,7 +33,7 @@ class SessionDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testCreateSession_sessionForUserAlreadyExists_sessionTokenChanged() {
+    void testCreateSession_sessionForUserAlreadyExists_sessionTokenChanged() throws ServerException {
         final User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
@@ -59,7 +60,7 @@ class SessionDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetUserBySessionToken() {
+    void testGetUserBySessionToken() throws ServerException {
         final User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
@@ -77,7 +78,7 @@ class SessionDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteSession() {
+    void testDeleteSession() throws ServerException {
         final User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
@@ -95,7 +96,7 @@ class SessionDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteAllSessions() {
+    void testDeleteAllSessions() throws ServerException {
         final User user1 = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",

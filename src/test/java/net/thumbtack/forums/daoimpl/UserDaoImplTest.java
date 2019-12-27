@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.model.enums.UserRole;
@@ -15,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserDaoImplTest extends DaoTestEnvironment {
     @Test
-    void testSaveUser() {
+    void testSaveUser() throws ServerException {
         final User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
@@ -32,7 +33,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testSaveUserAndHisSession() {
+    void testSaveUserAndHisSession() throws ServerException {
         User user = new User(
                 UserRole.USER,
                 "shermental", "shermental@gmail.com", "passwd",
@@ -59,13 +60,13 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 false
         );
 
-        assertThrows(RuntimeException.class,
+        assertThrows(ServerException.class,
                 () -> userDao.save(user)
         );
     }
 
     @Test
-    void testGetUserById() {
+    void testGetUserById() throws ServerException {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -79,13 +80,13 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetUserById_userNotExists_shouldNotFindUser() {
+    void testGetUserById_userNotExists_shouldNotFindUser() throws ServerException {
         final User selectedUser = userDao.getById(1256);
         assertNull(selectedUser);
     }
 
     @Test
-    void testGetUserThatMayBeDeletedById_userDeleted_shouldFindUser() {
+    void testGetUserThatMayBeDeletedById_userDeleted_shouldFindUser() throws ServerException {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -103,7 +104,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetUserById_userDeleted_shouldNotFindUser() {
+    void testGetUserById_userDeleted_shouldNotFindUser() throws ServerException {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -118,7 +119,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetUserByName() {
+    void testGetUserByName() throws ServerException {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -132,13 +133,13 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetUserByName_userNotExists_shouldNotFindUser() {
+    void testGetUserByName_userNotExists_shouldNotFindUser() throws ServerException {
         final User selectedUser = userDao.getByName("catchMeIfYouCan");
         assertNull(selectedUser);
     }
 
     @Test
-    void testGetUserThatMayBeDeletedByName_userDeleted_shouldFindUser() {
+    void testGetUserThatMayBeDeletedByName_userDeleted_shouldFindUser() throws ServerException {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -156,7 +157,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetUserByName_userDeleted_shouldNotFindUser() {
+    void testGetUserByName_userDeleted_shouldNotFindUser() throws ServerException {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",
@@ -171,7 +172,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetAllUsers() {
+    void testGetAllUsers() throws ServerException {
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -201,7 +202,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetAllUsers_someUsersDeleted_shouldReturnOnlyEnabledUsers() {
+    void testGetAllUsers_someUsersDeleted_shouldReturnOnlyEnabledUsers() throws ServerException {
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -233,7 +234,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetAllUsers_someUsersDeleted_shouldReturnAllUsers() {
+    void testGetAllUsers_someUsersDeleted_shouldReturnAllUsers() throws ServerException {
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -305,7 +306,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetAllUsers_noUsersExists_shouldReturnEmptyList() {
+    void testGetAllUsers_noUsersExists_shouldReturnEmptyList() throws ServerException {
         List<User> selectedUsers = userDao.getAll();
         assertEquals(Collections.EMPTY_LIST, selectedUsers);
 
@@ -317,7 +318,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetAllUsersWithSessions() {
+    void testGetAllUsersWithSessions() throws ServerException {
         User user1 = new User(
                 UserRole.SUPERUSER, "user0",
                 "user0@gmail.com", "user0",
@@ -354,7 +355,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testUpdateUser() {
+    void testUpdateUser() throws ServerException {
         User user = new User(
                 UserRole.USER,
                 "House", "house@Princeton-Plainsboro.com", "passwd",
@@ -378,7 +379,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testDeleteUserById() {
+    void testDeleteUserById() throws ServerException {
         User user = new User(
                 UserRole.USER, "shermental",
                 "shermental@gmail.com", "passwd",

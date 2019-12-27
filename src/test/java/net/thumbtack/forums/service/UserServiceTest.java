@@ -1,6 +1,9 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.dto.user.*;
+import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.responses.user.*;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.UserSession;
@@ -41,7 +44,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser() {
+    void testRegisterUser() throws ServerException {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell", "ahoi@jolybell.com", "password123"
         );
@@ -85,7 +88,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser_userWithRequestedNameExists_shouldThrowException() {
+    void testRegisterUser_userWithRequestedNameExists_shouldThrowException() throws ServerException {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
                 "ahoi@jolybell.com",
@@ -110,7 +113,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser_onGetUserDatabaseError_shouldThrowException() {
+    void testRegisterUser_onGetUserDatabaseError_shouldThrowException() throws ServerException {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
                 "ahoi@jolybell.com",
@@ -133,7 +136,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testRegisterUser_onSaveUserDatabaseError_shouldThrowException() {
+    void testRegisterUser_onSaveUserDatabaseError_shouldThrowException() throws ServerException {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell",
                 "ahoi@jolybell.com",
@@ -159,7 +162,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testDeleteUser() {
+    void testDeleteUser() throws ServerException {
         final String token = "token";
         final User user = new User(456, UserRole.USER,
                 "user", "user@forums.ca", "userpass456",
@@ -182,7 +185,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testDeleteUser_userNotFoundByToken_shouldThrowException() {
+    void testDeleteUser_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String token = "token";
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(null);
@@ -201,7 +204,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser() {
+    void testLoginUser() throws ServerException {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
         final User user = new User(request.getName(), "white@thirdman.com", request.getPassword());
 
@@ -224,7 +227,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_loginWithCaseInsensitiveName_shouldSuccessfullyLogin() {
+    void testLoginUser_loginWithCaseInsensitiveName_shouldSuccessfullyLogin() throws ServerException {
         final LoginUserDtoRequest request = new LoginUserDtoRequest(
                 "kAElThaS", "animation_scientist"
         );
@@ -249,7 +252,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_userNotFound_shouldThrowException() {
+    void testLoginUser_userNotFound_shouldThrowException() throws ServerException {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
         when(userDao.getByName(anyString()))
                 .thenReturn(null);
@@ -271,7 +274,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLoginUser_requestedPasswordNotMatches_shouldThrowException() {
+    void testLoginUser_requestedPasswordNotMatches_shouldThrowException() throws ServerException {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "correct_password");
         final User user = new User(request.getName(), "white@thirdman.com", "INCORRECT_password");
 
@@ -289,7 +292,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLogoutUser() {
+    void testLogoutUser() throws ServerException {
         final String sessionToken = "token";
         final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
 
@@ -307,7 +310,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLogoutUser_userNotFoundByToken_shouldThrowException() {
+    void testLogoutUser_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String sessionToken = "token";
         when(sessionDao.getUserByToken(anyString())).thenReturn(null);
 
@@ -323,7 +326,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLogoutUser_onGetSessionDatabaseError_shouldThrowException() {
+    void testLogoutUser_onGetSessionDatabaseError_shouldThrowException() throws ServerException {
         final String token = "token";
         when(sessionDao.getUserByToken(anyString()))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
@@ -340,7 +343,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testLogoutUser_onDeleteSessionDatabaseError_shouldThrowException() {
+    void testLogoutUser_onDeleteSessionDatabaseError_shouldThrowException() throws ServerException {
         final String token = "token";
         final User user = new User(
                 "alvvays", "aloha@alvvays.ca", "password123");
@@ -360,7 +363,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdatePassword() {
+    void testUpdatePassword() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
@@ -389,7 +392,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdatePassword_userNotFoundByToken_shouldThrowException() {
+    void testUpdatePassword_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String sessionToken = "token";
         when(sessionDao.getUserByToken(anyString())).thenReturn(null);
 
@@ -404,7 +407,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdatePassword_passwordTooShort_shouldThrowException() {
+    void testUpdatePassword_passwordTooShort_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
@@ -424,7 +427,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testMadeSuperuser() {
+    void testMadeSuperuser() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
@@ -460,7 +463,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testMadeSuperuser_userWasBanned_shouldUnbanUserAndMadeSuperuser() {
+    void testMadeSuperuser_userWasBanned_shouldUnbanUserAndMadeSuperuser() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
@@ -499,7 +502,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testMadeSuperuser_userNotFoundByToken_shouldThrowException() {
+    void testMadeSuperuser_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         when(sessionDao.getUserByToken(eq(sessionToken)))
                 .thenReturn(null);
@@ -519,7 +522,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testMadeSuperuser_requestFromRegularUser_shouldThrowException() {
+    void testMadeSuperuser_requestFromRegularUser_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User regularUser = new User(123, UserRole.USER,
                 "regular_user", "regular@forums.ca", "regularpass123",
@@ -543,7 +546,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testMadeSuperuser_userNotFoundOrDeletedById_shouldThrowException() {
+    void testMadeSuperuser_userNotFoundOrDeletedById_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
@@ -570,7 +573,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser() {
+    void testBanUser() throws ServerException {
         final String token = "token";
         final int banTime = 7;
         final User superuser = new User(123, UserRole.SUPERUSER,
@@ -606,7 +609,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser_restrictedUserAreSuperuser_shouldThrowException() {
+    void testBanUser_restrictedUserAreSuperuser_shouldThrowException() throws ServerException {
         final String token = "token";
         final int banTime = 7;
         final User superuser = new User(123, UserRole.SUPERUSER,
@@ -635,7 +638,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser_userWasBannedTooMuch_shouldBanPermanently() {
+    void testBanUser_userWasBannedTooMuch_shouldBanPermanently() throws ServerException {
         final String token = "token";
         final int banTime = 7;
         final int maxBanCount = 5;
@@ -674,7 +677,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser_userNotFoundByToken_shouldThrowException() {
+    void testBanUser_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         when(sessionDao.getUserByToken(eq(sessionToken)))
                 .thenReturn(null);
@@ -692,7 +695,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser_requestFromRegularUser_shouldThrowException() {
+    void testBanUser_requestFromRegularUser_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User regularUser = new User(123, UserRole.USER,
                 "regular_user", "regular@forums.ca", "regularpass123",
@@ -717,7 +720,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser_userNotFoundOrDeletedById_shouldThrowException() {
+    void testBanUser_userNotFoundOrDeletedById_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
@@ -745,7 +748,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testGetAllUsers_requestFromRegularUser_shouldReturnNotAllFields() {
+    void testGetAllUsers_requestFromRegularUser_shouldReturnNotAllFields() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User user0 = new User("user0", "user0@gamil.com", "user_passwd_0");
         final User user1 = new User("user1", "user1@gamil.com", "user_passwd_1");
@@ -804,7 +807,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testGetAllUsers_requestFromSuperuser_shouldReturnAllFields() {
+    void testGetAllUsers_requestFromSuperuser_shouldReturnAllFields() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User user0 = new User("user0", "user0@gamil.com", "user_passwd_0");
         final User user1 = new User("user1", "user1@gamil.com", "user_passwd_1");

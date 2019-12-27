@@ -1,10 +1,11 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.dto.EmptyDtoResponse;
-import net.thumbtack.forums.dto.user.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.user.UpdatePasswordDtoRequest;
-import net.thumbtack.forums.dto.user.UserDetailsListDtoResponse;
-import net.thumbtack.forums.dto.user.UserDtoResponse;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
+import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
+import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.service.UserService;
 
 import org.springframework.http.MediaType;
@@ -33,7 +34,7 @@ public class UserController {
     )
     public ResponseEntity<UserDtoResponse> registerUser(
             @RequestBody @Valid RegisterUserDtoRequest request,
-            HttpServletResponse response) {
+            HttpServletResponse response) throws ServerException {
         final UserDtoResponse userResponse = userService.registerUser(request);
 
         final Cookie sessionCookie = new Cookie(COOKIE_NAME, userResponse.getSessionToken());
@@ -46,7 +47,8 @@ public class UserController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<EmptyDtoResponse> deleteUser(@CookieValue(value = COOKIE_NAME) String token) {
+    public ResponseEntity<EmptyDtoResponse> deleteUser(
+            @CookieValue(value = COOKIE_NAME) String token) throws ServerException {
         return ResponseEntity.ok(userService.deleteUser(token));
     }
 
@@ -57,7 +59,7 @@ public class UserController {
     public ResponseEntity<UserDtoResponse> updatePassword(
             @CookieValue(value = COOKIE_NAME) String token,
             @RequestBody @Valid UpdatePasswordDtoRequest request,
-            HttpServletResponse response) {
+            HttpServletResponse response) throws ServerException {
         final Cookie sessionCookie = new Cookie(COOKIE_NAME, token);
         sessionCookie.setHttpOnly(true);
         response.addCookie(sessionCookie);
@@ -71,7 +73,7 @@ public class UserController {
     )
     public ResponseEntity<EmptyDtoResponse> madeSuperuser(
             @CookieValue(value = COOKIE_NAME) String token,
-            @PathVariable("user") int userId) {
+            @PathVariable("user") int userId) throws ServerException {
         return ResponseEntity.ok(userService.madeSuperuser(token, userId));
     }
 
@@ -79,7 +81,8 @@ public class UserController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<UserDetailsListDtoResponse> getUsers(@CookieValue(value = COOKIE_NAME) String token) {
+    public ResponseEntity<UserDetailsListDtoResponse> getUsers(
+            @CookieValue(value = COOKIE_NAME) String token) throws ServerException {
         return ResponseEntity.ok(userService.getUsers(token));
     }
 
@@ -90,7 +93,7 @@ public class UserController {
     )
     public ResponseEntity<EmptyDtoResponse> banUser(
             @CookieValue(value = COOKIE_NAME) String token,
-            @PathVariable("user") int userId) {
+            @PathVariable("user") int userId) throws ServerException {
         return ResponseEntity.ok(userService.banUser(token, userId));
     }
 }

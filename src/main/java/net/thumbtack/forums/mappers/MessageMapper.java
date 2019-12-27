@@ -3,6 +3,7 @@ package net.thumbtack.forums.mappers;
 import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.enums.MessageOrder;
 
 import org.apache.ibatis.annotations.*;
 import org.apache.ibatis.mapping.FetchType;
@@ -57,9 +58,15 @@ public interface MessageMapper {
                     ),
                     @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
                     @Result(property = "updatedAt", column = "updated_at", javaType = LocalDateTime.class),
-                    @Result(property = "rating", column = "id", javaType = double.class,
+                    @Result(property = "averageRating", column = "id", javaType = double.class,
                             one = @One(
                                     select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRating",
+                                    fetchType = FetchType.LAZY
+                            )
+                    ),
+                    @Result(property = "ratings", column = "id", javaType = List.class,
+                            many = @Many(
+                                    select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRatingsList",
                                     fetchType = FetchType.LAZY
                             )
                     )
@@ -82,10 +89,18 @@ public interface MessageMapper {
     void update(MessageItem item);
 
     @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at",
-            "FROM messages WHERE parent_message = #{id}"
+            "FROM messages WHERE parent_message = #{id}",
+            "ORDER BY created_at DESC"
     })
     @ResultMap("messageResult")
     List<MessageItem> getChildrenMessages(int id);
+
+    @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at",
+            "FROM messages WHERE parent_message = #{id}",
+            "ORDER BY created_at #{order.name}"
+    })
+    List<MessageItem> getComments(@Param("id") int messageId,
+                                  @Param("order") MessageOrder order);
 
     @Update({"UPDATE messages",
             "SET tree_id = COALESCE(#{messageTree.id}, tree_id),",

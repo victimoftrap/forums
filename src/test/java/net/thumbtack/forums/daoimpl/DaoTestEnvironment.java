@@ -1,6 +1,7 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.*;
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.utils.MyBatisConnectionUtils;
 
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -17,6 +18,7 @@ public class DaoTestEnvironment {
     protected final MessageDao messageDao = new MessageDaoImpl(sqlSessionFactory);
     protected final MessageHistoryDao messageHistoryDao = new MessageHistoryDaoImpl(sqlSessionFactory);
     protected final RatingDao ratingDao = new RatingDaoImpl(sqlSessionFactory);
+    protected final DebugDao debugDao = new DebugDaoImpl(sqlSessionFactory);
 
     @BeforeAll
     static void setupDatabase() {
@@ -25,7 +27,7 @@ public class DaoTestEnvironment {
     }
 
     @BeforeEach
-    void clearDatabase() {
+    void clearDatabase() throws ServerException {
         userDao.deleteAll();
         messageDao.deleteAll();
     }
