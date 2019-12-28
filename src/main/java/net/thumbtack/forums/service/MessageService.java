@@ -47,6 +47,7 @@ public class MessageService {
         this.ratingDao = ratingDao;
     }
 
+    // REVU см. REVU в UserService
     private User getUserBySession(final String token) throws ServerException {
         final User user = sessionDao.getUserByToken(token);
         if (user == null) {
@@ -142,6 +143,8 @@ public class MessageService {
                 request.getBody(), state, createdAt
         );
         final MessageItem messageItem = new MessageItem(
+        		// REVU передавать один и тот же параметр 2 раза некрасиво
+        		// сделайте еще один конструктор в MessageItem
                 creator, Collections.singletonList(historyItem), createdAt, createdAt
         );
 
@@ -311,6 +314,15 @@ public class MessageService {
             final String order
     ) throws ServerException {
         final User requesterUser = getUserBySession(token);
+        // REVU чей ID ? Id самого MessageTree в АПИ нигде не фигурирует, там нет такого понятия
+        // и передается тут messageId
+        // а в маппере 
+        //  return getMessageTreeMapper(sqlSession).getTreeById(id);
+        // и в этом методе
+        // "SELECT id, forum_id, subject, priority, created_at FROM messages_tree WHERE id = #{id}")
+        // то есть это id messages_tree
+        // что-то тут не так
+        // теста на метод нет
         final MessageTree messageTree = messageTreeDao.getMessageTreeById(messageId);
         if (messageTree == null) {
             throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);

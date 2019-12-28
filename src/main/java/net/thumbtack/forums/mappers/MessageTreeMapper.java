@@ -45,6 +45,7 @@ public interface MessageTreeMapper {
                     @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
             }
     )
+    // REVU 
     MessageTree getTreeById(int id);
 
     @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at,",
