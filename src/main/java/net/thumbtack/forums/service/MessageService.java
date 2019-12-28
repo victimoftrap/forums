@@ -248,7 +248,7 @@ public class MessageService {
         );
 
         messageTreeDao.newBranch(newTree);
-        return new MadeBranchFromCommentDtoResponse(newTree.getId());
+        return new MadeBranchFromCommentDtoResponse(messageId);
     }
 
     public EmptyDtoResponse publish(
@@ -313,42 +313,6 @@ public class MessageService {
             final boolean unpublished,
             final String order
     ) throws ServerException {
-        final User requesterUser = getUserBySession(token);
-        // REVU чей ID ? Id самого MessageTree в АПИ нигде не фигурирует, там нет такого понятия
-        // и передается тут messageId
-        // а в маппере 
-        //  return getMessageTreeMapper(sqlSession).getTreeById(id);
-        // и в этом методе
-        // "SELECT id, forum_id, subject, priority, created_at FROM messages_tree WHERE id = #{id}")
-        // то есть это id messages_tree
-        // что-то тут не так
-        // теста на метод нет
-        final MessageTree messageTree = messageTreeDao.getMessageTreeById(messageId);
-        if (messageTree == null) {
-            throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
-        }
-
-        final MessageItem item = messageTree.getRootMessage();
-        final Forum forum = messageTree.getForum();
-        final MessageOrder messageOrder = MessageOrder.valueOf(order);
-
-        boolean usedUnpublished = false;
-        if (requesterUser.equals(forum.getOwner()) && forum.getType() == ForumType.MODERATED) {
-            usedUnpublished = unpublished;
-        }
-
-        List<MessageItem> comments;
-        if (noComments) {
-            comments = new ArrayList<>();
-        } else {
-            comments = messageDao.getComments(messageId, messageOrder);
-        }
-
-        final List<HistoryItem> history = messageHistoryDao.getMessageHistory(
-                messageId, allVersions, usedUnpublished
-        );
-        item.setChildrenComments(comments);
-        item.setHistory(history);
-        return MessageConverter.messageToMessageInfoDto(messageTree);
+        return null;
     }
 }

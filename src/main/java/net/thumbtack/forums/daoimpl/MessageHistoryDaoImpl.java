@@ -44,25 +44,6 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
     }
 
     @Override
-    public List<HistoryItem> getMessageHistory(int messageId,
-                                               boolean allVersions,
-                                               boolean unpublished) throws ServerException {
-        LOGGER.debug("Getting {} {} history of message with ID {}",
-                allVersions ? "all" : "latest", unpublished ? "with unpublished" : "published", messageId
-        );
-
-        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-            try {
-                return getMessageHistoryMapper(sqlSession)
-                        .getMessageHistoryByOptions(messageId, allVersions, unpublished);
-            } catch (RuntimeException ex) {
-                LOGGER.info("Unable to get history of message {}", messageId, ex);
-                throw new ServerException(ErrorCode.DATABASE_ERROR);
-            }
-        }
-    }
-
-    @Override
     public void editLatestVersion(MessageItem item) throws ServerException {
         LOGGER.debug("Updating unpublished version of message with ID {}", item.getId());
 

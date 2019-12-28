@@ -1,18 +1,17 @@
 package net.thumbtack.forums.daoimpl;
 
-import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.*;
-import net.thumbtack.forums.model.enums.ForumType;
-import net.thumbtack.forums.model.enums.MessagePriority;
-import net.thumbtack.forums.model.enums.MessageState;
-import net.thumbtack.forums.model.enums.UserRole;
+import net.thumbtack.forums.model.enums.*;
+import net.thumbtack.forums.exception.ServerException;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -93,8 +92,9 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         assertEquals(comment.getUpdatedAt(), selectedNewTreeRootMessage.getUpdatedAt());
         assertEquals(comment.getChildrenComments(), selectedNewTreeRootMessage.getChildrenComments());
 
-        assertNotEquals(messageTree.getId(), selectedNewTreeRootMessage.getMessageTree().getId());
-        assertEquals(comment.getMessageTree().getId(), selectedNewTreeRootMessage.getMessageTree().getId());
+        final MessageTree tree = selectedNewTreeRootMessage.getMessageTree();
+        assertNotEquals(messageTree.getId(), tree.getId());
+        assertEquals(comment.getMessageTree().getId(), tree.getId());
         assertNull(selectedNewTreeRootMessage.getParentMessage());
     }
 
@@ -140,6 +140,334 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(messageItem.getParentMessage(), selectedItem.getParentMessage()),
                 () -> assertFalse(selectedItem.getChildrenComments().isEmpty())
         );
+    }
+
+    @Test
+    void testGetRootMessage_commentOrderAscAndDesc() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "comment body 1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "comment body 2", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
+        final MessageItem commentItem2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem2);
+
+        final HistoryItem commentHistory21 = new HistoryItem(
+                "comment body 2_1", MessageState.UNPUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.YEARS)
+        );
+        commentItem2.setHistory(Arrays.asList(commentHistory21, commentHistory2));
+        messageHistoryDao.saveNewVersion(commentItem2);
+
+        final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, true, true
+        );
+        assertEquals(messageItem.getId(), selectedRootDesc.getId());
+        final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
+        assertEquals(2, selectedCommentsDesc.size());
+        assertEquals(commentItem2.getId(), selectedCommentsDesc.get(0).getId());
+        assertEquals(commentItem1.getId(), selectedCommentsDesc.get(1).getId());
+        assertEquals(2, selectedCommentsDesc.get(0).getHistory().size());
+        assertEquals(1, selectedCommentsDesc.get(1).getHistory().size());
+
+        final MessageItem selectedRootAsc = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.ASC,
+                false, true, true
+        );
+        assertEquals(messageItem.getId(), selectedRootDesc.getId());
+        final List<MessageItem> selectedCommentsAsc = selectedRootAsc.getChildrenComments();
+        assertEquals(2, selectedCommentsAsc.size());
+        assertEquals(commentItem1.getId(), selectedCommentsAsc.get(0).getId());
+        assertEquals(commentItem2.getId(), selectedCommentsAsc.get(1).getId());
+        assertEquals(1, selectedCommentsAsc.get(0).getHistory().size());
+        assertEquals(2, selectedCommentsAsc.get(1).getHistory().size());
+    }
+
+    @Test
+    void testGetRootMessage_noComments() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "comment body 1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "comment body 2", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
+        final MessageItem commentItem2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem2);
+
+        final HistoryItem commentHistory21 = new HistoryItem(
+                "comment body 2_1", MessageState.UNPUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.YEARS)
+        );
+        commentItem2.setHistory(Arrays.asList(commentHistory21, commentHistory2));
+        messageHistoryDao.saveNewVersion(commentItem2);
+
+        final MessageItem selectedRoot = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                true, true, true
+        );
+        assertEquals(messageItem.getId(), selectedRoot.getId());
+        final List<MessageItem> selectedComments = selectedRoot.getChildrenComments();
+        assertEquals(0, selectedComments.size());
+    }
+
+    @Test
+    void testGetRootMessage_onlyLatestHistory() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "comment body 1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "comment body 2", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
+        final MessageItem commentItem2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem2);
+
+        final HistoryItem commentHistory21 = new HistoryItem(
+                "comment body 2_1", MessageState.UNPUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.YEARS)
+        );
+        commentItem2.setHistory(Arrays.asList(commentHistory21, commentHistory2));
+        messageHistoryDao.saveNewVersion(commentItem2);
+
+        final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, false, true
+        );
+        assertEquals(messageItem.getId(), selectedRootDesc.getId());
+        final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
+        assertEquals(2, selectedCommentsDesc.size());
+        assertEquals(commentItem2.getId(), selectedCommentsDesc.get(0).getId());
+        assertEquals(commentItem1.getId(), selectedCommentsDesc.get(1).getId());
+
+        final List<HistoryItem> selectedComments1 = selectedCommentsDesc.get(0).getHistory();
+        assertEquals(1, selectedComments1.size());
+        assertTrue(selectedComments1.get(0).getBody().contains("[UNPUBLISHED]"));
+        assertTrue(selectedComments1.get(0).getBody().contains(commentHistory21.getBody()));
+
+        final List<HistoryItem> selectedComments2 = selectedCommentsDesc.get(1).getHistory();
+        assertEquals(1, selectedComments2.size());
+        assertTrue(selectedComments2.get(0).getBody().contains(commentHistory1.getBody()));
+    }
+
+    @Test
+    void testGetRootMessage_onlyPublishedHistory() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "comment body 1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "comment body 2", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
+        final MessageItem commentItem2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem2);
+
+        final HistoryItem commentHistory21 = new HistoryItem(
+                "comment body 2_1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.YEARS)
+        );
+        commentItem2.setHistory(Arrays.asList(commentHistory21, commentHistory2));
+        messageHistoryDao.saveNewVersion(commentItem2);
+
+        final HistoryItem commentHistory22 = new HistoryItem(
+                "comment body 2_2", MessageState.UNPUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(2, ChronoUnit.YEARS)
+        );
+        commentItem2.setHistory(Arrays.asList(commentHistory22, commentHistory21, commentHistory2));
+        messageHistoryDao.saveNewVersion(commentItem2);
+
+        final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, true, false
+        );
+        assertEquals(messageItem.getId(), selectedRootDesc.getId());
+        final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
+        assertEquals(2, selectedCommentsDesc.size());
+        assertEquals(commentItem2.getId(), selectedCommentsDesc.get(0).getId());
+        assertEquals(commentItem1.getId(), selectedCommentsDesc.get(1).getId());
+
+        final List<HistoryItem> selectedComments1 = selectedCommentsDesc.get(0).getHistory();
+        assertEquals(2, selectedComments1.size());
+        assertTrue(selectedComments1.get(0).getBody().contains(commentHistory21.getBody()));
+        assertTrue(selectedComments1.get(0).getBody().contains(commentHistory2.getBody()));
+
+        final List<HistoryItem> selectedComments2 = selectedCommentsDesc.get(1).getHistory();
+        assertEquals(1, selectedComments2.size());
+        assertTrue(selectedComments2.get(0).getBody().contains(commentHistory1.getBody()));
+    }
+
+    @Test
+    void testGetRootMessage_onlyLatestPublishedHistory() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "comment body 1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "comment body 2", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
+        final MessageItem commentItem2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem2);
+
+        final HistoryItem commentHistory21 = new HistoryItem(
+                "comment body 2_1", MessageState.UNPUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.YEARS)
+        );
+        commentItem2.setHistory(Arrays.asList(commentHistory21, commentHistory2));
+        messageHistoryDao.saveNewVersion(commentItem2);
+
+        final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, false, false
+        );
+        assertEquals(messageItem.getId(), selectedRootDesc.getId());
+        final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
+        assertEquals(2, selectedCommentsDesc.size());
+        assertEquals(commentItem2.getId(), selectedCommentsDesc.get(0).getId());
+        assertEquals(commentItem1.getId(), selectedCommentsDesc.get(1).getId());
+
+        final List<HistoryItem> selectedComments1 = selectedCommentsDesc.get(0).getHistory();
+        assertEquals(1, selectedComments1.size());
+        assertTrue(selectedComments1.get(0).getBody().contains(commentHistory2.getBody()));
+
+        final List<HistoryItem> selectedComments2 = selectedCommentsDesc.get(1).getHistory();
+        assertEquals(1, selectedComments2.size());
+        assertTrue(selectedComments2.get(0).getBody().contains(commentHistory1.getBody()));
     }
 
     @Test
