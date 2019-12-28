@@ -846,7 +846,7 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoResponse response =
                 messageService.newBranchFromComment(token, messageId, request);
 
-        assertEquals(newBranchId, response.getId());
+        assertEquals(messageId, response.getId());
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao).newBranch(any(MessageTree.class));

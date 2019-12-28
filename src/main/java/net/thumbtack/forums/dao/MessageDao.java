@@ -11,8 +11,6 @@ public interface MessageDao {
 
     MessageItem getMessageById(int id) throws ServerException;
 
-    List<MessageItem> getComments(int messageId, MessageOrder order) throws ServerException;
-
     void publish(MessageItem item) throws ServerException;
 
     void deleteMessageById(int id) throws ServerException;

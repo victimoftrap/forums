@@ -60,20 +60,6 @@ public class MessageDaoImpl extends MapperCreatorDao implements MessageDao {
     }
 
     @Override
-    public List<MessageItem> getComments(int messageId, MessageOrder order) throws ServerException {
-        LOGGER.debug("Getting comments of message with ID {} ordered by {}", messageId, order);
-
-        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-            try {
-                return getMessageMapper(sqlSession).getComments(messageId, order);
-            } catch (RuntimeException ex) {
-                LOGGER.info("Unable to get comments of message with ID {}", messageId, ex);
-                throw new ServerException(ErrorCode.DATABASE_ERROR);
-            }
-        }
-    }
-
-    @Override
     public void publish(MessageItem item) throws ServerException {
         LOGGER.debug("Publishing version of message with ID {}", item.getId());
 

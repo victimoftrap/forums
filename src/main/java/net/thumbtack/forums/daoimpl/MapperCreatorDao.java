@@ -36,4 +36,8 @@ public class MapperCreatorDao {
     protected MessageHistoryMapper getMessageHistoryMapper(final SqlSession sqlSession) {
         return sqlSession.getMapper(MessageHistoryMapper.class);
     }
+
+    protected ParametrizedMessageMapper getParametrizedMessageMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(ParametrizedMessageMapper.class);
+    }
 }
