@@ -33,6 +33,8 @@ public class ForumService {
         this.sessionDao = sessionDao;
     }
 
+    // REVU copy/paste метода из UserService
+    // сделайте класс ServiceBase, все сервисы extends ServiceBase и все эти методы туда как protected 
     private User getUserBySessionOrThrowException(final String token) throws ServerException {
         return Optional
                 .ofNullable(sessionDao.getUserByToken(token))

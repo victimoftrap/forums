@@ -43,6 +43,9 @@ public class UserService {
         this.properties = properties;
     }
 
+    // REVU да просто getUserBySession
+    // тут почти все методы бросают исключение, если что-то не так
+    // не будем же в имени каждого метода прописывать, что он бросает исключение
     private User getUserBySessionOrThrowException(final String token) throws ServerException {
         return Optional
                 .ofNullable(sessionDao.getUserByToken(token))

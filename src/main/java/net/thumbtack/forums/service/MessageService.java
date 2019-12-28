@@ -47,6 +47,7 @@ public class MessageService {
         this.ratingDao = ratingDao;
     }
 
+    // REVU см. REVU в UserService
     private User getUserBySession(final String token) throws ServerException {
         final User user = sessionDao.getUserByToken(token);
         if (user == null) {
@@ -142,6 +143,8 @@ public class MessageService {
                 request.getBody(), state, createdAt
         );
         final MessageItem messageItem = new MessageItem(
+        		// REVU передавать один и тот же параметр 2 раза некрасиво
+        		// сделайте еще один конструктор в MessageItem
                 creator, Collections.singletonList(historyItem), createdAt, createdAt
         );
 
