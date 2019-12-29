@@ -62,7 +62,7 @@ public class User {
     public User(String username, String email, String password) {
         this(0, UserRole.USER, username, email, password,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
-                false,null, 0
+                false, null, 0
         );
     }
 

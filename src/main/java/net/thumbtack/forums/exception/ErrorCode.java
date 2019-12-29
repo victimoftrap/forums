@@ -12,15 +12,14 @@ public enum ErrorCode {
     MESSAGE_ALREADY_PUBLISHED("Message rejected for publication"),
     USER_NOT_FOUND("User not found"),
     USER_BANNED("Not available operation while user banned"),
-    WRONG_SESSION_TOKEN("Wrong session token")
-    ;
+    WRONG_SESSION_TOKEN("Wrong session token");
 
     private String message;
 
     ErrorCode() {
     }
 
-    private ErrorCode(String message) {
+    ErrorCode(String message) {
         this.message = message;
     }
 

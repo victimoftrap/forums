@@ -143,8 +143,8 @@ public class MessageService {
                 request.getBody(), state, createdAt
         );
         final MessageItem messageItem = new MessageItem(
-        		// REVU передавать один и тот же параметр 2 раза некрасиво
-        		// сделайте еще один конструктор в MessageItem
+                // REVU передавать один и тот же параметр 2 раза некрасиво
+                // сделайте еще один конструктор в MessageItem
                 creator, Collections.singletonList(historyItem), createdAt, createdAt
         );
 

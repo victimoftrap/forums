@@ -46,20 +46,24 @@ public class UserService {
     // REVU да просто getUserBySession
     // тут почти все методы бросают исключение, если что-то не так
     // не будем же в имени каждого метода прописывать, что он бросает исключение
-    private User getUserBySessionOrThrowException(final String token) throws ServerException {
-        return Optional
-                .ofNullable(sessionDao.getUserByToken(token))
-                .orElseThrow(() -> new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+    private User getUserBySession(final String token) throws ServerException {
+        final User user = sessionDao.getUserByToken(token);
+        if (user == null) {
+            throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
+        }
+        return user;
     }
 
-    private User getUserByIdOrThrowException(final int id) throws ServerException {
-        return Optional
-                .ofNullable(userDao.getById(id, false))
-                .orElseThrow(() -> new ServerException(ErrorCode.USER_NOT_FOUND));
+    private User getUserById(final int id) throws ServerException {
+        final User user = userDao.getById(id, false);
+        if (user == null) {
+            throw new ServerException(ErrorCode.USER_NOT_FOUND);
+        }
+        return user;
     }
 
     public UserDtoResponse registerUser(final RegisterUserDtoRequest request) throws ServerException {
-    	// REVU см. комментарий в скайп-чате
+        // REVU см. комментарий в скайп-чате
         if (userDao.getByName(request.getName(), true) != null) {
             throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.USERNAME);
         }
@@ -71,7 +75,7 @@ public class UserService {
     }
 
     public EmptyDtoResponse deleteUser(final String sessionToken) throws ServerException {
-        final User user = getUserBySessionOrThrowException(sessionToken);
+        final User user = getUserBySession(sessionToken);
 
         // TODO made readonly user forums
         user.setDeleted(true);
@@ -94,7 +98,7 @@ public class UserService {
     }
 
     public EmptyDtoResponse logout(final String sessionToken) throws ServerException {
-        getUserBySessionOrThrowException(sessionToken);
+        getUserBySession(sessionToken);
         sessionDao.deleteSession(sessionToken);
         return new EmptyDtoResponse();
     }
@@ -102,7 +106,7 @@ public class UserService {
     public UserDtoResponse updatePassword(
             final String sessionToken, final UpdatePasswordDtoRequest request
     ) throws ServerException {
-        final User user = getUserBySessionOrThrowException(sessionToken);
+        final User user = getUserBySession(sessionToken);
         if (!user.getPassword().equals(request.getOldPassword())) {
             throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.OLD_PASSWORD);
         }
@@ -115,12 +119,12 @@ public class UserService {
     public EmptyDtoResponse madeSuperuser(
             final String sessionToken, final int newSuperUserId
     ) throws ServerException {
-        final User user = getUserBySessionOrThrowException(sessionToken);
+        final User user = getUserBySession(sessionToken);
         if (user.getRole() != UserRole.SUPERUSER) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
 
-        final User newSuperUser = getUserByIdOrThrowException(newSuperUserId);
+        final User newSuperUser = getUserById(newSuperUserId);
         newSuperUser.setRole(UserRole.SUPERUSER);
         newSuperUser.setBannedUntil(null);
         userDao.update(newSuperUser);
@@ -130,7 +134,7 @@ public class UserService {
     public UserDetailsListDtoResponse getUsers(
             final String sessionToken
     ) throws ServerException {
-        final User requestingUser = getUserBySessionOrThrowException(sessionToken);
+        final User requestingUser = getUserBySession(sessionToken);
         final List<UserSession> usersWithSessions = userDao.getAllWithSessions();
         return UserConverter.usersWithSessionsToResponse(usersWithSessions, requestingUser.getRole());
     }
@@ -138,12 +142,12 @@ public class UserService {
     public EmptyDtoResponse banUser(
             final String sessionToken, final int restrictedUserId
     ) throws ServerException {
-        final User user = getUserBySessionOrThrowException(sessionToken);
+        final User user = getUserBySession(sessionToken);
         if (user.getRole() != UserRole.SUPERUSER) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
 
-        final User restrictedUser = getUserByIdOrThrowException(restrictedUserId);
+        final User restrictedUser = getUserById(restrictedUserId);
         if (restrictedUser.getRole() == UserRole.SUPERUSER) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
