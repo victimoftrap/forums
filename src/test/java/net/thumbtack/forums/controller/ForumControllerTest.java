@@ -1,13 +1,15 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
-import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.model.enums.ForumType;
-import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
 import net.thumbtack.forums.service.ForumService;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,17 +22,21 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import javax.servlet.http.Cookie;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
@@ -168,8 +174,8 @@ class ForumControllerTest {
 
         mvc.perform(
                 delete("/api/forums/{forum_id}", forumId)
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isOk())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -180,13 +186,31 @@ class ForumControllerTest {
     }
 
     @Test
+    void testDeleteForum_userPermanentlyBanned_shouldReturnExceptionDto() throws Exception {
+        when(mockForumService.deleteForum(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.USER_PERMANENTLY_BANNED));
+        mvc.perform(
+                delete("/api/forums/{forum_id}", 456)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.USER_PERMANENTLY_BANNED.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+    }
+
+    @Test
     void testDeleteForum_notOwnerTryingToDeleteForum_shouldReturnExceptionDto() throws Exception {
         when(mockForumService.deleteForum(anyString(), anyInt()))
                 .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
         mvc.perform(
                 delete("/api/forums/{forum_id}", 456)
-                .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -195,5 +219,161 @@ class ForumControllerTest {
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
                 .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
+    }
+
+    @Test
+    void testGetForumById() throws Exception {
+        final int forumId = 132;
+        final ForumInfoDtoResponse response = new ForumInfoDtoResponse(
+                1234, "ForumName", "Unmoderated",
+                "OwnerName", false, 16, 23
+        );
+        when(mockForumService.getForum(anyString(), anyInt()))
+                .thenReturn(response);
+
+        mvc.perform(
+                get("/api/forums/{forum_id}", forumId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(response.getId()))
+                .andExpect(jsonPath("$.name").value(response.getName()))
+                .andExpect(jsonPath("$.type").value(response.getType()))
+                .andExpect(jsonPath("$.creator").value(response.getCreatorName()))
+                .andExpect(jsonPath("$.readonly").value(response.isReadonly()))
+                .andExpect(jsonPath("$.messageCount").value(response.getMessageCount()))
+                .andExpect(jsonPath("$.commentCount").value(response.getCommentCount()));
+
+        verify(mockForumService).getForum(anyString(), anyInt());
+    }
+
+    @Test
+    void testGetForumById_forumNotFound_shouldReturnExceptionDto() throws Exception {
+        final int forumId = 132;
+        when(mockForumService.getForum(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.FORUM_NOT_FOUND));
+        mvc.perform(
+                get("/api/forums/{forum_id}", forumId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORUM_NOT_FOUND.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockForumService).getForum(anyString(), anyInt());
+    }
+
+    @Test
+    void testGetForumById_userNotFound_shouldReturnExceptionDto() throws Exception {
+        final int forumId = 132;
+        when(mockForumService.getForum(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+        mvc.perform(
+                get("/api/forums/{forum_id}", forumId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockForumService).getForum(anyString(), anyInt());
+    }
+
+    @Test
+    void testGetAllForums() throws Exception {
+        final List<ForumInfoDtoResponse> forumList = new ArrayList<>();
+        forumList.add(new ForumInfoDtoResponse(
+                        123, "Forum1", "UNMODERATED",
+                        "Owner1", false, 4, 8
+                )
+        );
+        forumList.add(new ForumInfoDtoResponse(
+                        124, "Forum2", "MODERATED",
+                        "Owner2", true, 15, 16
+                )
+        );
+        forumList.add(new ForumInfoDtoResponse(
+                        125, "Forum3", "UNMODERATED",
+                        "Owner3", false, 23, 42
+                )
+        );
+        final ForumInfoListDtoResponse expectedResponse = new ForumInfoListDtoResponse(forumList);
+
+        when(mockForumService.getForums(anyString()))
+                .thenReturn(expectedResponse);
+
+        final MvcResult mvcResult = mvc.perform(
+                get("/api/forums")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.forums", hasSize(3)))
+                .andReturn();
+
+        final ForumInfoListDtoResponse actualResponse = mapper.readValue(
+                mvcResult.getResponse().getContentAsString(),
+                ForumInfoListDtoResponse.class
+        );
+        assertEquals(expectedResponse, actualResponse);
+        verify(mockForumService).getForums(anyString());
+    }
+
+    @Test
+    void testGetAllForums_noForumsExists_shouldReturnEmptyList() throws Exception {
+        final ForumInfoListDtoResponse response = new ForumInfoListDtoResponse(
+                Collections.emptyList()
+        );
+
+        when(mockForumService.getForums(anyString()))
+                .thenReturn(response);
+
+        mvc.perform(
+                get("/api/forums")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.forums", hasSize(0)));
+
+        verify(mockForumService).getForums(anyString());
+    }
+
+    @Test
+    void testGetAllForums_userNotFound_shouldReturnExceptionDto() throws Exception {
+        when(mockForumService.getForums(anyString()))
+                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+
+        mvc.perform(
+                get("/api/forums")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockForumService).getForums(anyString());
     }
 }
