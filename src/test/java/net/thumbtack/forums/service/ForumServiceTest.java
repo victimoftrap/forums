@@ -8,6 +8,8 @@ import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
 import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
@@ -17,6 +19,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -216,5 +221,175 @@ class ForumServiceTest {
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockForumDao, never()).getById(anyInt());
         verify(mockForumDao, never()).deleteById(anyInt());
+    }
+
+    @Test
+    void testGetForumById() throws ServerException {
+        final String token = "token";
+        final int forumId = 12020;
+
+        final User requesterUser = new User(
+                "requester", "user@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+        final User forumOwner = new User(
+                "forumOwner", "forumOwner@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(requesterUser);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(forum);
+
+        final ForumInfoDtoResponse response = forumService.getForum(token, forumId);
+        assertEquals(forum.getId(), response.getId());
+        assertEquals(forum.getName(), response.getName());
+        assertEquals(forum.getType(), response.getType());
+        assertEquals(forum.getOwner().getUsername(), response.getCreatorName());
+        assertEquals(forum.isReadonly(), response.isReadonly());
+
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockForumDao).getById(anyInt());
+    }
+
+    @Test
+    void testGetForumById_userNotFound_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int forumId = 12020;
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            forumService.getForum(token, forumId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao, never())
+                .getById(anyInt());
+    }
+
+    @Test
+    void testGetForumById_forumNotFound_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int forumId = 12020;
+        final User requesterUser = new User(
+                "requester", "user@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(requesterUser);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(null);
+
+        try {
+            forumService.getForum(token, forumId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORUM_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(anyInt());
+    }
+
+    @Test
+    void testGetForumList() throws ServerException {
+        final String token = "token";
+        final User requesterUser = new User(
+                "requester", "user@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+
+        final User forumOwner1 = new User(
+                "forumOwner1", "forumOwner1@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+        final Forum forum1 = new Forum(
+                ForumType.UNMODERATED, forumOwner1, "ForumName1",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final User forumOwner2 = new User(
+                "forumOwner2", "forumOwner2@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+        final Forum forum2 = new Forum(
+                ForumType.MODERATED, forumOwner2, "ForumName2",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final User forumOwner3 = new User(
+                "forumOwner3", "forumOwner3@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+        final Forum forum3 = new Forum(
+                ForumType.MODERATED, forumOwner3, "ForumName3",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forum3.setReadonly(true);
+        final List<Forum> forumList = Arrays.asList(forum1, forum2, forum3);
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(requesterUser);
+        when(mockForumDao.getAll())
+                .thenReturn(forumList);
+
+        final ForumInfoListDtoResponse response = forumService.getForums(token);
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockForumDao).getAll();
+
+        final List<ForumInfoDtoResponse> forumListResponse = response.getForums();
+        assertEquals(forum1.getName(), forumListResponse.get(0).getName());
+        assertEquals(forum1.getOwner().getUsername(), forumListResponse.get(0).getCreatorName());
+        assertEquals(forum1.getType(), forumListResponse.get(0).getType());
+        assertEquals(forum1.isReadonly(), forumListResponse.get(0).isReadonly());
+
+        assertEquals(forum2.getName(), forumListResponse.get(1).getName());
+        assertEquals(forum2.getOwner().getUsername(), forumListResponse.get(1).getCreatorName());
+        assertEquals(forum2.getType(), forumListResponse.get(1).getType());
+        assertEquals(forum2.isReadonly(), forumListResponse.get(1).isReadonly());
+
+        assertEquals(forum3.getName(), forumListResponse.get(2).getName());
+        assertEquals(forum3.getOwner().getUsername(), forumListResponse.get(2).getCreatorName());
+        assertEquals(forum3.getType(), forumListResponse.get(2).getType());
+        assertEquals(forum3.isReadonly(), forumListResponse.get(2).isReadonly());
+    }
+
+    @Test
+    void testGetForumList_noForumsFound_shouldReturnEmptyList() throws ServerException {
+        final String token = "token";
+        final User requesterUser = new User(
+                "requester", "user@mail.com", "weryHArdtoMakePa55w0rd"
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(requesterUser);
+        when(mockForumDao.getAll())
+                .thenReturn(Collections.emptyList());
+
+        final ForumInfoListDtoResponse response = forumService.getForums(token);
+        assertEquals(0, response.getForums().size());
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getAll();
+    }
+
+    @Test
+    void testGetForumList_userNotFound_shouldThrowException() throws ServerException {
+        final String token = "token";
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            forumService.getForums(token);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao, never())
+                .getAll();
     }
 }
