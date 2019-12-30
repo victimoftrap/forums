@@ -622,10 +622,66 @@ class UserServiceTest {
                 .getBanTime();
         verify(userDao)
                 .update(any(User.class));
+
         verify(mockConstantsProperties, never())
                 .getDatetimePattern();
         verify(mockConstantsProperties, never())
                 .getPermanentBanDatetime();
+    }
+
+    @Test
+    void testBanUser_userWasBannedTooMuch_shouldBanPermanently() throws ServerException {
+        final String token = "token";
+        final int maxBanCount = 5;
+        final String datetimePattern = "yyyy-MM-dd HH:mm:ss";
+        final String permanentDatetime = "9999-01-01 00:00:00";
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                null, 4
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt(), anyBoolean()))
+                .thenReturn(bannedUser);
+        when(mockConfigurationProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockConstantsProperties.getDatetimePattern())
+                .thenReturn(datetimePattern);
+        when(mockConstantsProperties.getPermanentBanDatetime())
+                .thenReturn(permanentDatetime);
+        doNothing()
+                .when(userDao)
+                .update(any(User.class));
+
+        userService.banUser(token, bannedUser.getId());
+        assertEquals(maxBanCount, bannedUser.getBanCount());
+        assertNotNull(bannedUser.getBannedUntil());
+        assertEquals(
+                LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0),
+                bannedUser.getBannedUntil()
+        );
+
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
+        verify(mockConfigurationProperties)
+                .getMaxBanCount();
+        verify(mockConstantsProperties)
+                .getDatetimePattern();
+        verify(mockConstantsProperties)
+                .getPermanentBanDatetime();
+        verify(userDao)
+                .update(any(User.class));
+
+        verify(mockConfigurationProperties, never())
+                .getBanTime();
     }
 
     @Test
@@ -681,7 +737,6 @@ class UserServiceTest {
     @Test
     void testBanUser_restrictedUserAreSuperuser_shouldThrowException() throws ServerException {
         final String token = "token";
-        final int banTime = 7;
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
@@ -701,49 +756,13 @@ class UserServiceTest {
             assertEquals(ErrorCode.FORBIDDEN_OPERATION, e.getErrorCode());
         }
 
-        verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt(), anyBoolean());
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
         verifyZeroInteractions(mockConfigurationProperties);
-        verify(userDao, never()).update(any(User.class));
-    }
-
-    @Test
-    void testBanUser_userWasBannedTooMuch_shouldBanPermanently() throws ServerException {
-        final String token = "token";
-        final int banTime = 7;
-        final int maxBanCount = 5;
-        final User superuser = new User(123, UserRole.SUPERUSER,
-                "superuser", "super@forums.ca", "superpass123",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
-        );
-        final User bannedUser = new User(456, UserRole.USER,
-                "user", "user@forums.ca", "userpass456",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
-                null, 4
-        );
-
-        when(sessionDao.getUserByToken(anyString()))
-                .thenReturn(superuser);
-        when(userDao.getById(anyInt(), anyBoolean()))
-                .thenReturn(bannedUser);
-        when(mockConfigurationProperties.getMaxBanCount()).thenReturn(maxBanCount);
-        when(mockConfigurationProperties.getMaxBanCount()).thenReturn(maxBanCount);
-        doNothing()
-                .when(userDao)
+        verify(userDao, never())
                 .update(any(User.class));
-
-        userService.banUser(token, bannedUser.getId());
-        assertEquals(maxBanCount, bannedUser.getBanCount());
-        assertNotNull(bannedUser.getBannedUntil());
-        assertEquals(
-                LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0),
-                bannedUser.getBannedUntil()
-        );
-
-        verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt(), anyBoolean());
-        verify(mockConfigurationProperties, times(2)).getMaxBanCount();
-        verify(userDao).update(any(User.class));
     }
 
     @Test
