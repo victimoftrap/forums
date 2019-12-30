@@ -187,6 +187,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
+                getForumMapper(sqlSession).madeReadonlyModeratedForumsOfUser(id);
                 getSessionMapper(sqlSession).deleteByUser(id);
                 getUserMapper(sqlSession).deactivateById(id);
             } catch (RuntimeException ex) {

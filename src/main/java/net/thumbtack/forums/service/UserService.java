@@ -1,57 +1,52 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
-import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
-import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.UserSession;
+import net.thumbtack.forums.dao.UserDao;
+import net.thumbtack.forums.dao.SessionDao;
+import net.thumbtack.forums.dao.ForumDao;
+import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
+import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.dto.responses.user.*;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.converter.UserConverter;
-import net.thumbtack.forums.dao.UserDao;
-import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
-import java.time.Month;
 import java.time.temporal.ChronoUnit;
 
 @Service("userService")
-public class UserService {
+public class UserService extends ServiceBase {
     private final UserDao userDao;
     private final SessionDao sessionDao;
-    private final ServerConfigurationProperties properties;
+    private final ConstantsProperties constantsProperties;
+    private final ServerConfigurationProperties serverProperties;
 
     @Autowired
     public UserService(final UserDao userDao,
                        final SessionDao sessionDao,
-                       final ServerConfigurationProperties properties) {
+                       final ForumDao forumDao,
+                       final ConstantsProperties constantsProperties,
+                       final ServerConfigurationProperties serverProperties) {
+        super(sessionDao, forumDao, serverProperties);
         this.userDao = userDao;
         this.sessionDao = sessionDao;
-        this.properties = properties;
-    }
-
-    // REVU да просто getUserBySession
-    // тут почти все методы бросают исключение, если что-то не так
-    // не будем же в имени каждого метода прописывать, что он бросает исключение
-    private User getUserBySession(final String token) throws ServerException {
-        final User user = sessionDao.getUserByToken(token);
-        if (user == null) {
-            throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
-        }
-        return user;
+        this.serverProperties = serverProperties;
+        this.constantsProperties = constantsProperties;
     }
 
     private User getUserById(final int id) throws ServerException {
@@ -62,7 +57,9 @@ public class UserService {
         return user;
     }
 
-    public UserDtoResponse registerUser(final RegisterUserDtoRequest request) throws ServerException {
+    public UserDtoResponse registerUser(
+            final RegisterUserDtoRequest request
+    ) throws ServerException {
         // REVU см. комментарий в скайп-чате
         if (userDao.getByName(request.getName(), true) != null) {
             throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.USERNAME);
@@ -74,16 +71,18 @@ public class UserService {
         return UserConverter.userToUserResponse(user, session.getToken());
     }
 
-    public EmptyDtoResponse deleteUser(final String sessionToken) throws ServerException {
+    public EmptyDtoResponse deleteUser(
+            final String sessionToken
+    ) throws ServerException {
         final User user = getUserBySession(sessionToken);
-
-        // TODO made readonly user forums
         user.setDeleted(true);
         userDao.deactivateById(user.getId());
         return new EmptyDtoResponse();
     }
 
-    public UserDtoResponse login(final LoginUserDtoRequest request) throws ServerException {
+    public UserDtoResponse login(
+            final LoginUserDtoRequest request
+    ) throws ServerException {
         final User user = userDao.getByName(request.getName());
         if (user == null) {
             throw new ServerException(ErrorCode.USER_NOT_FOUND, RequestFieldName.USERNAME);
@@ -97,7 +96,9 @@ public class UserService {
         return UserConverter.userToUserResponse(user, session.getToken());
     }
 
-    public EmptyDtoResponse logout(final String sessionToken) throws ServerException {
+    public EmptyDtoResponse logout(
+            final String sessionToken
+    ) throws ServerException {
         getUserBySession(sessionToken);
         sessionDao.deleteSession(sessionToken);
         return new EmptyDtoResponse();
@@ -154,18 +155,22 @@ public class UserService {
 
         final LocalDateTime banTime;
         final int banCount;
-        if (restrictedUser.getBanCount() < properties.getMaxBanCount() - 1) {
+        final int maxBanCount = serverProperties.getMaxBanCount();
+        if (restrictedUser.getBanCount() < maxBanCount - 1) {
             banTime = LocalDateTime.of(
-                    LocalDate.now().plus(properties.getBanTime(), ChronoUnit.DAYS),
+                    LocalDate.now().plus(serverProperties.getBanTime(), ChronoUnit.DAYS),
                     LocalTime.of(0, 0)
             )
                     .truncatedTo(ChronoUnit.SECONDS);
             banCount = restrictedUser.getBanCount() + 1;
         } else {
+            final String banDatetimeString = constantsProperties.getPermanentBanDatetime();
+            final String datetimeStringPattern = constantsProperties.getDatetimePattern();
             banTime = LocalDateTime
-                    .of(9999, Month.JANUARY, 1, 0, 0, 0)
+                    .parse(banDatetimeString, DateTimeFormatter.ofPattern(datetimeStringPattern))
                     .truncatedTo(ChronoUnit.SECONDS);
-            banCount = properties.getMaxBanCount();
+            banCount = maxBanCount;
+            // TODO made moderated forums read-only
         }
         restrictedUser.setBannedUntil(banTime);
         restrictedUser.setBanCount(banCount);

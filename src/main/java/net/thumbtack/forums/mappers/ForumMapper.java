@@ -52,8 +52,10 @@ public interface ForumMapper {
     @Update("UPDATE forums SET readonly = COALESCE(#{forum.readonly}, readonly) WHERE id = #{forum.id}")
     void update(@Param("forum") Forum forum);
 
-    @Update("UPDATE forums SET readonly = TRUE WHERE owner_id = #{user.id}")
-    void madeReadonlyModeratedForumsOf(@Param("user") User user);
+    @Update({"UPDATE forums SET readonly = TRUE",
+            "WHERE owner_id = #{id} AND forum_type = 'MODERATED'"
+    })
+    void madeReadonlyModeratedForumsOfUser(@Param("id") int id);
 
     @Delete("DELETE FROM forums WHERE id = #{id}")
     void deleteById(@Param("id") int id);

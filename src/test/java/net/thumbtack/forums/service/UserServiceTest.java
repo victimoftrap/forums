@@ -1,16 +1,18 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.enums.UserRole;
+import net.thumbtack.forums.model.UserSession;
+import net.thumbtack.forums.dao.ForumDao;
+import net.thumbtack.forums.dao.UserDao;
+import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.dto.responses.user.*;
-import net.thumbtack.forums.model.User;
-import net.thumbtack.forums.model.enums.UserRole;
-import net.thumbtack.forums.model.UserSession;
-import net.thumbtack.forums.dao.UserDao;
-import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -32,15 +34,23 @@ import static org.mockito.ArgumentMatchers.anyString;
 class UserServiceTest {
     private UserDao userDao;
     private SessionDao sessionDao;
-    private ServerConfigurationProperties properties;
+    private ForumDao mockForumDao;
+    private ServerConfigurationProperties mockConfigurationProperties;
+    private ConstantsProperties mockConstantsProperties;
     private UserService userService;
 
     @BeforeEach
     void initMocks() {
         userDao = mock(UserDao.class);
         sessionDao = mock(SessionDao.class);
-        properties = mock(ServerConfigurationProperties.class);
-        userService = new UserService(userDao, sessionDao, properties);
+        mockForumDao = mock(ForumDao.class);
+        mockConstantsProperties = mock(ConstantsProperties.class);
+        mockConfigurationProperties = mock(ServerConfigurationProperties.class);
+
+        userService = new UserService(
+                userDao, sessionDao, mockForumDao,
+                mockConstantsProperties, mockConfigurationProperties
+        );
     }
 
     @Test
@@ -573,9 +583,10 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser() throws ServerException {
+    void testBanUser_userReceivedBan_bannedForSomeDays() throws ServerException {
         final String token = "token";
-        final int banTime = 7;
+        final int banDays = 7;
+        final int maxBanCount = 5;
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
@@ -589,10 +600,10 @@ class UserServiceTest {
                 .thenReturn(superuser);
         when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(bannedUser);
-        when(properties.getMaxBanCount())
-                .thenReturn(5);
-        when(properties.getBanTime())
-                .thenReturn(banTime);
+        when(mockConfigurationProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockConfigurationProperties.getBanTime())
+                .thenReturn(banDays);
         doNothing()
                 .when(userDao)
                 .update(any(User.class));
@@ -601,11 +612,70 @@ class UserServiceTest {
         assertEquals(1, bannedUser.getBanCount());
         assertNotNull(bannedUser.getBannedUntil());
 
-        verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt(), anyBoolean());
-        verify(properties).getMaxBanCount();
-        verify(properties).getBanTime();
-        verify(userDao).update(any(User.class));
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
+        verify(mockConfigurationProperties)
+                .getMaxBanCount();
+        verify(mockConfigurationProperties)
+                .getBanTime();
+        verify(userDao)
+                .update(any(User.class));
+        verify(mockConstantsProperties, never())
+                .getDatetimePattern();
+        verify(mockConstantsProperties, never())
+                .getPermanentBanDatetime();
+    }
+
+    @Test
+    void testBanUser_userReceivedLastBan_bannedPermanently() throws ServerException {
+        final String token = "token";
+        final int maxBanCount = 5;
+        final String datetimePattern = "yyyy-MM-dd HH:mm:ss";
+        final String permanentDatetime = "9999-01-01 00:00:00";
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        bannedUser.setBanCount(4);
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt(), anyBoolean()))
+                .thenReturn(bannedUser);
+        when(mockConfigurationProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockConstantsProperties.getDatetimePattern())
+                .thenReturn(datetimePattern);
+        when(mockConstantsProperties.getPermanentBanDatetime())
+                .thenReturn(permanentDatetime);
+        doNothing()
+                .when(userDao)
+                .update(any(User.class));
+
+        userService.banUser(token, bannedUser.getId());
+        assertEquals(maxBanCount, bannedUser.getBanCount());
+        assertNotNull(bannedUser.getBannedUntil());
+
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
+        verify(mockConfigurationProperties)
+                .getMaxBanCount();
+        verify(mockConstantsProperties)
+                .getDatetimePattern();
+        verify(mockConstantsProperties)
+                .getPermanentBanDatetime();
+        verify(userDao)
+                .update(any(User.class));
+        verify(mockConfigurationProperties, never())
+                .getBanTime();
     }
 
     @Test
@@ -633,7 +703,7 @@ class UserServiceTest {
 
         verify(sessionDao).getUserByToken(anyString());
         verify(userDao).getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
+        verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never()).update(any(User.class));
     }
 
@@ -656,8 +726,8 @@ class UserServiceTest {
                 .thenReturn(superuser);
         when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(bannedUser);
-        when(properties.getMaxBanCount()).thenReturn(maxBanCount);
-        when(properties.getMaxBanCount()).thenReturn(maxBanCount);
+        when(mockConfigurationProperties.getMaxBanCount()).thenReturn(maxBanCount);
+        when(mockConfigurationProperties.getMaxBanCount()).thenReturn(maxBanCount);
         doNothing()
                 .when(userDao)
                 .update(any(User.class));
@@ -672,7 +742,7 @@ class UserServiceTest {
 
         verify(sessionDao).getUserByToken(anyString());
         verify(userDao).getById(anyInt(), anyBoolean());
-        verify(properties, times(2)).getMaxBanCount();
+        verify(mockConfigurationProperties, times(2)).getMaxBanCount();
         verify(userDao).update(any(User.class));
     }
 
@@ -690,7 +760,7 @@ class UserServiceTest {
 
         verify(sessionDao).getUserByToken(eq(sessionToken));
         verify(userDao, never()).getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
+        verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never()).update(any(User.class));
     }
 
@@ -714,7 +784,7 @@ class UserServiceTest {
                 .getUserByToken(eq(sessionToken));
         verify(userDao, never())
                 .getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
+        verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
                 .update(any(User.class));
     }
@@ -742,7 +812,7 @@ class UserServiceTest {
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
                 .getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
+        verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
                 .update(any(User.class));
     }

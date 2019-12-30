@@ -1,16 +1,17 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.enums.ForumType;
+import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
 import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
-import net.thumbtack.forums.model.enums.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,12 +26,14 @@ class ForumServiceTest {
     private ForumDao mockForumDao;
     private SessionDao mockSessionDao;
     private ForumService forumService;
+    private ServerConfigurationProperties mockServerProperties;
 
     @BeforeEach
     void initMocks() {
         mockForumDao = mock(ForumDao.class);
         mockSessionDao = mock(SessionDao.class);
-        forumService = new ForumService(mockForumDao, mockSessionDao);
+        mockServerProperties = mock(ServerConfigurationProperties.class);
+        forumService = new ForumService(mockForumDao, mockSessionDao, mockServerProperties);
     }
 
     @Test
@@ -99,16 +102,21 @@ class ForumServiceTest {
     }
 
     @Test
-    void testDeleteForum() throws ServerException {
+    void testDeleteForum_userForumOwner_shouldDeleteForum() throws ServerException {
+        final int maxBanCount = 5;
         final String token = "token";
-        final User user = new User("user", "user@email.com", "password=pass");
+        final User forumOwner = new User(
+                "user", "user@email.com", "password=pass"
+        );
         final Forum forum = new Forum(
-                123, ForumType.UNMODERATED, user, "name",
+                123, ForumType.UNMODERATED, forumOwner, "name",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(user);
+                .thenReturn(forumOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
         when(mockForumDao.getById(anyInt()))
                 .thenReturn(forum);
         doNothing()
@@ -117,12 +125,45 @@ class ForumServiceTest {
 
         forumService.deleteForum(token, forum.getId());
         verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockForumDao).getById(anyInt());
+        verify(mockForumDao).deleteById(anyInt());
+    }
+
+    @Test
+    void testDeleteForum_userHasRoleSuperuser_shouldDeleteForum() throws ServerException {
+        final int maxBanCount = 5;
+        final String token = "token";
+        final User superuser = new User(
+                "super", "super@email.com", "password=pass"
+        );
+        superuser.setRole(UserRole.SUPERUSER);
+
+        final User forumOwner = new User(
+                "owner", "owner@email.com", "owner_passwd"
+        );
+        final Forum forum = new Forum(
+                123, ForumType.UNMODERATED, forumOwner, "name",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(forum);
+
+        forumService.deleteForum(token, forum.getId());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
         verify(mockForumDao).getById(anyInt());
         verify(mockForumDao).deleteById(anyInt());
     }
 
     @Test
     void testDeleteForum_userNotForumOwner_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
         final String token = "token";
         final User user = new User("user", "user@email.com", "password=pass");
         final User forumOwner = new User("owner", "owner@email.com", "owner_passwd");
@@ -133,6 +174,8 @@ class ForumServiceTest {
 
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
         when(mockForumDao.getById(anyInt()))
                 .thenReturn(forum);
 
@@ -143,30 +186,35 @@ class ForumServiceTest {
         }
 
         verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
         verify(mockForumDao).getById(anyInt());
         verify(mockForumDao, never()).deleteById(anyInt());
     }
 
     @Test
-    void testDeleteForum_userHasRoleSuperuser_shouldDeleteForum() throws ServerException {
+    void testDeleteForum_userPermanentlyBanned_shouldThrowException() throws ServerException {
         final String token = "token";
-        final User user = new User("super", "super@email.com", "password=pass");
-        user.setRole(UserRole.SUPERUSER);
-
+        final int maxBanCount = 5;
         final User forumOwner = new User("owner", "owner@email.com", "owner_passwd");
+        forumOwner.setBanCount(maxBanCount);
         final Forum forum = new Forum(
                 123, ForumType.UNMODERATED, forumOwner, "name",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(user);
-        when(mockForumDao.getById(anyInt()))
-                .thenReturn(forum);
+                .thenReturn(forumOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
 
-        forumService.deleteForum(token, forum.getId());
+        try {
+            forumService.deleteForum(token, forum.getId());
+        } catch (ServerException ex) {
+            assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, ex.getErrorCode());
+        }
+
         verify(mockSessionDao).getUserByToken(anyString());
-        verify(mockForumDao).getById(anyInt());
-        verify(mockForumDao).deleteById(anyInt());
+        verify(mockForumDao, never()).getById(anyInt());
+        verify(mockForumDao, never()).deleteById(anyInt());
     }
 }
