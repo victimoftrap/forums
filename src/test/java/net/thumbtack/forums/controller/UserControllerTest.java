@@ -1,14 +1,15 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.service.UserService;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
-import net.thumbtack.forums.service.UserService;
-import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.user.*;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.exception.ExceptionDtoResponse;
 import net.thumbtack.forums.dto.responses.exception.ExceptionListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.RequestFieldName;
+import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,6 +52,7 @@ class UserControllerTest {
     private UserService mockUserService;
 
     private final String COOKIE_NAME = "JAVASESSIONID";
+    private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
     @Test
     void testRegisterUser() throws Exception {
@@ -261,13 +263,12 @@ class UserControllerTest {
 
     @Test
     void testDeleteUser() throws Exception {
-        final String token = "token";
         when(mockUserService.deleteUser(anyString()))
                 .thenReturn(new EmptyDtoResponse());
 
         mvc.perform(
                 delete("/api/users")
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
                 .andExpect(status().isOk())
@@ -275,17 +276,56 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().string("{}"));
 
-        verify(mockUserService).deleteUser(token);
+        verify(mockUserService).deleteUser(anyString());
+    }
+
+    @Test
+    void testDeleteUser_userNotFound_shouldReturnExceptionDto() throws Exception {
+        when(mockUserService.deleteUser(anyString()))
+                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+
+        mvc.perform(
+                delete("/api/users")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockUserService).deleteUser(anyString());
+    }
+
+    @Test
+    void testDeleteUser_forumNotFound_shouldReturnExceptionDto() throws Exception {
+        when(mockUserService.deleteUser(anyString()))
+                .thenThrow(new ServerException(ErrorCode.FORUM_NOT_FOUND));
+
+        mvc.perform(
+                delete("/api/users")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORUM_NOT_FOUND.name()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockUserService).deleteUser(anyString());
     }
 
     @Test
     void testUpdateUserPassword() throws Exception {
-        final String token = "token";
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 "GregHouse", "password123", "game_boy_advance"
         );
         final UserDtoResponse response = new UserDtoResponse(
-                5, request.getName(), "house@med.com", token
+                5, request.getName(), "house@med.com", COOKIE_VALUE
         );
         when(mockUserService.updatePassword(anyString(), any(UpdatePasswordDtoRequest.class)))
                 .thenReturn(response);
@@ -294,10 +334,10 @@ class UserControllerTest {
                 put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsBytes(request))
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isOk())
-                .andExpect(cookie().value(COOKIE_NAME, token))
+                .andExpect(cookie().value(COOKIE_NAME, COOKIE_VALUE))
                 .andExpect(cookie().httpOnly(COOKIE_NAME, true))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value(response.getId()))
@@ -305,12 +345,12 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.email").value(response.getEmail()))
                 .andExpect(jsonPath("$.sessionToken").doesNotExist());
 
-        verify(mockUserService).updatePassword(anyString(), any(UpdatePasswordDtoRequest.class));
+        verify(mockUserService)
+                .updatePassword(anyString(), any(UpdatePasswordDtoRequest.class));
     }
 
     @Test
     void testUpdatePassword_usernameAreEmpty_shouldReturnExceptionDto() throws Exception {
-        final String token = "token";
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 "0123456789_0123456789_0123456789_0123456789_0123456789",
                 "password123", "strong/password/456"
@@ -319,7 +359,7 @@ class UserControllerTest {
                 put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsBytes(request))
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -333,7 +373,6 @@ class UserControllerTest {
 
     @Test
     void testUpdatePassword_usernameAreNull_shouldReturnExceptionDto() throws Exception {
-        final String token = "token";
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 "", "password123", "strong/password/456"
         );
@@ -341,7 +380,7 @@ class UserControllerTest {
                 put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsBytes(request))
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -355,7 +394,6 @@ class UserControllerTest {
 
     @Test
     void testUpdatePassword_usernameAreTooLarge_shouldReturnExceptionDto() throws Exception {
-        final String token = "token";
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 "", "password123", "strong/password/456"
         );
@@ -363,7 +401,7 @@ class UserControllerTest {
                 put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsBytes(request))
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -377,7 +415,6 @@ class UserControllerTest {
 
     @Test
     void testUpdatePassword_newPasswordAreEmpty_shouldReturnExceptionDto() throws Exception {
-        final String token = "token";
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 "GregHouse", "password123", ""
         );
@@ -385,7 +422,7 @@ class UserControllerTest {
                 put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsBytes(request))
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -394,13 +431,11 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
                 .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.PASSWORD.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
-
         verifyZeroInteractions(mockUserService);
     }
 
     @Test
     void testUpdatePassword_newPasswordAreNull_shouldReturnExceptionDto() throws Exception {
-        final String token = "token";
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 "GregHouse", "password123", null
         );
@@ -408,7 +443,7 @@ class UserControllerTest {
                 put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsBytes(request))
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -417,13 +452,11 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
                 .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.PASSWORD.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
-
         verifyZeroInteractions(mockUserService);
     }
 
     @Test
     void testUpdatePassword_newPasswordAreTooSmall_shouldReturnExceptionDto() throws Exception {
-        final String token = "token";
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 "GregHouse", "password123", "weak"
         );
@@ -432,7 +465,7 @@ class UserControllerTest {
                 put("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsBytes(request))
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
@@ -441,51 +474,48 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
                 .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.PASSWORD.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
-
         verifyZeroInteractions(mockUserService);
     }
 
     @Test
     void testMadeSuperuser() throws Exception {
-        final String token = "token";
         when(mockUserService.madeSuperuser(anyString(), anyInt()))
                 .thenReturn(new EmptyDtoResponse());
 
         mvc.perform(
                 put("/api/users/{user}/super", 123)
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
                 .andExpect(status().isOk())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().string("{}"));
+        verify(mockUserService).madeSuperuser(anyString(), anyInt());
+    }
+
+    @Test
+    void testMadeSuperuser_requestFromRegularUser_shouldReturnExceptionDto() throws Exception {
+        when(mockUserService.madeSuperuser(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
+
+        mvc.perform(
+                put("/api/users/{user}/super", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).madeSuperuser(anyString(), anyInt());
     }
 
     @Test
-    void testBanUser() throws Exception {
-        final String token = "token";
-        when(mockUserService.banUser(anyString(), anyInt()))
-                .thenReturn(new EmptyDtoResponse());
-
-        mvc.perform(
-                post("/api/users/{user}/restrict", 123)
-                        .cookie(new Cookie(COOKIE_NAME, token))
-                        .contentType(MediaType.APPLICATION_JSON)
-        )
-                .andExpect(status().isOk())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().string("{}"));
-
-        verify(mockUserService).banUser(anyString(), anyInt());
-    }
-
-    @Test
     void testGetUsers_requestFromRegularUser_shouldReturnNotAllFields() throws Exception {
-        final String token = "token";
         final List<UserDetailsDtoResponse> users = new ArrayList<>();
         users.add(new UserDetailsDtoResponse(
                         1, "user1", null,
@@ -507,7 +537,7 @@ class UserControllerTest {
 
         final MvcResult result = mvc.perform(
                 get("/api/users")
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
                 .andExpect(status().isOk())
@@ -525,7 +555,6 @@ class UserControllerTest {
 
     @Test
     void testGetUsers_requestFromSuperuser_shouldReturnAllFields() throws Exception {
-        final String token = "token";
         final List<UserDetailsDtoResponse> users = new ArrayList<>();
         users.add(new UserDetailsDtoResponse(
                         1, "user1", "user1@email.com",
@@ -554,7 +583,7 @@ class UserControllerTest {
 
         final MvcResult result = mvc.perform(
                 get("/api/users")
-                        .cookie(new Cookie(COOKIE_NAME, token))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
                 .andExpect(status().isOk())
@@ -568,5 +597,103 @@ class UserControllerTest {
                 UserDetailsListDtoResponse.class
         );
         assertEquals(expectedUsersResponse, actualUsersResponse);
+    }
+
+    @Test
+    void testGetUsers_userNotFound_shouldReturnExceptionDto() throws Exception {
+        when(mockUserService.getUsers(anyString()))
+                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+
+        mvc.perform(
+                get("/api/users")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockUserService).getUsers(anyString());
+    }
+
+    @Test
+    void testBanUser() throws Exception {
+        when(mockUserService.banUser(anyString(), anyInt()))
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                post("/api/users/{user}/restrict", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string("{}"));
+
+        verify(mockUserService).banUser(anyString(), anyInt());
+    }
+
+    @Test
+    void testBanUser_userNotFound_shouldReturnExceptionDto() throws Exception {
+        when(mockUserService.banUser(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+
+        mvc.perform(
+                post("/api/users/{user}/restrict", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockUserService).banUser(anyString(), anyInt());
+    }
+
+    @Test
+    void testBanUser_requestNotFromSuperuser_shouldReturnExceptionDto() throws Exception {
+        when(mockUserService.banUser(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
+
+        mvc.perform(
+                post("/api/users/{user}/restrict", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockUserService).banUser(anyString(), anyInt());
+    }
+
+    @Test
+    void testBanUser_tryingToBanSuperuser_shouldReturnExceptionDto() throws Exception {
+        when(mockUserService.banUser(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
+
+        mvc.perform(
+                post("/api/users/{user}/restrict", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockUserService).banUser(anyString(), anyInt());
     }
 }

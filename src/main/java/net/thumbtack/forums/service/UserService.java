@@ -105,7 +105,8 @@ public class UserService extends ServiceBase {
     }
 
     public UserDtoResponse updatePassword(
-            final String sessionToken, final UpdatePasswordDtoRequest request
+            final String sessionToken,
+            final UpdatePasswordDtoRequest request
     ) throws ServerException {
         final User user = getUserBySession(sessionToken);
         if (!user.getPassword().equals(request.getOldPassword())) {
@@ -118,7 +119,8 @@ public class UserService extends ServiceBase {
     }
 
     public EmptyDtoResponse madeSuperuser(
-            final String sessionToken, final int newSuperUserId
+            final String sessionToken,
+            final int newSuperUserId
     ) throws ServerException {
         final User user = getUserBySession(sessionToken);
         if (user.getRole() != UserRole.SUPERUSER) {
@@ -141,7 +143,8 @@ public class UserService extends ServiceBase {
     }
 
     public EmptyDtoResponse banUser(
-            final String sessionToken, final int restrictedUserId
+            final String sessionToken,
+            final int restrictedUserId
     ) throws ServerException {
         final User user = getUserBySession(sessionToken);
         if (user.getRole() != UserRole.SUPERUSER) {
