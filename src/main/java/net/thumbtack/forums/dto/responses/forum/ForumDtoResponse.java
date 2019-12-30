@@ -1,7 +1,8 @@
 package net.thumbtack.forums.dto.responses.forum;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import net.thumbtack.forums.model.enums.ForumType;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.Objects;
 
@@ -10,6 +11,9 @@ public class ForumDtoResponse {
     private int id;
     private String name;
     private ForumType type;
+
+    ForumDtoResponse() {
+    }
 
     public ForumDtoResponse(int id, String name, ForumType type) {
         this.id = id;
@@ -27,6 +31,18 @@ public class ForumDtoResponse {
 
     public ForumType getType() {
         return type;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setType(ForumType type) {
+        this.type = type;
     }
 
     @Override

@@ -186,6 +186,28 @@ class ForumControllerTest {
     }
 
     @Test
+    void testDeleteForum_forumNotFound_shouldReturnExceptionDto() throws Exception {
+        final int forumId = 132;
+        when(mockForumService.deleteForum(anyString(), anyInt()))
+                .thenThrow(new ServerException(ErrorCode.FORUM_NOT_FOUND));
+
+        mvc.perform(
+                delete("/api/forums/{forum_id}", forumId)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORUM_NOT_FOUND.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockForumService).deleteForum(anyString(), anyInt());
+    }
+
+    @Test
     void testDeleteForum_userPermanentlyBanned_shouldReturnExceptionDto() throws Exception {
         when(mockForumService.deleteForum(anyString(), anyInt()))
                 .thenThrow(new ServerException(ErrorCode.USER_PERMANENTLY_BANNED));
@@ -201,6 +223,8 @@ class ForumControllerTest {
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.USER_PERMANENTLY_BANNED.name()))
                 .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockForumService).deleteForum(anyString(), anyInt());
     }
 
     @Test
@@ -219,6 +243,8 @@ class ForumControllerTest {
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
                 .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockForumService).deleteForum(anyString(), anyInt());
     }
 
     @Test

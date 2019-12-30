@@ -10,6 +10,7 @@ import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserStatus;
 import net.thumbtack.forums.exception.ErrorCode;
 
+import net.thumbtack.forums.exception.RequestFieldName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -214,7 +215,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
             );
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains("password"));
+            assertTrue(ce.getResponseBodyAsString().contains(RequestFieldName.PASSWORD.getName()));
         }
     }
 
@@ -440,7 +441,6 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                 SERVER_URL + "/users", registerRequest1, UserDtoResponse.class
         );
         int userId1 = registerResponse.getBody().getId();
-        String userCookie1 = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
                 "admin", "admin_strong_pass"
@@ -448,7 +448,6 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         ResponseEntity<UserDtoResponse> loginResponse = restTemplate.postForEntity(
                 SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class
         );
-        int superUserId = loginResponse.getBody().getId();
         String superUserCookie = loginResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -508,6 +507,47 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                     httpEntity,
                     EmptyDtoResponse.class,
                     userId1
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.name()));
+        }
+    }
+
+    @Test
+    void testBanUser_tryingToBanSuperuser_shouldReturnBadRequest() {
+        RegisterUserDtoRequest registerRequest1 = new RegisterUserDtoRequest(
+                "user1", "user1@email.com", "w3ryStr0nGPa55wD"
+        );
+        ResponseEntity<UserDtoResponse> registerResponse = restTemplate.postForEntity(
+                SERVER_URL + "/users", registerRequest1, UserDtoResponse.class
+        );
+        int userId1 = registerResponse.getBody().getId();
+        String userCookie1 = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+        LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        ResponseEntity<UserDtoResponse> loginResponse = restTemplate.postForEntity(
+                SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class
+        );
+        int superUserId = loginResponse.getBody().getId();
+        String superUserCookie = loginResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, superUserCookie);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        restTemplate.exchange(
+                SERVER_URL + "/users/{user}/super", HttpMethod.PUT, httpEntity,
+                EmptyDtoResponse.class, userId1
+        );
+
+        try {
+            restTemplate.exchange(
+                    SERVER_URL + "/users/{user}/restrict", HttpMethod.POST, httpEntity,
+                    EmptyDtoResponse.class, userId1
             );
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());

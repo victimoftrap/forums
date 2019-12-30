@@ -4,8 +4,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.SpringApplication;
 
 @SpringBootApplication
-public class ForumApplication {
+public class ForumsServer {
     public static void main(String[] args) {
-        SpringApplication.run(ForumApplication.class);
+        SpringApplication.run(ForumsServer.class);
     }
 }
