@@ -294,6 +294,7 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).deleteUser(anyString());
@@ -314,6 +315,7 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORUM_NOT_FOUND.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).deleteUser(anyString());
@@ -509,6 +511,7 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).madeSuperuser(anyString(), anyInt());
@@ -614,6 +617,7 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).getUsers(anyString());
@@ -652,6 +656,7 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).banUser(anyString(), anyInt());
@@ -672,6 +677,7 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).banUser(anyString(), anyInt());
@@ -692,6 +698,7 @@ class UserControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockUserService).banUser(anyString(), anyInt());

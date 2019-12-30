@@ -114,6 +114,9 @@ public interface UserMapper {
     @Update("UPDATE users SET deleted = TRUE WHERE id = #{id}")
     void deactivateById(int id);
 
+    @Delete("DELETE FROM users WHERE username <> 'admin'")
+    void deleteAllWithoutAdmin();
+
     @Delete("DELETE FROM users")
     void deleteAll();
 }

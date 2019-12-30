@@ -206,7 +206,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
-                getUserMapper(sqlSession).deleteAll();
+                getUserMapper(sqlSession).deleteAllWithoutAdmin();
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable delete all users from database", ex);
 
