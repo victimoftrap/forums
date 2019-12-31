@@ -150,7 +150,7 @@ public class MessageService extends ServiceBase {
         checkIsForumReadOnly(forum);
 
         if (!deletingMessage.getChildrenComments().isEmpty()) {
-            throw new ServerException(ErrorCode.MESSAGE_NOT_DELETED);
+            throw new ServerException(ErrorCode.MESSAGE_HAS_COMMENTS);
         }
 
         if (deletingMessage.getParentMessage() == null) {

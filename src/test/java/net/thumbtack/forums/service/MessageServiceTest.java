@@ -527,7 +527,7 @@ class MessageServiceTest {
         try {
             messageService.deleteMessage(token, messageId);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.MESSAGE_NOT_DELETED, se.getErrorCode());
+            assertEquals(ErrorCode.MESSAGE_HAS_COMMENTS, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
