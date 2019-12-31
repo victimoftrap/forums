@@ -1,5 +1,6 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.exception.RequestFieldName;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.service.MessageService;
 import net.thumbtack.forums.dto.requests.message.CreateCommentDtoRequest;
@@ -22,6 +23,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.servlet.http.Cookie;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -75,7 +77,7 @@ class MessageControllerTest {
                 .addComment(anyString(), anyInt(), any(CreateCommentDtoRequest.class));
     }
 
-    static Stream<Arguments> createCommentParams() {
+    static Stream<Arguments> createCommentInvalidParams() {
         return Stream.of(
                 null,
                 Arguments.arguments("")
@@ -83,9 +85,9 @@ class MessageControllerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("createCommentParams")
-    void testCreateComment_invalidBodyParams_shouldReturnExceptionDto(String body) throws Exception {
-        final CreateCommentDtoRequest request = new CreateCommentDtoRequest(body);
+    @MethodSource("createCommentInvalidParams")
+    void testCreateComment_invalidBodyParams_shouldReturnExceptionDto(String invalidBody) throws Exception {
+        final CreateCommentDtoRequest request = new CreateCommentDtoRequest(invalidBody);
         mvc.perform(
                 post("/api/messages/{id}", 123)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -97,7 +99,7 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value("body"))
+                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.MESSAGE_BODY.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockMessageService, never())

@@ -95,8 +95,7 @@ class ForumControllerTest {
                 .createForum(anyString(), any(CreateForumDtoRequest.class));
     }
 
-
-    static Stream<Arguments> createForumParams() {
+    static Stream<Arguments> createForumParamsInvalidParams() {
         return Stream.of(
                 Arguments.arguments(
                         null,
@@ -122,7 +121,7 @@ class ForumControllerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("createForumParams")
+    @MethodSource("createForumParamsInvalidParams")
     void testCreateForum_wrongForumParams_shouldReturnExceptionDto(
             String forumName, String forumType, RequestFieldName requestFieldName
     ) throws Exception {
@@ -151,7 +150,7 @@ class ForumControllerTest {
         verifyZeroInteractions(mockForumService);
     }
 
-    static Stream<Arguments> createForumErrorParams() {
+    static Stream<Arguments> createForumServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
                 Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
@@ -160,7 +159,7 @@ class ForumControllerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("createForumErrorParams")
+    @MethodSource("createForumServiceExceptions")
     void testCreateForum_errorOccurred_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         final CreateForumDtoRequest request = new CreateForumDtoRequest(
                 "testForum", ForumType.UNMODERATED.name()
@@ -479,7 +478,44 @@ class ForumControllerTest {
                 .addMessage(anyString(), anyInt(), any(CreateMessageDtoRequest.class));
     }
 
-    static Stream<Arguments> createMessageParams() {
+    static Stream<Arguments> createMessageInvalidParams() {
+        return Stream.of(
+                Arguments.arguments(null, "Body", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
+                Arguments.arguments("", "Body", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
+                Arguments.arguments("Subject", null, MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_BODY),
+                Arguments.arguments("Subject", "", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_BODY),
+                Arguments.arguments("Subject", "Body", "EXTRA-HIGH", RequestFieldName.MESSAGE_PRIORITY)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("createMessageInvalidParams")
+    void testCreateMessage_invalidRequestParams_shouldReturnExceptionDto(
+            String subject, String body, String priority, RequestFieldName errorFieldName
+    ) throws Exception {
+        final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
+                subject, body, priority, Collections.emptyList()
+        );
+
+        mvc.perform(
+                post("/api/forums/{forum_id}/messages", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorFieldName.getName()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService, never())
+                .addMessage(anyString(), anyInt(), any(CreateMessageDtoRequest.class));
+    }
+
+    static Stream<Arguments> createMessageErrors() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
                 Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
@@ -490,7 +526,7 @@ class ForumControllerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("createMessageParams")
+    @MethodSource("createMessageErrors")
     void testCreateMessage_errorOccurred_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
                 "Subject", "Body", MessagePriority.NORMAL.name(), Collections.emptyList()
