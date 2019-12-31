@@ -16,7 +16,7 @@ public class UserDetailsDtoResponse {
     private boolean online;
     private boolean deleted;
     private Boolean isSuper;
-    private UserStatus status;
+    private String status;
     private LocalDateTime timeBanExit;
     private int banCount;
 
@@ -29,7 +29,7 @@ public class UserDetailsDtoResponse {
             @JsonProperty("online") boolean online,
             @JsonProperty("deleted") boolean deleted,
             @JsonProperty("super") Boolean isSuper,
-            @JsonProperty("status") UserStatus status,
+            @JsonProperty("status") String status,
             @JsonProperty("timeBanExit") LocalDateTime timeBanExit,
             @JsonProperty("banCount") int banCount) {
         this.id = id;
@@ -72,7 +72,7 @@ public class UserDetailsDtoResponse {
         return isSuper;
     }
 
-    public UserStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 

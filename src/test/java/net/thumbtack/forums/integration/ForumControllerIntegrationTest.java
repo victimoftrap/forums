@@ -39,7 +39,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         String userCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
-                "ForumName", ForumType.UNMODERATED
+                "ForumName", ForumType.UNMODERATED.name()
         );
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -66,7 +66,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         String userCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
-                "", ForumType.UNMODERATED
+                "", ForumType.UNMODERATED.name()
         );
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -96,7 +96,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         String userCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
-                "ForumName", ForumType.UNMODERATED
+                "ForumName", ForumType.UNMODERATED.name()
         );
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -117,7 +117,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         ForumInfoDtoResponse response = forumInfoResponse.getBody();
         assertEquals(createForumResponse.getBody().getId(), response.getId());
         assertEquals(createForumResponse.getBody().getName(), response.getName());
-        assertEquals(createForumResponse.getBody().getType().name(), response.getType());
+        assertEquals(createForumResponse.getBody().getType(), response.getType());
         assertEquals(registerRequest.getName(), response.getCreatorName());
         assertFalse(response.isReadonly());
     }
@@ -133,7 +133,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         String userCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
-                "ForumName", ForumType.UNMODERATED
+                "ForumName", ForumType.UNMODERATED.name()
         );
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -202,7 +202,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         String userCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
-                "ForumName", ForumType.UNMODERATED
+                "ForumName", ForumType.UNMODERATED.name()
         );
 
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -278,7 +278,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         String otherUserCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
-                "ForumName", ForumType.UNMODERATED
+                "ForumName", ForumType.UNMODERATED.name()
         );
 
         HttpHeaders forumCreatorHttpHeaders = new HttpHeaders();
@@ -317,7 +317,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         String forumCreatorCookie = registerResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
         CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
-                "ForumName", ForumType.UNMODERATED
+                "ForumName", ForumType.UNMODERATED.name()
         );
 
         HttpHeaders forumCreatorHttpHeaders = new HttpHeaders();

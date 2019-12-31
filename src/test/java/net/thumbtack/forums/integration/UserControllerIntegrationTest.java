@@ -7,7 +7,7 @@ import net.thumbtack.forums.dto.responses.user.UserDetailsDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
-import net.thumbtack.forums.dto.responses.user.UserStatus;
+import net.thumbtack.forums.model.enums.UserStatus;
 import net.thumbtack.forums.exception.ErrorCode;
 
 import net.thumbtack.forums.exception.RequestFieldName;
@@ -255,14 +255,14 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         List<UserDetailsDtoResponse> userDetails = usersResponse.getBody().getUsers();
         assertEquals(3, userDetails.size());
         assertEquals("admin", userDetails.get(0).getName());
-        assertEquals(UserStatus.FULL, userDetails.get(0).getStatus());
+        assertEquals(UserStatus.FULL.name(), userDetails.get(0).getStatus());
         assertEquals(0, userDetails.get(0).getBanCount());
         assertFalse(userDetails.get(0).isDeleted());
         assertNull(userDetails.get(0).isSuper());
         assertNull(userDetails.get(0).getTimeBanExit());
 
         assertEquals(userId1, userDetails.get(1).getId());
-        assertEquals(UserStatus.FULL, userDetails.get(1).getStatus());
+        assertEquals(UserStatus.FULL.name(), userDetails.get(1).getStatus());
         assertEquals(0, userDetails.get(1).getBanCount());
         assertTrue(userDetails.get(1).isOnline());
         assertFalse(userDetails.get(1).isDeleted());
@@ -271,7 +271,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         assertNull(userDetails.get(1).getTimeBanExit());
 
         assertEquals(userId2, userDetails.get(2).getId());
-        assertEquals(UserStatus.FULL, userDetails.get(2).getStatus());
+        assertEquals(UserStatus.FULL.name(), userDetails.get(2).getStatus());
         assertEquals(0, userDetails.get(2).getBanCount());
         assertTrue(userDetails.get(2).isOnline());
         assertFalse(userDetails.get(2).isDeleted());
@@ -323,7 +323,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         List<UserDetailsDtoResponse> userDetails = usersResponse.getBody().getUsers();
         assertEquals(3, userDetails.size());
         assertEquals("admin", userDetails.get(0).getName());
-        assertEquals(UserStatus.FULL, userDetails.get(0).getStatus());
+        assertEquals(UserStatus.FULL.name(), userDetails.get(0).getStatus());
         assertEquals(0, userDetails.get(0).getBanCount());
         assertTrue(userDetails.get(0).isOnline());
         assertFalse(userDetails.get(0).isDeleted());
@@ -331,7 +331,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         assertNull(userDetails.get(0).getTimeBanExit());
 
         assertEquals(userId1, userDetails.get(1).getId());
-        assertEquals(UserStatus.FULL, userDetails.get(1).getStatus());
+        assertEquals(UserStatus.FULL.name(), userDetails.get(1).getStatus());
         assertEquals(registerRequest1.getEmail(), userDetails.get(1).getEmail());
         assertEquals(0, userDetails.get(1).getBanCount());
         assertTrue(userDetails.get(1).isOnline());
@@ -340,7 +340,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         assertNull(userDetails.get(1).getTimeBanExit());
 
         assertEquals(userId2, userDetails.get(2).getId());
-        assertEquals(UserStatus.FULL, userDetails.get(2).getStatus());
+        assertEquals(UserStatus.FULL.name(), userDetails.get(2).getStatus());
         assertEquals(registerRequest2.getEmail(), userDetails.get(2).getEmail());
         assertEquals(0, userDetails.get(2).getBanCount());
         assertTrue(userDetails.get(2).isOnline());
@@ -472,7 +472,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         );
         List<UserDetailsDtoResponse> userDetails = usersResponse.getBody().getUsers();
         assertEquals(userId1, userDetails.get(1).getId());
-        assertEquals(UserStatus.LIMITED, userDetails.get(1).getStatus());
+        assertEquals(UserStatus.LIMITED.name(), userDetails.get(1).getStatus());
     }
 
     @Test

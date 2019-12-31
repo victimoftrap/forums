@@ -15,6 +15,7 @@ import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
+import net.thumbtack.forums.model.enums.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -861,22 +862,22 @@ class UserServiceTest {
 
         final UserDetailsDtoResponse response0 = new UserDetailsDtoResponse(
                 user0.getId(), user0.getUsername(), null, user0.getRegisteredAt(),
-                true, user0.isDeleted(), null, UserStatus.FULL,
+                true, user0.isDeleted(), null, UserStatus.FULL.name(),
                 user0.getBannedUntil(), user0.getBanCount()
         );
         final UserDetailsDtoResponse response1 = new UserDetailsDtoResponse(
                 user1.getId(), user1.getUsername(), null, user1.getRegisteredAt(),
-                false, user1.isDeleted(), null, UserStatus.FULL,
+                false, user1.isDeleted(), null, UserStatus.FULL.name(),
                 user1.getBannedUntil(), user1.getBanCount()
         );
         final UserDetailsDtoResponse response2 = new UserDetailsDtoResponse(
                 user2.getId(), user2.getUsername(), null, user2.getRegisteredAt(),
-                true, user2.isDeleted(), null, UserStatus.FULL,
+                true, user2.isDeleted(), null, UserStatus.FULL.name(),
                 user2.getBannedUntil(), user2.getBanCount()
         );
         final UserDetailsDtoResponse response3 = new UserDetailsDtoResponse(
                 superuser.getId(), superuser.getUsername(), null, superuser.getRegisteredAt(),
-                true, superuser.isDeleted(), null, UserStatus.FULL,
+                true, superuser.isDeleted(), null, UserStatus.FULL.name(),
                 superuser.getBannedUntil(), superuser.getBanCount()
         );
         final UserDetailsListDtoResponse expectedResponse = new UserDetailsListDtoResponse(
@@ -920,22 +921,22 @@ class UserServiceTest {
 
         final UserDetailsDtoResponse response0 = new UserDetailsDtoResponse(
                 user0.getId(), user0.getUsername(), user0.getEmail(), user0.getRegisteredAt(),
-                true, user0.isDeleted(), false, UserStatus.FULL,
+                true, user0.isDeleted(), false, UserStatus.FULL.name(),
                 user0.getBannedUntil(), user0.getBanCount()
         );
         final UserDetailsDtoResponse response1 = new UserDetailsDtoResponse(
                 user1.getId(), user1.getUsername(), user1.getEmail(), user1.getRegisteredAt(),
-                false, user1.isDeleted(), false, UserStatus.FULL,
+                false, user1.isDeleted(), false, UserStatus.FULL.name(),
                 user1.getBannedUntil(), user1.getBanCount()
         );
         final UserDetailsDtoResponse response2 = new UserDetailsDtoResponse(
                 user2.getId(), user2.getUsername(), user2.getEmail(), user2.getRegisteredAt(),
-                true, user2.isDeleted(), false, UserStatus.FULL,
+                true, user2.isDeleted(), false, UserStatus.FULL.name(),
                 user2.getBannedUntil(), user2.getBanCount()
         );
         final UserDetailsDtoResponse response3 = new UserDetailsDtoResponse(
                 superuser.getId(), superuser.getUsername(), superuser.getEmail(), superuser.getRegisteredAt(),
-                true, superuser.isDeleted(), true, UserStatus.FULL,
+                true, superuser.isDeleted(), true, UserStatus.FULL.name(),
                 superuser.getBannedUntil(), superuser.getBanCount()
         );
         final UserDetailsListDtoResponse expectedResponse = new UserDetailsListDtoResponse(

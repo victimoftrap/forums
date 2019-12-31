@@ -1,16 +1,18 @@
-package net.thumbtack.forums.validator;
+package net.thumbtack.forums.validator.user;
 
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
+import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.regex.Pattern;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
-public class ForumNamePatternValidator implements ConstraintValidator<ForumNamePattern, String> {
+@Component
+public class UsernamePatternValidator implements ConstraintValidator<UsernamePattern, String> {
     private ServerConfigurationProperties props;
-    private Pattern forumNamePattern;
+    private Pattern usernamePattern;
     private String message;
 
     @Autowired
@@ -19,20 +21,22 @@ public class ForumNamePatternValidator implements ConstraintValidator<ForumNameP
     }
 
     @Override
-    public void initialize(ForumNamePattern constraintAnnotation) {
-        final String usernameRegex = "^[\\p{Alpha}\\p{IsCyrillic}]+$";
-        forumNamePattern = Pattern.compile(usernameRegex);
+    public void initialize(UsernamePattern constraintAnnotation) {
+        final String usernameRegex = "^[\\p{Alpha}\\p{Digit}\\p{IsCyrillic}]+$";
+        usernamePattern = Pattern.compile(usernameRegex);
+
         message = String.format(constraintAnnotation.message(), props.getMaxNameLength());
     }
 
     @Override
-    public boolean isValid(String forumName, ConstraintValidatorContext constraintValidatorContext) {
+    public boolean isValid(String username, ConstraintValidatorContext constraintValidatorContext) {
         constraintValidatorContext.disableDefaultConstraintViolation();
         constraintValidatorContext
                 .buildConstraintViolationWithTemplate(message)
                 .addConstraintViolation();
-        return forumName != null
-                && forumNamePattern.matcher(forumName).matches()
-                && forumName.length() < props.getMaxNameLength();
+
+        return username != null
+                && usernamePattern.matcher(username).matches()
+                && username.length() < props.getMaxNameLength();
     }
 }

@@ -2,6 +2,7 @@ package net.thumbtack.forums.service;
 
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
@@ -44,11 +45,11 @@ public class ForumService extends ServiceBase {
         checkUserBanned(requesterUser);
 
         final Forum forum = new Forum(
-                request.getType(), requesterUser, request.getName(),
+                ForumType.valueOf(request.getType()), requesterUser, request.getName(),
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         forumDao.save(forum);
-        return new ForumDtoResponse(forum.getId(), forum.getName(), forum.getType());
+        return new ForumDtoResponse(forum.getId(), forum.getName(), forum.getType().name());
     }
 
     public EmptyDtoResponse deleteForum(

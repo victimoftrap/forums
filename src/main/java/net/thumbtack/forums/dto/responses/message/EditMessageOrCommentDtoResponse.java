@@ -1,17 +1,19 @@
 package net.thumbtack.forums.dto.responses.message;
 
-import net.thumbtack.forums.model.enums.MessageState;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Objects;
 
 public class EditMessageOrCommentDtoResponse {
-    private MessageState state;
+    private String state;
 
-    public EditMessageOrCommentDtoResponse(MessageState state) {
+    @JsonCreator
+    public EditMessageOrCommentDtoResponse(@JsonProperty("state") String state) {
         this.state = state;
     }
 
-    public MessageState getState() {
+    public String getState() {
         return state;
     }
 

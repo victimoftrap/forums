@@ -44,7 +44,9 @@ class ForumServiceTest {
     @Test
     void testCreateForum() throws ServerException {
         final String token = "token";
-        final CreateForumDtoRequest request = new CreateForumDtoRequest("testForum", ForumType.UNMODERATED);
+        final CreateForumDtoRequest request = new CreateForumDtoRequest(
+                "testForum", ForumType.UNMODERATED.name()
+        );
         final User user = new User("user", "user@email.com", "password=pass");
         final Forum forum = new Forum(
                 123, request.getType(), user, request.getName(),
@@ -73,7 +75,9 @@ class ForumServiceTest {
     @Test
     void testCreateForum_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String token = "token";
-        final CreateForumDtoRequest request = new CreateForumDtoRequest("testForum", ForumType.UNMODERATED);
+        final CreateForumDtoRequest request = new CreateForumDtoRequest(
+                "testForum", ForumType.UNMODERATED.name()
+        );
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
 
@@ -89,7 +93,9 @@ class ForumServiceTest {
     @Test
     void testCreateForum_userBanned_shouldThrowException() throws ServerException {
         final String token = "token";
-        final CreateForumDtoRequest request = new CreateForumDtoRequest("testForum", ForumType.UNMODERATED);
+        final CreateForumDtoRequest request = new CreateForumDtoRequest(
+                "testForum", ForumType.UNMODERATED.name()
+        );
         final User user = new User("user", "user@email.com", "password=pass");
         user.setBannedUntil(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         user.setBanCount(1);
@@ -247,7 +253,7 @@ class ForumServiceTest {
         final ForumInfoDtoResponse response = forumService.getForum(token, forumId);
         assertEquals(forum.getId(), response.getId());
         assertEquals(forum.getName(), response.getName());
-        assertEquals(forum.getType(), response.getType());
+        assertEquals(forum.getType().name(), response.getType());
         assertEquals(forum.getOwner().getUsername(), response.getCreatorName());
         assertEquals(forum.isReadonly(), response.isReadonly());
 
@@ -342,17 +348,17 @@ class ForumServiceTest {
         final List<ForumInfoDtoResponse> forumListResponse = response.getForums();
         assertEquals(forum1.getName(), forumListResponse.get(0).getName());
         assertEquals(forum1.getOwner().getUsername(), forumListResponse.get(0).getCreatorName());
-        assertEquals(forum1.getType(), forumListResponse.get(0).getType());
+        assertEquals(forum1.getType().name(), forumListResponse.get(0).getType());
         assertEquals(forum1.isReadonly(), forumListResponse.get(0).isReadonly());
 
         assertEquals(forum2.getName(), forumListResponse.get(1).getName());
         assertEquals(forum2.getOwner().getUsername(), forumListResponse.get(1).getCreatorName());
-        assertEquals(forum2.getType(), forumListResponse.get(1).getType());
+        assertEquals(forum2.getType().name(), forumListResponse.get(1).getType());
         assertEquals(forum2.isReadonly(), forumListResponse.get(1).isReadonly());
 
         assertEquals(forum3.getName(), forumListResponse.get(2).getName());
         assertEquals(forum3.getOwner().getUsername(), forumListResponse.get(2).getCreatorName());
-        assertEquals(forum3.getType(), forumListResponse.get(2).getType());
+        assertEquals(forum3.getType().name(), forumListResponse.get(2).getType());
         assertEquals(forum3.isReadonly(), forumListResponse.get(2).isReadonly());
     }
 

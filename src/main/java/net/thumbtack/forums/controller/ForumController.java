@@ -1,12 +1,15 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.service.ForumService;
+import net.thumbtack.forums.service.MessageService;
+import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
+import net.thumbtack.forums.dto.requests.message.CreateMessageDtoRequest;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.service.ForumService;
-import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
-import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +22,14 @@ import javax.validation.Valid;
 @RequestMapping("/api/forums")
 public class ForumController {
     private final ForumService forumService;
+    private final MessageService messageService;
     private final String COOKIE_NAME = "JAVASESSIONID";
 
     @Autowired
-    public ForumController(final ForumService forumService) {
+    public ForumController(final ForumService forumService,
+                           final MessageService messageService) {
         this.forumService = forumService;
+        this.messageService = messageService;
     }
 
     @PostMapping(
@@ -65,5 +71,17 @@ public class ForumController {
     public ResponseEntity<ForumInfoListDtoResponse> getAll(
             @CookieValue(value = COOKIE_NAME) String token) throws ServerException {
         return ResponseEntity.ok(forumService.getForums(token));
+    }
+
+    @PostMapping(
+            value = "/{forum_id}/messages",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<MessageDtoResponse> createMessage(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @PathVariable("forum_id") int forumId,
+            @RequestBody @Valid CreateMessageDtoRequest request) throws ServerException {
+        return ResponseEntity.ok(messageService.addMessage(token, forumId, request));
     }
 }

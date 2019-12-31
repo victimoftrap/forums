@@ -4,6 +4,7 @@ import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.model.enums.MessagePriority;
+import net.thumbtack.forums.model.enums.PublicationDecision;
 import net.thumbtack.forums.dao.*;
 import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
@@ -69,10 +70,12 @@ class MessageServiceTest {
         final int forumId = 1939;
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
                 "My new album", "I wrote new album",
-                MessagePriority.HIGH, null
+                MessagePriority.HIGH.name(), null
         );
         final int messageId = 9391;
-        final MessageDtoResponse expectedResponse = new MessageDtoResponse(messageId, MessageState.PUBLISHED);
+        final MessageDtoResponse expectedResponse = new MessageDtoResponse(
+                messageId, MessageState.PUBLISHED.name()
+        );
 
         when(mockSessionDao.getUserByToken(anyString())).thenReturn(user);
         when(mockForumDao.getById(anyInt())).thenReturn(forum);
@@ -103,7 +106,7 @@ class MessageServiceTest {
         final int forumId = 1939;
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
                 "Message Subject", "Message Body",
-                MessagePriority.HIGH, null
+                MessagePriority.HIGH.name(), null
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -135,7 +138,7 @@ class MessageServiceTest {
         final int forumId = 1939;
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
                 "Subject", "New message body",
-                MessagePriority.HIGH, null
+                MessagePriority.HIGH.name(), null
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -195,7 +198,7 @@ class MessageServiceTest {
 
         final MessageDtoResponse response = messageService.addComment(token, parentMessageId, request);
         assertEquals(childMessageId, response.getId());
-        assertEquals(MessageState.PUBLISHED, response.getState());
+        assertEquals(MessageState.PUBLISHED.name(), response.getState());
 
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
@@ -681,7 +684,7 @@ class MessageServiceTest {
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageHistoryDao).saveNewVersion(any(MessageItem.class));
         verify(mockMessageHistoryDao, never()).editLatestVersion(any(MessageItem.class));
-        assertEquals(expectedState, response.getState());
+        assertEquals(expectedState.name(), response.getState());
     }
 
     @Test
@@ -732,7 +735,7 @@ class MessageServiceTest {
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageHistoryDao, never()).saveNewVersion(any(MessageItem.class));
         verify(mockMessageHistoryDao).editLatestVersion(any(MessageItem.class));
-        assertEquals(MessageState.UNPUBLISHED, response.getState());
+        assertEquals(MessageState.UNPUBLISHED.name(), response.getState());
     }
 
     @Test
@@ -836,7 +839,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
-                MessagePriority.HIGH
+                MessagePriority.HIGH.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -845,7 +848,7 @@ class MessageServiceTest {
                 .thenReturn(parentMessage);
         doAnswer(invocationOnMock -> {
             MessageTree aTree = invocationOnMock.getArgument(0);
-            aTree.setPriority(request.getPriority());
+            aTree.setPriority(MessagePriority.valueOf(request.getPriority()));
             return aTree;
         })
                 .when(mockMessageTreeDao)
@@ -889,7 +892,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
-                MessagePriority.HIGH
+                MessagePriority.HIGH.name()
         );
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(strangeGuy);
@@ -919,7 +922,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
-                MessagePriority.HIGH
+                MessagePriority.HIGH.name()
         );
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(bannedUser);
@@ -978,7 +981,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL, null
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
         final int newBranchId = 1984;
 
@@ -1044,7 +1047,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL, null
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1076,7 +1079,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL, null
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(forumOwner);
@@ -1136,7 +1139,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL, null
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1166,7 +1169,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL, null
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1192,7 +1195,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL, null
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(null);
@@ -1239,7 +1242,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES
+                PublicationDecision.YES.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1303,7 +1306,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.NO
+                PublicationDecision.NO.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1371,7 +1374,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.NO
+                PublicationDecision.NO.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1438,7 +1441,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.NO
+                PublicationDecision.NO.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1495,7 +1498,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES
+                PublicationDecision.YES.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1556,7 +1559,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES
+                PublicationDecision.YES.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
@@ -1593,7 +1596,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES
+                PublicationDecision.YES.name()
         );
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(null);
@@ -1630,7 +1633,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES
+                PublicationDecision.YES.name()
         );
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(forumOwner);
@@ -1672,7 +1675,7 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES
+                PublicationDecision.YES.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))

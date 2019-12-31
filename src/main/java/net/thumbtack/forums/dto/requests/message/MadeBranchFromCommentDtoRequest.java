@@ -1,6 +1,9 @@
 package net.thumbtack.forums.dto.requests.message;
 
-import net.thumbtack.forums.model.enums.MessagePriority;
+import net.thumbtack.forums.validator.message.AvailableMessagePriority;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.validation.constraints.NotBlank;
 import java.util.List;
@@ -8,12 +11,18 @@ import java.util.List;
 public class MadeBranchFromCommentDtoRequest {
     @NotBlank
     private String subject;
+
     @NotBlank
-    private MessagePriority priority;
+    @AvailableMessagePriority
+    private String priority;
+
     @NotBlank
     private List<String> tags;
 
-    public MadeBranchFromCommentDtoRequest(String subject, MessagePriority priority, List<String> tags) {
+    @JsonCreator
+    public MadeBranchFromCommentDtoRequest(@JsonProperty("subject") String subject,
+                                           @JsonProperty("priority") String priority,
+                                           @JsonProperty("tags") List<String> tags) {
         this.subject = subject;
         this.priority = priority;
         this.tags = tags;
@@ -23,7 +32,7 @@ public class MadeBranchFromCommentDtoRequest {
         return subject;
     }
 
-    public MessagePriority getPriority() {
+    public String getPriority() {
         return priority;
     }
 

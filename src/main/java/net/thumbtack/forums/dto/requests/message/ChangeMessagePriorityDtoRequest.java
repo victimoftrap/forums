@@ -1,18 +1,20 @@
 package net.thumbtack.forums.dto.requests.message;
 
-import net.thumbtack.forums.model.enums.MessagePriority;
+import net.thumbtack.forums.validator.message.AvailableMessagePriority;
 
-import javax.validation.constraints.NotBlank;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ChangeMessagePriorityDtoRequest {
-    @NotBlank
-    private MessagePriority priority;
+    @AvailableMessagePriority
+    private String priority;
 
-    public ChangeMessagePriorityDtoRequest(MessagePriority priority) {
+    @JsonCreator
+    public ChangeMessagePriorityDtoRequest(@JsonProperty("priority") String priority) {
         this.priority = priority;
     }
 
-    public MessagePriority getPriority() {
+    public String getPriority() {
         return priority;
     }
 }

@@ -1,5 +1,6 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.model.enums.UserStatus;
 import net.thumbtack.forums.service.UserService;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
@@ -524,14 +525,14 @@ class UserControllerTest {
                         1, "user1", null,
                         LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                         true, false, null,
-                        UserStatus.FULL, null, 0
+                        UserStatus.FULL.name(), null, 0
                 )
         );
         users.add(new UserDetailsDtoResponse(
                         2, "user2", null,
                         LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                         false, false, null,
-                        UserStatus.FULL, null, 0
+                        UserStatus.FULL.name(), null, 0
                 )
         );
         final UserDetailsListDtoResponse expectedUsersResponse = new UserDetailsListDtoResponse(users);
@@ -563,21 +564,21 @@ class UserControllerTest {
                         1, "user1", "user1@email.com",
                         LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                         true, false, false,
-                        UserStatus.FULL, null, 0
+                        UserStatus.FULL.name(), null, 0
                 )
         );
         users.add(new UserDetailsDtoResponse(
                         2, "user2", "user2@email.com",
                         LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                         false, false, true,
-                        UserStatus.FULL, null, 0
+                        UserStatus.FULL.name(), null, 0
                 )
         );
         users.add(new UserDetailsDtoResponse(
                         3, "user3", "user3@email.com",
                         LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                         false, true, false,
-                        UserStatus.FULL, null, 0
+                        UserStatus.FULL.name(), null, 0
                 )
         );
         final UserDetailsListDtoResponse expectedUsersResponse = new UserDetailsListDtoResponse(users);

@@ -1,7 +1,5 @@
 package net.thumbtack.forums.dto.responses.message;
 
-import net.thumbtack.forums.model.enums.MessageState;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -9,17 +7,21 @@ import java.util.Objects;
 
 public class MessageDtoResponse {
     private int id;
-    private MessageState state;
+    private String state;
 
     @JsonCreator
     public MessageDtoResponse(@JsonProperty("id") int id,
-                              @JsonProperty("state") MessageState state) {
+                              @JsonProperty("state") String state) {
         this.id = id;
         this.state = state;
     }
 
     public int getId() {
         return id;
+    }
+
+    public String getState() {
+        return state;
     }
 
     @Override
@@ -34,9 +36,5 @@ public class MessageDtoResponse {
     @Override
     public int hashCode() {
         return Objects.hash(getId(), getState());
-    }
-
-    public MessageState getState() {
-        return state;
     }
 }

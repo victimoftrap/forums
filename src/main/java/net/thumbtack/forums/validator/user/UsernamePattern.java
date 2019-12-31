@@ -1,4 +1,4 @@
-package net.thumbtack.forums.validator;
+package net.thumbtack.forums.validator.user;
 
 import java.lang.annotation.*;
 import javax.validation.Constraint;

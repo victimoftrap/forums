@@ -1,7 +1,7 @@
 package net.thumbtack.forums.dto.requests.user;
 
-import net.thumbtack.forums.validator.UsernamePattern;
-import net.thumbtack.forums.validator.PasswordPattern;
+import net.thumbtack.forums.validator.user.UsernamePattern;
+import net.thumbtack.forums.validator.user.PasswordPattern;
 
 import javax.validation.constraints.NotBlank;
 

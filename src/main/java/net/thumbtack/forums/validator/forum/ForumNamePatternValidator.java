@@ -1,18 +1,16 @@
-package net.thumbtack.forums.validator;
+package net.thumbtack.forums.validator.forum;
 
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
-import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.regex.Pattern;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
-@Component
-public class UsernamePatternValidator implements ConstraintValidator<UsernamePattern, String> {
+public class ForumNamePatternValidator implements ConstraintValidator<ForumNamePattern, String> {
     private ServerConfigurationProperties props;
-    private Pattern usernamePattern;
+    private Pattern forumNamePattern;
     private String message;
 
     @Autowired
@@ -21,22 +19,20 @@ public class UsernamePatternValidator implements ConstraintValidator<UsernamePat
     }
 
     @Override
-    public void initialize(UsernamePattern constraintAnnotation) {
-        final String usernameRegex = "^[\\p{Alpha}\\p{Digit}\\p{IsCyrillic}]+$";
-        usernamePattern = Pattern.compile(usernameRegex);
-
+    public void initialize(ForumNamePattern constraintAnnotation) {
+        final String usernameRegex = "^[\\p{Alpha}\\p{IsCyrillic} ]+$";
+        forumNamePattern = Pattern.compile(usernameRegex);
         message = String.format(constraintAnnotation.message(), props.getMaxNameLength());
     }
 
     @Override
-    public boolean isValid(String username, ConstraintValidatorContext constraintValidatorContext) {
+    public boolean isValid(String forumName, ConstraintValidatorContext constraintValidatorContext) {
         constraintValidatorContext.disableDefaultConstraintViolation();
         constraintValidatorContext
                 .buildConstraintViolationWithTemplate(message)
                 .addConstraintViolation();
-
-        return username != null
-                && usernamePattern.matcher(username).matches()
-                && username.length() < props.getMaxNameLength();
+        return forumName != null
+                && forumNamePattern.matcher(forumName).matches()
+                && forumName.length() < props.getMaxNameLength();
     }
 }

@@ -1,16 +1,12 @@
 package net.thumbtack.forums.service;
 
 import net.thumbtack.forums.model.*;
-import net.thumbtack.forums.model.enums.ForumType;
-import net.thumbtack.forums.model.enums.MessageOrder;
-import net.thumbtack.forums.model.enums.MessagePriority;
-import net.thumbtack.forums.model.enums.MessageState;
+import net.thumbtack.forums.model.enums.*;
 import net.thumbtack.forums.dao.*;
 import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.dto.responses.message.*;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.converter.TagConverter;
-import net.thumbtack.forums.converter.MessageConverter;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
@@ -24,7 +20,7 @@ import java.util.Collections;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
-@Service
+@Service("messageService")
 public class MessageService extends ServiceBase {
     private final MessageTreeDao messageTreeDao;
     private final MessageDao messageDao;
@@ -48,8 +44,8 @@ public class MessageService extends ServiceBase {
         this.serverProperties = serverProperties;
     }
 
-    private MessagePriority getMessagePriority(final MessagePriority priority) {
-        return priority == null ? MessagePriority.NORMAL : priority;
+    private MessagePriority getMessagePriority(final String priority) {
+        return priority == null ? MessagePriority.NORMAL : MessagePriority.valueOf(priority);
     }
 
     private MessageState getMessageStateByForumType(final ForumType type) {
@@ -105,7 +101,7 @@ public class MessageService extends ServiceBase {
         messageItem.setMessageTree(tree);
 
         messageTreeDao.saveMessageTree(tree);
-        return new MessageDtoResponse(messageItem.getId(), state);
+        return new MessageDtoResponse(messageItem.getId(), state.name());
     }
 
     public MessageDtoResponse addComment(
@@ -137,7 +133,7 @@ public class MessageService extends ServiceBase {
         );
 
         messageDao.saveMessageItem(messageItem);
-        return new MessageDtoResponse(messageItem.getId(), state);
+        return new MessageDtoResponse(messageItem.getId(), state.name());
     }
 
     public EmptyDtoResponse deleteMessage(
@@ -202,7 +198,7 @@ public class MessageService extends ServiceBase {
             messageState = MessageState.UNPUBLISHED;
             messageHistoryDao.editLatestVersion(editingMessage);
         }
-        return new EditMessageOrCommentDtoResponse(messageState);
+        return new EditMessageOrCommentDtoResponse(messageState.name());
     }
 
     public EmptyDtoResponse changeMessagePriority(
@@ -220,7 +216,7 @@ public class MessageService extends ServiceBase {
         checkIsForumReadOnly(forum);
 
         final MessageTree tree = editingMessage.getMessageTree();
-        tree.setPriority(request.getPriority());
+        tree.setPriority(getMessagePriority(request.getPriority()));
         messageTreeDao.changeBranchPriority(tree);
         return new EmptyDtoResponse();
     }
@@ -272,11 +268,12 @@ public class MessageService extends ServiceBase {
             throw new ServerException(ErrorCode.MESSAGE_ALREADY_PUBLISHED);
         }
 
-        if (request.getDecision() == PublicationDecision.YES) {
+        final PublicationDecision decision = PublicationDecision.valueOf(request.getDecision());
+        if (decision == PublicationDecision.YES) {
             latestHistoryToPublish.setState(MessageState.PUBLISHED);
             messageDao.publish(publishingMessage);
         }
-        if (request.getDecision() == PublicationDecision.NO) {
+        if (decision == PublicationDecision.NO) {
             if (messageHistory.size() > 1) {
                 messageHistoryDao.unpublishNewVersionBy(publishingMessage.getId());
             } else if (publishingMessage.getParentMessage() == null) {
