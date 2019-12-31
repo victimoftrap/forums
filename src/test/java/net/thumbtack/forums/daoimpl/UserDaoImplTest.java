@@ -173,6 +173,12 @@ class UserDaoImplTest extends DaoTestEnvironment {
 
     @Test
     void testGetAllUsers() throws ServerException {
+        User admin = new User(
+                1, UserRole.SUPERUSER, "admin",
+                "admin@example.com", "admin_strong_pass",
+                null, false
+        );
+
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -198,11 +204,24 @@ class UserDaoImplTest extends DaoTestEnvironment {
         userDao.save(user3);
 
         final List<User> users = userDao.getAll();
-        assertIterableEquals(Arrays.asList(user1, user2, user3), users);
+        assertEquals(4, users.size());
+
+        User actualAdmin = users.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
+        assertIterableEquals(Arrays.asList(user1, user2, user3), users.subList(1, users.size()));
     }
 
     @Test
     void testGetAllUsers_someUsersDeleted_shouldReturnOnlyEnabledUsers() throws ServerException {
+        User admin = new User(
+                1, UserRole.SUPERUSER, "admin",
+                "admin@example.com", "admin_strong_pass",
+                null, false
+        );
+
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -230,11 +249,24 @@ class UserDaoImplTest extends DaoTestEnvironment {
         userDao.deactivateById(user2.getId());
         final List<User> expectedUsers = Arrays.asList(user1, user3);
         final List<User> actualUsers = userDao.getAll(false);
-        assertEquals(expectedUsers, actualUsers);
+        assertEquals(3, actualUsers.size());
+
+        User actualAdmin = actualUsers.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
+        assertIterableEquals(expectedUsers, actualUsers.subList(1, actualUsers.size()));
     }
 
     @Test
     void testGetAllUsers_someUsersDeleted_shouldReturnAllUsers() throws ServerException {
+        User admin = new User(
+                1, UserRole.SUPERUSER, "admin",
+                "admin@example.com", "admin_strong_pass",
+                null, false
+        );
+
         User user1 = new User(
                 UserRole.SUPERUSER, "jolygolf",
                 "jolygolf@gmail.com", "pryadko",
@@ -271,7 +303,14 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 .stream()
                 .filter(User::isDeleted)
                 .collect(Collectors.toList());
-        assertEquals(expectedEnabledUsers, enabledUsers1);
+
+        User actualAdmin = enabledUsers1.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
+
+        assertEquals(expectedEnabledUsers, enabledUsers1.subList(1, 3));
         assertAll(
                 () -> assertEquals(expectedDeletedUsers.get(0).getId(), deletedUsers1.get(0).getId()),
                 () -> assertEquals(expectedDeletedUsers.get(0).getUsername(), deletedUsers1.get(0).getUsername()),
@@ -292,7 +331,14 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 .stream()
                 .filter(User::isDeleted)
                 .collect(Collectors.toList());
-        assertEquals(expectedEnabledUsers, enabledUsers2);
+
+        actualAdmin = enabledUsers2.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
+
+        assertEquals(expectedEnabledUsers, enabledUsers2.subList(1, 3));
         assertAll(
                 () -> assertEquals(expectedDeletedUsers.get(0).getId(), deletedUsers2.get(0).getId()),
                 () -> assertEquals(expectedDeletedUsers.get(0).getUsername(), deletedUsers2.get(0).getUsername()),
@@ -306,19 +352,52 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testGetAllUsers_noUsersExists_shouldReturnEmptyList() throws ServerException {
+    void testGetAllUsers_noUsersExists_shouldReturnListWithAdmin() throws ServerException {
+        User admin = new User(
+                UserRole.SUPERUSER, "admin",
+                "admin@example.com", "admin_strong_pass",
+                null, false
+        );
+        List<User> expectedUsers = Collections.singletonList(admin);
+
         List<User> selectedUsers = userDao.getAll();
-        assertEquals(Collections.EMPTY_LIST, selectedUsers);
+        assertEquals(expectedUsers.size(), selectedUsers.size());
+
+        User actualAdmin = selectedUsers.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
 
         selectedUsers = userDao.getAll(true);
-        assertEquals(Collections.EMPTY_LIST, selectedUsers);
+        assertEquals(expectedUsers.size(), selectedUsers.size());
+
+        actualAdmin = selectedUsers.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
 
         selectedUsers = userDao.getAll(false);
-        assertEquals(Collections.EMPTY_LIST, selectedUsers);
+        assertEquals(expectedUsers.size(), selectedUsers.size());
+
+        actualAdmin = selectedUsers.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
     }
 
     @Test
     void testGetAllUsersWithSessions() throws ServerException {
+        User admin = new User(
+                1, UserRole.SUPERUSER, "admin",
+                "admin@example.com", "admin_strong_pass",
+                null, false
+        );
+        UserSession adminSession = new UserSession(admin, UUID.randomUUID().toString());
+        sessionDao.upsertSession(adminSession);
+
         User user1 = new User(
                 UserRole.SUPERUSER, "user0",
                 "user0@gmail.com", "user0",
@@ -335,6 +414,7 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 false
         );
         userDao.save(user2);
+        // doesn't have session
 
         User user3 = new User(
                 UserRole.USER, "user2",
@@ -351,7 +431,13 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 user3Session
         );
         final List<UserSession> actualUsersWithSessions = userDao.getAllWithSessions();
-        assertEquals(expectedUsersWithSessions, actualUsersWithSessions);
+        UserSession actualAdminSession = actualUsersWithSessions.get(0);
+        assertEquals(adminSession.getToken(), actualAdminSession.getToken());
+        assertEquals(admin.getRole(), actualAdminSession.getUser().getRole());
+        assertEquals(admin.getEmail(), actualAdminSession.getUser().getEmail());
+        assertEquals(admin.getPassword(), actualAdminSession.getUser().getPassword());
+        assertEquals(admin.isDeleted(), actualAdminSession.getUser().isDeleted());
+        assertEquals(expectedUsersWithSessions, actualUsersWithSessions.subList(1, actualUsersWithSessions.size()));
     }
 
     @Test

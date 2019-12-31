@@ -1,5 +1,8 @@
 package net.thumbtack.forums.dto.responses.user;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -11,7 +14,8 @@ public class UserDetailsListDtoResponse {
         users = new ArrayList<>();
     }
 
-    public UserDetailsListDtoResponse(List<UserDetailsDtoResponse> users) {
+    @JsonCreator
+    public UserDetailsListDtoResponse(@JsonProperty("users") List<UserDetailsDtoResponse> users) {
         this.users = users;
     }
 
