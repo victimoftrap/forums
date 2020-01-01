@@ -230,6 +230,10 @@ public class MessageService extends ServiceBase {
         checkUserBanned(requesterUser);
 
         final MessageItem newRootMessage = getMessageById(messageId);
+        if (newRootMessage.getParentMessage() == null) {
+            throw new ServerException(ErrorCode.MESSAGE_ALREADY_BRANCH);
+        }
+
         final MessageTree oldTree = newRootMessage.getMessageTree();
         final Forum forum = oldTree.getForum();
 
@@ -257,7 +261,10 @@ public class MessageService extends ServiceBase {
 
         final MessageItem publishingMessage = getMessageById(messageId);
         final MessageTree tree = publishingMessage.getMessageTree();
-        final User forumOwner = tree.getForum().getOwner();
+        final Forum forum = tree.getForum();
+        checkIsForumReadOnly(forum);
+
+        final User forumOwner = forum.getOwner();
         if (!requesterUser.equals(forumOwner)) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }

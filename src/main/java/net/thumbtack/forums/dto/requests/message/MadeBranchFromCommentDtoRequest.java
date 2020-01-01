@@ -16,7 +16,6 @@ public class MadeBranchFromCommentDtoRequest {
     @AvailableMessagePriority
     private String priority;
 
-    @NotBlank
     private List<String> tags;
 
     @JsonCreator

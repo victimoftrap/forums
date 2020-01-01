@@ -1,11 +1,10 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.dto.requests.message.ChangeMessagePriorityDtoRequest;
-import net.thumbtack.forums.dto.requests.message.EditMessageOrCommentDtoRequest;
-import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
 import net.thumbtack.forums.service.MessageService;
-import net.thumbtack.forums.dto.requests.message.CreateCommentDtoRequest;
+import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
+import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ServerException;
 
@@ -66,15 +65,57 @@ public class MessageController {
     }
 
     @PutMapping(
-            value = "/{id}/priority",
+            value = "/{message}/priority",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<EmptyDtoResponse> changePriority(
             @CookieValue(value = COOKIE_NAME) String token,
-            @PathVariable("id") int id,
+            @PathVariable("message") int id,
             @RequestBody @Valid ChangeMessagePriorityDtoRequest request
     ) throws ServerException {
         return ResponseEntity.ok(messageService.changeMessagePriority(token, id, request));
+    }
+
+    @PutMapping(
+            value = "/{comment}/up",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<MadeBranchFromCommentDtoResponse> newBranch(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @PathVariable("comment") int id,
+            @RequestBody @Valid MadeBranchFromCommentDtoRequest request
+    ) throws ServerException {
+        return ResponseEntity
+                .ok(messageService.newBranchFromComment(token, id, request));
+    }
+
+    @PutMapping(
+            value = "/{id}/publish",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<EmptyDtoResponse> publish(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @PathVariable("id") int id,
+            @RequestBody @Valid PublicationDecisionDtoRequest request
+    ) throws ServerException {
+        return ResponseEntity
+                .ok(messageService.publish(token, id, request));
+    }
+
+    @PostMapping(
+            value = "/{id}/rating",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<EmptyDtoResponse> rate(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @PathVariable("id") int id,
+            @RequestBody @Valid RateMessageDtoRequest request
+    ) throws ServerException {
+        return ResponseEntity
+                .ok(messageService.rate(token, id, request));
     }
 }

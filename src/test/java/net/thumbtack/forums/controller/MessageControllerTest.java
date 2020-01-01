@@ -1,9 +1,11 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.model.enums.MessagePriority;
 import net.thumbtack.forums.model.enums.MessageState;
+import net.thumbtack.forums.model.enums.PublicationDecision;
 import net.thumbtack.forums.service.MessageService;
-import net.thumbtack.forums.dto.requests.message.CreateCommentDtoRequest;
-import net.thumbtack.forums.dto.requests.message.EditMessageOrCommentDtoRequest;
+import net.thumbtack.forums.dto.requests.message.*;
+import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
@@ -27,6 +29,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import javax.servlet.http.Cookie;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -225,7 +228,7 @@ class MessageControllerTest {
 
     @ParameterizedTest
     @MethodSource("commentBodyInvalidParams")
-    void testEditComment_exceptionsInService_shouldReturnExceptionDto(String invalidBody) throws Exception{
+    void testEditComment_exceptionsInService_shouldReturnExceptionDto(String invalidBody) throws Exception {
         final EditMessageOrCommentDtoRequest request = new EditMessageOrCommentDtoRequest(
                 invalidBody
         );
@@ -283,5 +286,377 @@ class MessageControllerTest {
 
         verify(mockMessageService)
                 .editMessage(anyString(), anyInt(), any(EditMessageOrCommentDtoRequest.class));
+    }
+
+    @Test
+    void testChangePriority() throws Exception {
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest("HIGH");
+
+        when(mockMessageService
+                .changeMessagePriority(
+                        anyString(), anyInt(), any(ChangeMessagePriorityDtoRequest.class)
+                )
+        )
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                put("/api/messages/{id}/priority", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string("{}"));
+
+        verify(mockMessageService)
+                .changeMessagePriority(
+                        anyString(), anyInt(), any(ChangeMessagePriorityDtoRequest.class)
+                );
+    }
+
+    static Stream<Arguments> changePriorityInvalidArguments() {
+        return Stream.of(
+                null,
+                Arguments.arguments(""),
+                Arguments.arguments("SUPER-DUPER")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("changePriorityInvalidArguments")
+    void testChangePriority_invalidPriorityParam_shouldReturnExceptionDto(String invalidPriority) throws Exception {
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(invalidPriority);
+
+        when(mockMessageService
+                .changeMessagePriority(
+                        anyString(), anyInt(), any(ChangeMessagePriorityDtoRequest.class)
+                )
+        )
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                put("/api/messages/{id}/priority", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.MESSAGE_PRIORITY.getName()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verifyZeroInteractions(mockMessageService);
+    }
+
+    static Stream<Arguments> changePriorityServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.USER_BANNED),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("changePriorityServiceExceptions")
+    void testChangePriority_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest("HIGH");
+        when(mockMessageService
+                .changeMessagePriority(
+                        anyString(), anyInt(),
+                        any(ChangeMessagePriorityDtoRequest.class)
+                )
+        )
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                put("/api/messages/{message}/priority", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService)
+                .changeMessagePriority(
+                        anyString(), anyInt(),
+                        any(ChangeMessagePriorityDtoRequest.class)
+                );
+    }
+
+    @Test
+    void testMadeNewBranch() throws Exception {
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "Subject", MessagePriority.LOW.name(), Collections.emptyList()
+        );
+        final MadeBranchFromCommentDtoResponse response = new MadeBranchFromCommentDtoResponse(123);
+
+        when(mockMessageService
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class))
+        )
+                .thenReturn(response);
+
+        mvc.perform(
+                put("/api/messages/{id}/up", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(response.getId()));
+
+        verify(mockMessageService)
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class));
+    }
+
+    static Stream<Arguments> newBranchInvalidParams() {
+        return Stream.of(
+                Arguments.arguments("", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
+                Arguments.arguments(null, MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
+                Arguments.arguments("Subject", "", RequestFieldName.MESSAGE_PRIORITY),
+                Arguments.arguments("Subject", null, RequestFieldName.MESSAGE_PRIORITY),
+                Arguments.arguments("Subject", "EXTRA_HIGH", RequestFieldName.MESSAGE_PRIORITY)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("newBranchInvalidParams")
+    void testMadeNewBranch_invalidParams_shouldReturnExceptionDto(
+        String subject, String priority, RequestFieldName errorFieldName
+    ) throws Exception {
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                subject, priority, Collections.emptyList()
+        );
+        final MadeBranchFromCommentDtoResponse response = new MadeBranchFromCommentDtoResponse(123);
+
+        when(mockMessageService
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class))
+        )
+                .thenReturn(response);
+
+        mvc.perform(
+                put("/api/messages/{id}/up", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorFieldName.getName()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verifyZeroInteractions(mockMessageService);
+    }
+
+    static Stream<Arguments> newBranchServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.USER_BANNED),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
+                Arguments.arguments(ErrorCode.MESSAGE_ALREADY_BRANCH),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("newBranchServiceExceptions")
+    void testMadeNewBranch_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "Subject", MessagePriority.LOW.name(), Collections.emptyList()
+        );
+        when(mockMessageService
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class))
+        )
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                put("/api/messages/{id}/up", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService)
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class));
+    }
+
+    @Test
+    void testPublishMessage() throws Exception {
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        );
+        when(mockMessageService.publish(anyString(), anyInt(), any(PublicationDecisionDtoRequest.class)))
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                put("/api/messages/{id}/publish", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string("{}"));
+
+        verify(mockMessageService)
+                .publish(anyString(), anyInt(), any(PublicationDecisionDtoRequest.class));
+    }
+
+    static Stream<Arguments> publicationInvalidParams() {
+        return Stream.of(
+                null,
+                Arguments.arguments(""),
+                Arguments.arguments("MAYBE TOMORROW")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("publicationInvalidParams")
+    void testPublishMessage_invalidParams_shouldReturnExceptionDto(String invalidDecision) throws Exception {
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(invalidDecision);
+        when(mockMessageService.publish(anyString(), anyInt(), any(PublicationDecisionDtoRequest.class)))
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                put("/api/messages/{id}/publish", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode")
+                        .value(ErrorCode.INVALID_REQUEST_DATA.name())
+                )
+                .andExpect(jsonPath("$.errors[0].field")
+                        .value(RequestFieldName.PUBLICATION_DECISION.getName())
+                )
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verifyZeroInteractions(mockMessageService);
+    }
+
+    static Stream<Arguments> publicationServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION),
+                Arguments.arguments(ErrorCode.MESSAGE_ALREADY_BRANCH)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("publicationServiceExceptions")
+    void testPublishMessage_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        );
+        when(mockMessageService.publish(anyString(), anyInt(), any(PublicationDecisionDtoRequest.class)))
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                put("/api/messages/{id}/publish", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService)
+                .publish(anyString(), anyInt(), any(PublicationDecisionDtoRequest.class));
+    }
+
+    @Test
+    void testRateMessage() throws Exception {
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
+        when(mockMessageService.rate(anyString(), anyInt(), any(RateMessageDtoRequest.class)))
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                post("/api/messages/{id}/rating", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string("{}"));
+
+        verify(mockMessageService)
+                .rate(anyString(), anyInt(), any(RateMessageDtoRequest.class));
+    }
+
+    static Stream<Arguments> rateMessageServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("rateMessageServiceExceptions")
+    void testRateMessage_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
+        when(mockMessageService.rate(anyString(), anyInt(), any(RateMessageDtoRequest.class)))
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                post("/api/messages/{id}/rating", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService)
+                .rate(anyString(), anyInt(), any(RateMessageDtoRequest.class));
     }
 }

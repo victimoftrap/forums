@@ -10,7 +10,8 @@ public enum RequestFieldName {
     FORUM_TYPE("type"),
     MESSAGE_SUBJECT("subject"),
     MESSAGE_BODY("body"),
-    MESSAGE_PRIORITY("priority");
+    MESSAGE_PRIORITY("priority"),
+    PUBLICATION_DECISION("decision");
 
     private String name;
 
