@@ -7,6 +7,7 @@ import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.UserRole;
 
+import org.apache.ibatis.exceptions.PersistenceException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -54,20 +55,6 @@ class UserDaoImplTest extends DaoTestEnvironment {
         assertAll(
                 () -> assertNotEquals(0, user.getId()),
                 () -> assertEquals(session, savedSession)
-        );
-    }
-
-    @Test
-    void testSaveUser_usernameAreNull_shouldNotCreateUser() {
-        final User user = new User(
-                UserRole.USER,
-                null, "shermental@gmail.com", "passwd",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
-                false
-        );
-
-        assertThrows(ServerException.class,
-                () -> userDao.save(user)
         );
     }
 
