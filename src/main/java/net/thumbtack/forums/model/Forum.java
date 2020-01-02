@@ -142,4 +142,18 @@ public class Forum {
         return Objects.hash(getId(), getType(), getOwner(), getName(), getCreatedAt(),
                 isReadonly(), getMessageCount(), getCommentCount());
     }
+
+    @Override
+    public String toString() {
+        return "Forum{" +
+                "id=" + id +
+                ", type=" + type +
+                ", owner=" + owner +
+                ", name='" + name + '\'' +
+                ", createdAt=" + createdAt +
+                ", readonly=" + readonly +
+                ", messageCount=" + messageCount +
+                ", commentCount=" + commentCount +
+                '}';
+    }
 }

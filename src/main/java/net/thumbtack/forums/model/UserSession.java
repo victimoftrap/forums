@@ -43,4 +43,12 @@ public class UserSession {
     public int hashCode() {
         return Objects.hash(getUser(), getToken());
     }
+
+    @Override
+    public String toString() {
+        return "UserSession{" +
+                "user=" + user +
+                ", token='" + token + '\'' +
+                '}';
+    }
 }

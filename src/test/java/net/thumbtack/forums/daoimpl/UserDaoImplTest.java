@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.User;
@@ -7,17 +8,13 @@ import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.UserRole;
 
-import org.apache.ibatis.exceptions.PersistenceException;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.Month;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,6 +37,29 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
+    void testSaveUsers_usersHaveSameNames_shouldThrowException() throws ServerException {
+        User user1 = new User(
+                UserRole.USER,
+                "SAMENAME", "user1@gmail.com", "passwd",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user1);
+
+        User user2 = new User(
+                UserRole.USER,
+                "SAMENAME", "user2@fastmail.com", "passwordX",
+                LocalDateTime.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        try {
+            userDao.save(user2);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_NAME_ALREADY_USED, se.getErrorCode());
+        }
+    }
+
+    @Test
     void testSaveUserAndHisSession() throws ServerException {
         User user = new User(
                 UserRole.USER,
@@ -56,6 +76,36 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 () -> assertNotEquals(0, user.getId()),
                 () -> assertEquals(session, savedSession)
         );
+    }
+
+    @Test
+    void testSaveUserAndHisSession_usersHaveSameNames_shouldThrowException() throws ServerException {
+        User user1 = new User(
+                UserRole.USER,
+                "SAMENAME", "shermental@gmail.com", "passwd",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        UserSession session1 = new UserSession(
+                user1, UUID.randomUUID().toString()
+        );
+        userDao.save(user1, session1);
+
+        User user2 = new User(
+                UserRole.USER,
+                "SAMENAME", "otheruser@fastmail.com", "passwordX",
+                LocalDateTime.now().plus(1, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        UserSession session2 = new UserSession(
+                user2, UUID.randomUUID().toString()
+        );
+
+        try {
+            userDao.save(user2, session2);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_NAME_ALREADY_USED, se.getErrorCode());
+        }
     }
 
     @Test

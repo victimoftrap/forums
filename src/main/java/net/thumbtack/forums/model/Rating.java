@@ -40,4 +40,12 @@ public class Rating {
     public int hashCode() {
         return Objects.hash(getRater(), getRating());
     }
+
+    @Override
+    public String toString() {
+        return "Rating{" +
+                "rater=" + rater +
+                ", rating=" + rating +
+                '}';
+    }
 }

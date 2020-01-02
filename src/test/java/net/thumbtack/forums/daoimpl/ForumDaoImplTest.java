@@ -1,5 +1,6 @@
 package net.thumbtack.forums.daoimpl;
 
+import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.User;
@@ -38,6 +39,50 @@ class ForumDaoImplTest extends DaoTestEnvironment {
                 () -> assertNotEquals(0, forum.getId()),
                 () -> assertEquals(forum, savedForum)
         );
+    }
+
+    @Test
+    void testSaveNewForum_forumNameAlreadyUser_shouldThrowException() throws ServerException {
+        User user1 = new User(
+                UserRole.USER,
+                "g.house", "greg.house@gmail.com", "cuddy",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user1);
+
+        Forum forum1 = new Forum(
+                ForumType.UNMODERATED,
+                user1,
+                "USED_NAME",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false,
+                0, 0
+        );
+        forumDao.save(forum1);
+
+        User user2 = new User(
+                UserRole.USER,
+                "e.foreman", "house_lite@gmail.com", "thirteen",
+                LocalDateTime.now().plus(1, ChronoUnit.WEEKS).truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user2);
+
+        Forum forumWithUsedName = new Forum(
+                ForumType.UNMODERATED,
+                user2,
+                "USED_NAME",
+                LocalDateTime.now().plus(1, ChronoUnit.WEEKS).truncatedTo(ChronoUnit.SECONDS),
+                false,
+                0, 0
+        );
+
+        try {
+            forumDao.save(forumWithUsedName);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORUM_NAME_ALREADY_USED, se.getErrorCode());
+        }
     }
 
     @Test
