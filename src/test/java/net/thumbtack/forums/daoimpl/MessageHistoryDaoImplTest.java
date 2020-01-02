@@ -60,7 +60,10 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
 
         final HistoryItem version2 = new HistoryItem(
                 "version 2.0", MessageState.UNPUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime
+                        .now()
+                        .plus(1, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         final List<HistoryItem> updatedVersions = Arrays.asList(version2, version1);
         messageItem.setHistory(updatedVersions);
@@ -86,7 +89,10 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
 
         final HistoryItem version2 = new HistoryItem(
                 "version 2.0", MessageState.UNPUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime
+                        .now()
+                        .plus(1, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         final List<HistoryItem> updatedVersions = Arrays.asList(version2, version1);
         messageItem.setHistory(updatedVersions);
@@ -116,7 +122,10 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
 
         final HistoryItem version2 = new HistoryItem(
                 "version 2.0", MessageState.UNPUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime
+                        .now()
+                        .plus(1, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         final List<HistoryItem> updatedVersions = Arrays.asList(version2, version1);
         messageItem.setHistory(updatedVersions);
