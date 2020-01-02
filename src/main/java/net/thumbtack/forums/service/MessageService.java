@@ -7,6 +7,7 @@ import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.dto.responses.message.*;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.converter.TagConverter;
+import net.thumbtack.forums.converter.MessageConverter;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
@@ -312,11 +313,25 @@ public class MessageService extends ServiceBase {
     public MessageInfoDtoResponse getMessage(
             final String token,
             final int messageId,
-            final boolean allVersions,
-            final boolean noComments,
-            final boolean unpublished,
+            final Boolean allVersions,
+            final Boolean noComments,
+            final Boolean unpublished,
             final String order
     ) throws ServerException {
-        return null;
+        getUserBySession(token);
+
+        final boolean realAllVersions = allVersions == null ? false : allVersions;
+        final boolean realNoComments = noComments == null ? false : noComments;
+        final boolean realUnpublished = unpublished == null ? false : unpublished;
+        final MessageOrder realOrder = order == null ? MessageOrder.DESC : MessageOrder.valueOf(order);
+
+        final MessageItem rootMessage = messageTreeDao.getTreeRootMessage(
+                messageId, realOrder,
+                realNoComments, realAllVersions, realUnpublished
+        );
+        if (rootMessage == null) {
+            throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
+        }
+        return MessageConverter.messageToResponse(rootMessage);
     }
 }

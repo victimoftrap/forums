@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(ServerException.class)
@@ -36,6 +39,22 @@ public class GlobalExceptionHandler {
                                 ErrorCode.INVALID_REQUEST_DATA,
                                 fieldError.getField(),
                                 fieldError.getDefaultMessage()
+                        ))
+                );
+        return exceptionResponse;
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ExceptionListDtoResponse handleMethodParameterException(final ConstraintViolationException cve) {
+        final ExceptionListDtoResponse exceptionResponse = new ExceptionListDtoResponse();
+
+        cve.getConstraintViolations()
+                .forEach(error -> exceptionResponse.addError(
+                        new ExceptionDtoResponse(
+                                ErrorCode.INVALID_REQUEST_DATA,
+                                error.getPropertyPath().toString().split("\\.")[1],
+                                error.getMessage()
                         ))
                 );
         return exceptionResponse;

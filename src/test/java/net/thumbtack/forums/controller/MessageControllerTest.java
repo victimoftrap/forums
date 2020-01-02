@@ -9,6 +9,7 @@ import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoRespon
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
@@ -27,13 +28,18 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import javax.servlet.http.Cookie;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -437,7 +443,7 @@ class MessageControllerTest {
     @ParameterizedTest
     @MethodSource("newBranchInvalidParams")
     void testMadeNewBranch_invalidParams_shouldReturnExceptionDto(
-        String subject, String priority, RequestFieldName errorFieldName
+            String subject, String priority, RequestFieldName errorFieldName
     ) throws Exception {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 subject, priority, Collections.emptyList()
@@ -658,5 +664,148 @@ class MessageControllerTest {
 
         verify(mockMessageService)
                 .rate(anyString(), anyInt(), any(RateMessageDtoRequest.class));
+    }
+
+    @Test
+    void testGetMessage() throws Exception {
+        final MessageInfoDtoResponse response = new MessageInfoDtoResponse(
+                1,
+                "Creator",
+                "Subject",
+                Arrays.asList("Hello", "Hi", "Privyet"),
+                MessagePriority.HIGH.name(),
+                Arrays.asList("Greetings", "Meet"),
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                4,
+                2,
+                Collections.emptyList()
+        );
+
+        when(mockMessageService
+                .getMessage(anyString(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyString())
+        )
+                .thenReturn(response);
+
+        MvcResult result = mvc.perform(
+                get("/api/messages/{id}?allversions={av}&nocomments={nc}&unpublished={up}&order={ord}",
+                        123, true, true, false, "ASC"
+                )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        final MessageInfoDtoResponse actualResponse = mapper.readValue(
+                result.getResponse().getContentAsString(),
+                MessageInfoDtoResponse.class
+        );
+        assertEquals(response, actualResponse);
+
+        verify(mockMessageService)
+                .getMessage(anyString(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyString());
+    }
+
+    @Test
+    void testGetMessage_notExistsSomeQueryParams_shouldReturnExceptionDto() throws Exception {
+        final MessageInfoDtoResponse response = new MessageInfoDtoResponse(
+                1,
+                "Creator",
+                "Subject",
+                Arrays.asList("Hello", "Hi", "Privyet"),
+                MessagePriority.HIGH.name(),
+                Arrays.asList("Greetings", "Meet"),
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                4,
+                2,
+                Collections.emptyList()
+        );
+
+        when(mockMessageService
+                .getMessage(anyString(), anyInt(), anyBoolean(), eq(null), anyBoolean(), eq(null))
+        )
+                .thenReturn(response);
+
+        MvcResult result = mvc.perform(
+                get("/api/messages/{id}?allversions={av}&unpublished={up}",
+                        123, true, true
+                )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        final MessageInfoDtoResponse actualResponse = mapper.readValue(
+                result.getResponse().getContentAsString(),
+                MessageInfoDtoResponse.class
+        );
+        assertEquals(response, actualResponse);
+
+        verify(mockMessageService)
+                .getMessage(anyString(), anyInt(), anyBoolean(), eq(null), anyBoolean(), eq(null));
+    }
+
+    @Test
+    void testGetMessage_invalidMessageOrder_shouldReturnExceptionDto() throws Exception {
+        final String invalidOrder = "KAK_NADO";
+
+        mvc.perform(
+                get("/api/messages/{id}?order={invalidOrder}",
+                        123, invalidOrder
+                )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode")
+                        .value(ErrorCode.INVALID_REQUEST_DATA.name())
+                )
+                .andExpect(jsonPath("$.errors[0].field").value("order"))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verifyZeroInteractions(mockMessageService);
+    }
+
+    static Stream<Arguments> getMessageServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMessageServiceExceptions")
+    void testGetMessage_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        when(mockMessageService
+                .getMessage(anyString(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyString())
+        )
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                get("/api/messages/{id}?allversions={av}&nocomments={nc}&unpublished={up}&order={ord}",
+                        123, true, true, false, "DESC"
+                )
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService)
+                .getMessage(anyString(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyString());
     }
 }

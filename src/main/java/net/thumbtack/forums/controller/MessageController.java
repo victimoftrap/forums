@@ -5,18 +5,22 @@ import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.validator.message.AvailableOrder;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/messages")
+@Validated
 public class MessageController {
     private final MessageService messageService;
     private final String COOKIE_NAME = "JAVASESSIONID";
@@ -117,5 +121,22 @@ public class MessageController {
     ) throws ServerException {
         return ResponseEntity
                 .ok(messageService.rate(token, id, request));
+    }
+
+    @GetMapping(
+            value = "/{id}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<MessageInfoDtoResponse> getMessage(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @PathVariable("id") int id,
+            @RequestParam(value = "allversions", required = false) Boolean allVersions,
+            @RequestParam(value = "nocomments", required = false) Boolean noComments,
+            @RequestParam(value = "unpublished", required = false) Boolean unpublished,
+            @RequestParam(value = "order", required = false) @AvailableOrder String order
+    ) throws ServerException {
+        return ResponseEntity
+                .ok(messageService.getMessage(token, id, allVersions, noComments, unpublished, order));
     }
 }

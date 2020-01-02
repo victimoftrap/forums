@@ -1,10 +1,8 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.model.*;
-import net.thumbtack.forums.model.enums.ForumType;
-import net.thumbtack.forums.model.enums.MessageState;
-import net.thumbtack.forums.model.enums.MessagePriority;
-import net.thumbtack.forums.model.enums.PublicationDecision;
+import net.thumbtack.forums.model.enums.*;
 import net.thumbtack.forums.dao.*;
 import net.thumbtack.forums.dto.requests.message.*;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
@@ -973,7 +971,7 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem commentMessage = new MessageItem(
-                commentOwner, tree, null,
+                commentOwner, tree, parentMessage,
                 Collections.singletonList(parentHistory),
                 commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
         );
@@ -1004,6 +1002,55 @@ class MessageServiceTest {
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao).newBranch(any(MessageTree.class));
+    }
+
+    @Test
+    void testNewBranchFromComment_tryingToMakeBranchFromExistingBranch_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.newBranchFromComment(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_ALREADY_BRANCH, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .newBranch(any(MessageTree.class));
     }
 
     @Test
@@ -1039,7 +1086,7 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem commentMessage = new MessageItem(
-                commentOwner, tree, null,
+                commentOwner, tree, parentMessage,
                 Collections.singletonList(parentHistory),
                 commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
         );
@@ -1056,8 +1103,7 @@ class MessageServiceTest {
                 .thenReturn(commentMessage);
 
         try {
-            final MadeBranchFromCommentDtoResponse response =
-                    messageService.newBranchFromComment(token, messageId, request);
+            messageService.newBranchFromComment(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.FORBIDDEN_OPERATION, se.getErrorCode());
         }
@@ -1131,7 +1177,7 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem commentMessage = new MessageItem(
-                commentOwner, tree, null,
+                commentOwner, tree, parentMessage,
                 Collections.singletonList(parentHistory),
                 commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
         );
@@ -1966,5 +2012,107 @@ class MessageServiceTest {
                 .upsertRating(any(MessageItem.class), any(User.class), anyInt());
         verify(mockRatingDao, never())
                 .deleteRate(any(MessageItem.class), any(User.class));
+    }
+
+    @Test
+    void testGetMessage() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL,
+                parentMessage.getCreatedAt(), Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
+        );
+        parentMessage.setMessageTree(tree);
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageTreeDao
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean())
+        )
+                .thenReturn(parentMessage);
+
+        final String token = "token";
+        final MessageInfoDtoResponse response = messageService.getMessage(
+                token, 123, true, true, false, MessageOrder.ASC.name()
+        );
+        assertEquals(parentMessage.getId(), response.getId());
+        assertEquals(messageOwner.getUsername(), response.getCreator());
+        assertEquals(tree.getSubject(), response.getSubject());
+        assertEquals(tree.getPriority().name(), response.getPriority());
+        assertEquals(parentMessage.getCreatedAt(), response.getCreated());
+        assertEquals(parentMessage.getAverageRating(), response.getRating());
+        assertEquals(parentMessage.getRatings().size(), response.getRated());
+        assertEquals(parentHistory.getBody(), response.getBody().get(0));
+        assertEquals(tree.getTags().get(0).getName(), response.getTags().get(0));
+        assertEquals(tree.getTags().get(1).getName(), response.getTags().get(1));
+        assertTrue(response.getComments().isEmpty());
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageTreeDao)
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean());
+    }
+
+    @Test
+    void testGetMessage_userNotFound_shouldThrowException() throws ServerException {
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+
+        final String token = "token";
+        try {
+            messageService.getMessage(
+                    token, 123, true, true, false, MessageOrder.ASC.name()
+            );
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageTreeDao);
+    }
+
+    @Test
+    void testGetMessage_messageNotFound_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageTreeDao
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean())
+        )
+                .thenThrow(new ServerException(ErrorCode.MESSAGE_NOT_FOUND));
+
+        final String token = "token";
+        try {
+            messageService.getMessage(
+                    token, 123, true, true, false, MessageOrder.ASC.name()
+            );
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+        }
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageTreeDao)
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean());
     }
 }
