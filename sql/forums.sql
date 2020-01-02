@@ -11,7 +11,7 @@ CREATE TABLE users(
   registered_at TIMESTAMP    DEFAULT NOW(),
   deleted       BOOLEAN      NOT NULL,
 
-  banned_until  TIMESTAMP    NULL,
+  banned_until  DATETIME     NULL,
   ban_count     INT          NOT NULL,
 
   UNIQUE KEY username(username),

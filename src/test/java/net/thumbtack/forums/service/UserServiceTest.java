@@ -1,6 +1,8 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.UserRole;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.dao.ForumDao;
@@ -18,6 +20,8 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import net.thumbtack.forums.model.enums.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -607,7 +611,7 @@ class UserServiceTest {
                 .thenReturn(banDays);
         doNothing()
                 .when(userDao)
-                .update(any(User.class));
+                .banUser(any(User.class), eq(false));
 
         userService.banUser(token, bannedUser.getId());
         assertEquals(1, bannedUser.getBanCount());
@@ -622,67 +626,14 @@ class UserServiceTest {
         verify(mockConfigurationProperties)
                 .getBanTime();
         verify(userDao)
-                .update(any(User.class));
+                .banUser(any(User.class), eq(false));
 
+        verify(userDao, never())
+                .banUser(any(User.class), eq(true));
         verify(mockConstantsProperties, never())
                 .getDatetimePattern();
         verify(mockConstantsProperties, never())
                 .getPermanentBanDatetime();
-    }
-
-    @Test
-    void testBanUser_userWasBannedTooMuch_shouldBanPermanently() throws ServerException {
-        final String token = "token";
-        final int maxBanCount = 5;
-        final String datetimePattern = "yyyy-MM-dd HH:mm:ss";
-        final String permanentDatetime = "9999-01-01 00:00:00";
-        final User superuser = new User(123, UserRole.SUPERUSER,
-                "superuser", "super@forums.ca", "superpass123",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
-        );
-        final User bannedUser = new User(456, UserRole.USER,
-                "user", "user@forums.ca", "userpass456",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
-                null, 4
-        );
-
-        when(sessionDao.getUserByToken(anyString()))
-                .thenReturn(superuser);
-        when(userDao.getById(anyInt(), anyBoolean()))
-                .thenReturn(bannedUser);
-        when(mockConfigurationProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-        when(mockConstantsProperties.getDatetimePattern())
-                .thenReturn(datetimePattern);
-        when(mockConstantsProperties.getPermanentBanDatetime())
-                .thenReturn(permanentDatetime);
-        doNothing()
-                .when(userDao)
-                .update(any(User.class));
-
-        userService.banUser(token, bannedUser.getId());
-        assertEquals(maxBanCount, bannedUser.getBanCount());
-        assertNotNull(bannedUser.getBannedUntil());
-        assertEquals(
-                LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0),
-                bannedUser.getBannedUntil()
-        );
-
-        verify(sessionDao)
-                .getUserByToken(anyString());
-        verify(userDao)
-                .getById(anyInt(), anyBoolean());
-        verify(mockConfigurationProperties)
-                .getMaxBanCount();
-        verify(mockConstantsProperties)
-                .getDatetimePattern();
-        verify(mockConstantsProperties)
-                .getPermanentBanDatetime();
-        verify(userDao)
-                .update(any(User.class));
-
-        verify(mockConfigurationProperties, never())
-                .getBanTime();
     }
 
     @Test
@@ -695,11 +646,16 @@ class UserServiceTest {
                 "superuser", "super@forums.ca", "superpass123",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
         );
+
         final User bannedUser = new User(456, UserRole.USER,
                 "user", "user@forums.ca", "userpass456",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                null, 4
         );
-        bannedUser.setBanCount(4);
+        final Forum bannedUserForum = new Forum(
+                ForumType.MODERATED, bannedUser, "WouldBeReadOnly",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(superuser);
@@ -711,13 +667,22 @@ class UserServiceTest {
                 .thenReturn(datetimePattern);
         when(mockConstantsProperties.getPermanentBanDatetime())
                 .thenReturn(permanentDatetime);
-        doNothing()
+        doAnswer(invocationOnMock -> {
+            bannedUserForum.setReadonly(true);
+            return invocationOnMock;
+        })
                 .when(userDao)
-                .update(any(User.class));
+                .banUser(any(User.class), eq(true));
 
         userService.banUser(token, bannedUser.getId());
+
         assertEquals(maxBanCount, bannedUser.getBanCount());
         assertNotNull(bannedUser.getBannedUntil());
+        assertEquals(
+                LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0),
+                bannedUser.getBannedUntil()
+        );
+        assertTrue(bannedUserForum.isReadonly());
 
         verify(sessionDao)
                 .getUserByToken(anyString());
@@ -730,7 +695,10 @@ class UserServiceTest {
         verify(mockConstantsProperties)
                 .getPermanentBanDatetime();
         verify(userDao)
-                .update(any(User.class));
+                .banUser(any(User.class), eq(true));
+
+        verify(userDao, never())
+                .banUser(any(User.class), eq(false));
         verify(mockConfigurationProperties, never())
                 .getBanTime();
     }
@@ -761,9 +729,10 @@ class UserServiceTest {
                 .getUserByToken(anyString());
         verify(userDao)
                 .getById(anyInt(), anyBoolean());
+
         verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
-                .update(any(User.class));
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test
@@ -778,10 +747,14 @@ class UserServiceTest {
             assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
         }
 
-        verify(sessionDao).getUserByToken(eq(sessionToken));
-        verify(userDao, never()).getById(anyInt(), anyBoolean());
+        verify(sessionDao)
+                .getUserByToken(eq(sessionToken));
+
+        verify(userDao, never())
+                .getById(anyInt(), anyBoolean());
         verifyZeroInteractions(mockConfigurationProperties);
-        verify(userDao, never()).update(any(User.class));
+        verify(userDao, never())
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test
@@ -806,7 +779,7 @@ class UserServiceTest {
                 .getById(anyInt(), anyBoolean());
         verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
-                .update(any(User.class));
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test
@@ -834,7 +807,7 @@ class UserServiceTest {
                 .getById(anyInt(), anyBoolean());
         verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
-                .update(any(User.class));
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test

@@ -157,6 +157,7 @@ public class UserService extends ServiceBase {
         }
 
         final LocalDateTime banTime;
+        final boolean isPermanent;
         final int banCount;
         final int maxBanCount = serverProperties.getMaxBanCount();
         if (restrictedUser.getBanCount() < maxBanCount - 1) {
@@ -166,18 +167,21 @@ public class UserService extends ServiceBase {
             )
                     .truncatedTo(ChronoUnit.SECONDS);
             banCount = restrictedUser.getBanCount() + 1;
+            isPermanent = false;
         } else {
             final String banDatetimeString = constantsProperties.getPermanentBanDatetime();
             final String datetimeStringPattern = constantsProperties.getDatetimePattern();
+
             banTime = LocalDateTime
                     .parse(banDatetimeString, DateTimeFormatter.ofPattern(datetimeStringPattern))
                     .truncatedTo(ChronoUnit.SECONDS);
             banCount = maxBanCount;
-            // TODO made moderated forums read-only
+            isPermanent = true;
         }
+
         restrictedUser.setBannedUntil(banTime);
         restrictedUser.setBanCount(banCount);
-        userDao.update(restrictedUser);
+        userDao.banUser(restrictedUser, isPermanent);
         return new EmptyDtoResponse();
     }
 }

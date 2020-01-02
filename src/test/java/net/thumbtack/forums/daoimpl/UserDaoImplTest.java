@@ -1,13 +1,19 @@
 package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.UserSession;
+import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.UserRole;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.Month;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -461,6 +467,79 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(user.getRole(), selectedUser.getRole()),
                 () -> assertEquals(user.getEmail(), selectedUser.getEmail()),
                 () -> assertEquals(user.getPassword(), selectedUser.getPassword())
+        );
+    }
+
+    @Test
+    void testBanUser() throws ServerException {
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                null, 0
+        );
+        userDao.save(bannedUser);
+
+        final Forum bannedUserForum = new Forum(
+                ForumType.MODERATED, bannedUser, "WouldBeReadOnly",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(bannedUserForum);
+
+        bannedUser.setBanCount(1);
+        bannedUser.setBannedUntil(
+                LocalDateTime
+                        .now()
+                        .plus(10, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        userDao.banUser(bannedUser, false);
+
+        final User selectedUser = userDao.getById(bannedUser.getId());
+        final Forum selectedForum = forumDao.getById(bannedUserForum.getId());
+        assertAll(
+                () -> assertEquals(bannedUser.getId(), selectedUser.getId()),
+                () -> assertEquals(bannedUser.getRole(), selectedUser.getRole()),
+                () -> assertEquals(bannedUser.getEmail(), selectedUser.getEmail()),
+                () -> assertEquals(bannedUser.getPassword(), selectedUser.getPassword()),
+                () -> assertEquals(bannedUser.getBanCount(), selectedUser.getBanCount()),
+                () -> assertEquals(bannedUser.getBannedUntil(), selectedUser.getBannedUntil()),
+                () -> assertEquals(bannedUserForum.getId(), selectedForum.getId()),
+                () -> assertFalse(selectedForum.isReadonly())
+        );
+    }
+
+    @Test
+    void testBanUserPermanent() throws ServerException {
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                null, 4
+        );
+        userDao.save(bannedUser);
+
+        final Forum bannedUserForum = new Forum(
+                ForumType.MODERATED, bannedUser, "WouldBeReadOnly",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(bannedUserForum);
+
+        bannedUser.setBanCount(5);
+        bannedUser.setBannedUntil(
+                LocalDateTime.parse("9999-01-01 00:00:00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        );
+        userDao.banUser(bannedUser, true);
+
+        final User selectedUser = userDao.getById(bannedUser.getId());
+        final Forum selectedForum = forumDao.getById(bannedUserForum.getId());
+        assertAll(
+                () -> assertEquals(bannedUser.getId(), selectedUser.getId()),
+                () -> assertEquals(bannedUser.getRole(), selectedUser.getRole()),
+                () -> assertEquals(bannedUser.getEmail(), selectedUser.getEmail()),
+                () -> assertEquals(bannedUser.getPassword(), selectedUser.getPassword()),
+                () -> assertEquals(bannedUser.getBanCount(), selectedUser.getBanCount()),
+                () -> assertEquals(bannedUser.getBannedUntil(), selectedUser.getBannedUntil()),
+                () -> assertEquals(bannedUserForum.getId(), selectedForum.getId()),
+                () -> assertTrue(selectedForum.isReadonly())
         );
     }
 

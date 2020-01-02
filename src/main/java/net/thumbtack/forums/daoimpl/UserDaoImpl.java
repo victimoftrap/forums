@@ -182,6 +182,27 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
     }
 
     @Override
+    public void banUser(User user, boolean isPermanent) throws ServerException {
+        LOGGER.debug("Banning user with ID {} until {} ban_count={}, permanent={}",
+                user.getId(), user.getBannedUntil(), user.getBanCount(), isPermanent
+        );
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                getUserMapper(sqlSession).banUser(user);
+                if (isPermanent) {
+                    getForumMapper(sqlSession).madeReadonlyModeratedForumsOfUser(user.getId());
+                }
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to ban user with ID {}", user.getId(), ex);
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
+
+    @Override
     public void deactivateById(int id) throws ServerException {
         LOGGER.debug("Deactivating user account by ID {} and deleting his session", id);
 
