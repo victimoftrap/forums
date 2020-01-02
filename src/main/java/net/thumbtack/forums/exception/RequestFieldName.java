@@ -7,15 +7,18 @@ public enum RequestFieldName {
     OLD_PASSWORD("oldPassword"),
     EMAIL("email"),
     FORUM_NAME("name"),
-    FORUM_TYPE("type")
-    ;
+    FORUM_TYPE("type"),
+    MESSAGE_SUBJECT("subject"),
+    MESSAGE_BODY("body"),
+    MESSAGE_PRIORITY("priority"),
+    PUBLICATION_DECISION("decision");
 
     private String name;
 
     RequestFieldName() {
     }
 
-    private RequestFieldName(String name) {
+    RequestFieldName(String name) {
         this.name = name;
     }
 

@@ -1,4 +1,4 @@
-package net.thumbtack.forums.dto.responses.user;
+package net.thumbtack.forums.model.enums;
 
 public enum UserStatus {
     FULL,

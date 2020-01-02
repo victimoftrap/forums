@@ -1,17 +1,16 @@
 package net.thumbtack.forums.dto.requests.forum;
 
-import net.thumbtack.forums.validator.ForumNamePattern;
-import net.thumbtack.forums.model.enums.ForumType;
-
-import javax.validation.constraints.NotNull;
+import net.thumbtack.forums.validator.forum.ForumNamePattern;
+import net.thumbtack.forums.validator.forum.AvailableForumType;
 
 public class CreateForumDtoRequest {
     @ForumNamePattern
     private String name;
-    @NotNull
-    private ForumType type;
 
-    public CreateForumDtoRequest(String name, ForumType type) {
+    @AvailableForumType
+    private String type;
+
+    public CreateForumDtoRequest(String name, String type) {
         this.name = name;
         this.type = type;
     }
@@ -20,7 +19,7 @@ public class CreateForumDtoRequest {
         return name;
     }
 
-    public ForumType getType() {
+    public String getType() {
         return type;
     }
 }

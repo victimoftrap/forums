@@ -25,18 +25,18 @@ public interface ForumMapper {
     })
     @Results(id = "forumResult",
             value = {
-            @Result(property = "id", column = "id", javaType = int.class),
-            @Result(property = "type", column = "forum_type", javaType = ForumType.class),
-            @Result(property = "owner", column = "owner_id", javaType = User.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.UserMapper.getById",
-                            fetchType = FetchType.LAZY
-                    )
-            ),
-            @Result(property = "name", column = "name", javaType = String.class),
-            @Result(property = "readonly", column = "readonly", javaType = boolean.class),
-            @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
-    })
+                    @Result(property = "id", column = "id", javaType = int.class),
+                    @Result(property = "type", column = "forum_type", javaType = ForumType.class),
+                    @Result(property = "owner", column = "owner_id", javaType = User.class,
+                            one = @One(
+                                    select = "net.thumbtack.forums.mappers.UserMapper.getById",
+                                    fetchType = FetchType.LAZY
+                            )
+                    ),
+                    @Result(property = "name", column = "name", javaType = String.class),
+                    @Result(property = "readonly", column = "readonly", javaType = boolean.class),
+                    @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
+            })
     Forum getById(@Param("id") int id);
 
     @Select({"SELECT COUNT(*) FROM message_history WHERE state = 'PUBLISHED' AND message_id IN (",
@@ -52,8 +52,10 @@ public interface ForumMapper {
     @Update("UPDATE forums SET readonly = COALESCE(#{forum.readonly}, readonly) WHERE id = #{forum.id}")
     void update(@Param("forum") Forum forum);
 
-    @Update("UPDATE forums SET readonly = TRUE WHERE owner_id = #{user.id}")
-    void madeReadonlyModeratedForumsOf(@Param("user") User user);
+    @Update({"UPDATE forums SET readonly = TRUE",
+            "WHERE owner_id = #{id} AND forum_type = 'MODERATED'"
+    })
+    void madeReadonlyModeratedForumsOfUser(@Param("id") int id);
 
     @Delete("DELETE FROM forums WHERE id = #{id}")
     void deleteById(@Param("id") int id);

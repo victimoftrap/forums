@@ -1,16 +1,20 @@
 package net.thumbtack.forums.dto.requests.message;
 
-import javax.validation.constraints.NotBlank;
+import net.thumbtack.forums.validator.message.AvailableDecision;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class PublicationDecisionDtoRequest {
-    @NotBlank
-    private PublicationDecision decision;
+    @AvailableDecision
+    private String decision;
 
-    public PublicationDecisionDtoRequest(PublicationDecision decision) {
+    @JsonCreator
+    public PublicationDecisionDtoRequest(@JsonProperty("decision") String decision) {
         this.decision = decision;
     }
 
-    public PublicationDecision getDecision() {
+    public String getDecision() {
         return decision;
     }
 }

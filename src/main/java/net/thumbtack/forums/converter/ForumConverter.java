@@ -12,7 +12,7 @@ public class ForumConverter {
         return new ForumInfoDtoResponse(
                 forum.getId(),
                 forum.getName(),
-                forum.getType(),
+                forum.getType().name(),
                 forum.getOwner().getUsername(),
                 forum.isReadonly(),
                 forum.getMessageCount(),

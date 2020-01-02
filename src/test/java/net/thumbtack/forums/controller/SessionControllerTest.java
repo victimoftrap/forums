@@ -45,6 +45,7 @@ class SessionControllerTest {
     private UserService mockUserService;
 
     private final String COOKIE_NAME = "JAVASESSIONID";
+    private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
     @Test
     void testLogin_shouldLoginUser() throws Exception {
@@ -262,7 +263,7 @@ class SessionControllerTest {
         mvc.perform(
                 delete("/api/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new Cookie(COOKIE_NAME, UUID.randomUUID().toString()))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isOk())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))

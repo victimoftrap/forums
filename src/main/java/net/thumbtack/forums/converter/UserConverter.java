@@ -2,7 +2,7 @@ package net.thumbtack.forums.converter;
 
 import net.thumbtack.forums.dto.responses.user.UserDetailsDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
-import net.thumbtack.forums.dto.responses.user.UserStatus;
+import net.thumbtack.forums.model.enums.UserStatus;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.model.UserSession;
@@ -31,7 +31,7 @@ public class UserConverter {
                 isOnline,
                 user.isDeleted(),
                 requestingUserRole == UserRole.SUPERUSER ? isSuper : null,
-                status,
+                status.name(),
                 user.getBannedUntil(),
                 user.getBanCount()
         );

@@ -1,12 +1,12 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
+import net.thumbtack.forums.service.UserService;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.service.UserService;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

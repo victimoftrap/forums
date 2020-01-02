@@ -47,7 +47,6 @@ public interface MessageTreeMapper {
                     @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
             }
     )
-    // REVU 
     MessageTree getTreeById(int id);
 
     @Update({"UPDATE messages_tree",

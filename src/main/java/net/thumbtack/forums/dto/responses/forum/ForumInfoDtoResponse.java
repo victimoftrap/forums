@@ -1,14 +1,14 @@
 package net.thumbtack.forums.dto.responses.forum;
 
-import net.thumbtack.forums.model.enums.ForumType;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Objects;
 
 public class ForumInfoDtoResponse {
     private int id;
     private String name;
-    private ForumType type;
+    private String type;
     private String creatorName;
     private boolean readonly;
     private int messageCount;
@@ -20,7 +20,7 @@ public class ForumInfoDtoResponse {
     @JsonCreator
     public ForumInfoDtoResponse(@JsonProperty("id") int id,
                                 @JsonProperty("name") String name,
-                                @JsonProperty("type") ForumType type,
+                                @JsonProperty("type") String type,
                                 @JsonProperty("creator") String creatorName,
                                 @JsonProperty("readonly") boolean readonly,
                                 @JsonProperty("messageCount") int messageCount,
@@ -30,6 +30,8 @@ public class ForumInfoDtoResponse {
         this.type = type;
         this.creatorName = creatorName;
         this.readonly = readonly;
+        this.messageCount = messageCount;
+        this.commentCount = commentCount;
     }
 
     public int getId() {
@@ -40,7 +42,7 @@ public class ForumInfoDtoResponse {
         return name;
     }
 
-    public ForumType getType() {
+    public String getType() {
         return type;
     }
 
@@ -58,5 +60,24 @@ public class ForumInfoDtoResponse {
 
     public int getCommentCount() {
         return commentCount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ForumInfoDtoResponse)) return false;
+        ForumInfoDtoResponse response = (ForumInfoDtoResponse) o;
+        return id == response.id &&
+                readonly == response.readonly &&
+                messageCount == response.messageCount &&
+                commentCount == response.commentCount &&
+                Objects.equals(name, response.name) &&
+                Objects.equals(type, response.type) &&
+                Objects.equals(creatorName, response.creatorName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, type, creatorName, readonly, messageCount, commentCount);
     }
 }

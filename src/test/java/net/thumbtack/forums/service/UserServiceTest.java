@@ -1,20 +1,27 @@
 package net.thumbtack.forums.service;
 
+import net.thumbtack.forums.model.Forum;
+import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.enums.ForumType;
+import net.thumbtack.forums.model.enums.UserRole;
+import net.thumbtack.forums.model.UserSession;
+import net.thumbtack.forums.dao.ForumDao;
+import net.thumbtack.forums.dao.UserDao;
+import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.dto.responses.user.*;
-import net.thumbtack.forums.model.User;
-import net.thumbtack.forums.model.enums.UserRole;
-import net.thumbtack.forums.model.UserSession;
-import net.thumbtack.forums.dao.UserDao;
-import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
+import net.thumbtack.forums.model.enums.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,15 +39,23 @@ import static org.mockito.ArgumentMatchers.anyString;
 class UserServiceTest {
     private UserDao userDao;
     private SessionDao sessionDao;
-    private ServerConfigurationProperties properties;
+    private ForumDao mockForumDao;
+    private ServerConfigurationProperties mockConfigurationProperties;
+    private ConstantsProperties mockConstantsProperties;
     private UserService userService;
 
     @BeforeEach
     void initMocks() {
         userDao = mock(UserDao.class);
         sessionDao = mock(SessionDao.class);
-        properties = mock(ServerConfigurationProperties.class);
-        userService = new UserService(userDao, sessionDao, properties);
+        mockForumDao = mock(ForumDao.class);
+        mockConstantsProperties = mock(ConstantsProperties.class);
+        mockConfigurationProperties = mock(ServerConfigurationProperties.class);
+
+        userService = new UserService(
+                userDao, sessionDao, mockForumDao,
+                mockConstantsProperties, mockConfigurationProperties
+        );
     }
 
     @Test
@@ -573,9 +588,10 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser() throws ServerException {
+    void testBanUser_userReceivedBan_bannedForSomeDays() throws ServerException {
         final String token = "token";
-        final int banTime = 7;
+        final int banDays = 7;
+        final int maxBanCount = 5;
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
@@ -589,29 +605,107 @@ class UserServiceTest {
                 .thenReturn(superuser);
         when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(bannedUser);
-        when(properties.getMaxBanCount())
-                .thenReturn(5);
-        when(properties.getBanTime())
-                .thenReturn(banTime);
+        when(mockConfigurationProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockConfigurationProperties.getBanTime())
+                .thenReturn(banDays);
         doNothing()
                 .when(userDao)
-                .update(any(User.class));
+                .banUser(any(User.class), eq(false));
 
         userService.banUser(token, bannedUser.getId());
         assertEquals(1, bannedUser.getBanCount());
         assertNotNull(bannedUser.getBannedUntil());
 
-        verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt(), anyBoolean());
-        verify(properties).getMaxBanCount();
-        verify(properties).getBanTime();
-        verify(userDao).update(any(User.class));
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
+        verify(mockConfigurationProperties)
+                .getMaxBanCount();
+        verify(mockConfigurationProperties)
+                .getBanTime();
+        verify(userDao)
+                .banUser(any(User.class), eq(false));
+
+        verify(userDao, never())
+                .banUser(any(User.class), eq(true));
+        verify(mockConstantsProperties, never())
+                .getDatetimePattern();
+        verify(mockConstantsProperties, never())
+                .getPermanentBanDatetime();
+    }
+
+    @Test
+    void testBanUser_userReceivedLastBan_bannedPermanently() throws ServerException {
+        final String token = "token";
+        final int maxBanCount = 5;
+        final String datetimePattern = "yyyy-MM-dd HH:mm:ss";
+        final String permanentDatetime = "9999-01-01 00:00:00";
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                null, 4
+        );
+        final Forum bannedUserForum = new Forum(
+                ForumType.MODERATED, bannedUser, "WouldBeReadOnly",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt(), anyBoolean()))
+                .thenReturn(bannedUser);
+        when(mockConfigurationProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockConstantsProperties.getDatetimePattern())
+                .thenReturn(datetimePattern);
+        when(mockConstantsProperties.getPermanentBanDatetime())
+                .thenReturn(permanentDatetime);
+        doAnswer(invocationOnMock -> {
+            bannedUserForum.setReadonly(true);
+            return invocationOnMock;
+        })
+                .when(userDao)
+                .banUser(any(User.class), eq(true));
+
+        userService.banUser(token, bannedUser.getId());
+
+        assertEquals(maxBanCount, bannedUser.getBanCount());
+        assertNotNull(bannedUser.getBannedUntil());
+        assertEquals(
+                LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0),
+                bannedUser.getBannedUntil()
+        );
+        assertTrue(bannedUserForum.isReadonly());
+
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
+        verify(mockConfigurationProperties)
+                .getMaxBanCount();
+        verify(mockConstantsProperties)
+                .getDatetimePattern();
+        verify(mockConstantsProperties)
+                .getPermanentBanDatetime();
+        verify(userDao)
+                .banUser(any(User.class), eq(true));
+
+        verify(userDao, never())
+                .banUser(any(User.class), eq(false));
+        verify(mockConfigurationProperties, never())
+                .getBanTime();
     }
 
     @Test
     void testBanUser_restrictedUserAreSuperuser_shouldThrowException() throws ServerException {
         final String token = "token";
-        final int banTime = 7;
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
@@ -631,49 +725,14 @@ class UserServiceTest {
             assertEquals(ErrorCode.FORBIDDEN_OPERATION, e.getErrorCode());
         }
 
-        verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
-        verify(userDao, never()).update(any(User.class));
-    }
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
 
-    @Test
-    void testBanUser_userWasBannedTooMuch_shouldBanPermanently() throws ServerException {
-        final String token = "token";
-        final int banTime = 7;
-        final int maxBanCount = 5;
-        final User superuser = new User(123, UserRole.SUPERUSER,
-                "superuser", "super@forums.ca", "superpass123",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
-        );
-        final User bannedUser = new User(456, UserRole.USER,
-                "user", "user@forums.ca", "userpass456",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
-                null, 4
-        );
-
-        when(sessionDao.getUserByToken(anyString()))
-                .thenReturn(superuser);
-        when(userDao.getById(anyInt(), anyBoolean()))
-                .thenReturn(bannedUser);
-        when(properties.getMaxBanCount()).thenReturn(maxBanCount);
-        when(properties.getMaxBanCount()).thenReturn(maxBanCount);
-        doNothing()
-                .when(userDao)
-                .update(any(User.class));
-
-        userService.banUser(token, bannedUser.getId());
-        assertEquals(maxBanCount, bannedUser.getBanCount());
-        assertNotNull(bannedUser.getBannedUntil());
-        assertEquals(
-                LocalDateTime.of(9999, Month.JANUARY, 1, 0, 0, 0),
-                bannedUser.getBannedUntil()
-        );
-
-        verify(sessionDao).getUserByToken(anyString());
-        verify(userDao).getById(anyInt(), anyBoolean());
-        verify(properties, times(2)).getMaxBanCount();
-        verify(userDao).update(any(User.class));
+        verifyZeroInteractions(mockConfigurationProperties);
+        verify(userDao, never())
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test
@@ -688,10 +747,14 @@ class UserServiceTest {
             assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
         }
 
-        verify(sessionDao).getUserByToken(eq(sessionToken));
-        verify(userDao, never()).getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
-        verify(userDao, never()).update(any(User.class));
+        verify(sessionDao)
+                .getUserByToken(eq(sessionToken));
+
+        verify(userDao, never())
+                .getById(anyInt(), anyBoolean());
+        verifyZeroInteractions(mockConfigurationProperties);
+        verify(userDao, never())
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test
@@ -714,9 +777,9 @@ class UserServiceTest {
                 .getUserByToken(eq(sessionToken));
         verify(userDao, never())
                 .getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
+        verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
-                .update(any(User.class));
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test
@@ -742,9 +805,9 @@ class UserServiceTest {
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
                 .getById(anyInt(), anyBoolean());
-        verifyZeroInteractions(properties);
+        verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
-                .update(any(User.class));
+                .banUser(any(User.class), anyBoolean());
     }
 
     @Test
@@ -772,22 +835,22 @@ class UserServiceTest {
 
         final UserDetailsDtoResponse response0 = new UserDetailsDtoResponse(
                 user0.getId(), user0.getUsername(), null, user0.getRegisteredAt(),
-                true, user0.isDeleted(), null, UserStatus.FULL,
+                true, user0.isDeleted(), null, UserStatus.FULL.name(),
                 user0.getBannedUntil(), user0.getBanCount()
         );
         final UserDetailsDtoResponse response1 = new UserDetailsDtoResponse(
                 user1.getId(), user1.getUsername(), null, user1.getRegisteredAt(),
-                false, user1.isDeleted(), null, UserStatus.FULL,
+                false, user1.isDeleted(), null, UserStatus.FULL.name(),
                 user1.getBannedUntil(), user1.getBanCount()
         );
         final UserDetailsDtoResponse response2 = new UserDetailsDtoResponse(
                 user2.getId(), user2.getUsername(), null, user2.getRegisteredAt(),
-                true, user2.isDeleted(), null, UserStatus.FULL,
+                true, user2.isDeleted(), null, UserStatus.FULL.name(),
                 user2.getBannedUntil(), user2.getBanCount()
         );
         final UserDetailsDtoResponse response3 = new UserDetailsDtoResponse(
                 superuser.getId(), superuser.getUsername(), null, superuser.getRegisteredAt(),
-                true, superuser.isDeleted(), null, UserStatus.FULL,
+                true, superuser.isDeleted(), null, UserStatus.FULL.name(),
                 superuser.getBannedUntil(), superuser.getBanCount()
         );
         final UserDetailsListDtoResponse expectedResponse = new UserDetailsListDtoResponse(
@@ -831,22 +894,22 @@ class UserServiceTest {
 
         final UserDetailsDtoResponse response0 = new UserDetailsDtoResponse(
                 user0.getId(), user0.getUsername(), user0.getEmail(), user0.getRegisteredAt(),
-                true, user0.isDeleted(), false, UserStatus.FULL,
+                true, user0.isDeleted(), false, UserStatus.FULL.name(),
                 user0.getBannedUntil(), user0.getBanCount()
         );
         final UserDetailsDtoResponse response1 = new UserDetailsDtoResponse(
                 user1.getId(), user1.getUsername(), user1.getEmail(), user1.getRegisteredAt(),
-                false, user1.isDeleted(), false, UserStatus.FULL,
+                false, user1.isDeleted(), false, UserStatus.FULL.name(),
                 user1.getBannedUntil(), user1.getBanCount()
         );
         final UserDetailsDtoResponse response2 = new UserDetailsDtoResponse(
                 user2.getId(), user2.getUsername(), user2.getEmail(), user2.getRegisteredAt(),
-                true, user2.isDeleted(), false, UserStatus.FULL,
+                true, user2.isDeleted(), false, UserStatus.FULL.name(),
                 user2.getBannedUntil(), user2.getBanCount()
         );
         final UserDetailsDtoResponse response3 = new UserDetailsDtoResponse(
                 superuser.getId(), superuser.getUsername(), superuser.getEmail(), superuser.getRegisteredAt(),
-                true, superuser.isDeleted(), true, UserStatus.FULL,
+                true, superuser.isDeleted(), true, UserStatus.FULL.name(),
                 superuser.getBannedUntil(), superuser.getBanCount()
         );
         final UserDetailsListDtoResponse expectedResponse = new UserDetailsListDtoResponse(

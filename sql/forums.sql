@@ -11,7 +11,7 @@ CREATE TABLE users(
   registered_at TIMESTAMP    DEFAULT NOW(),
   deleted       BOOLEAN      NOT NULL,
 
-  banned_until  TIMESTAMP    NULL,
+  banned_until  DATETIME     NULL,
   ban_count     INT          NOT NULL,
 
   UNIQUE KEY username(username),
@@ -102,5 +102,5 @@ CREATE TABLE message_tags(
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 INSERT INTO users 
- (role, username, email, password, deleted, ban_count) 
-VALUES('SUPERUSER', 'admin', 'admin@example.com', 'admin', FALSE, 0);
+ (role, username, email, password, deleted, banned_until, ban_count) 
+VALUES('SUPERUSER', 'admin', 'admin@example.com', 'admin_strong_pass', FALSE, NULL, 0);

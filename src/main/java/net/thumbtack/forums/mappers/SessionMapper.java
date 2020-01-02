@@ -30,7 +30,8 @@ public interface SessionMapper {
     })
     @Results({
             @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
+            @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class),
+            @Result(property = "banCount", column = "ban_count", javaType = int.class)
     })
     User getUserByToken(String token);
 

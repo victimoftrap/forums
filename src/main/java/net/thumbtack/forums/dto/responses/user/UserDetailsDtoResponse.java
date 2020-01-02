@@ -16,7 +16,7 @@ public class UserDetailsDtoResponse {
     private boolean online;
     private boolean deleted;
     private Boolean isSuper;
-    private UserStatus status;
+    private String status;
     private LocalDateTime timeBanExit;
     private int banCount;
 
@@ -29,7 +29,7 @@ public class UserDetailsDtoResponse {
             @JsonProperty("online") boolean online,
             @JsonProperty("deleted") boolean deleted,
             @JsonProperty("super") Boolean isSuper,
-            @JsonProperty("status") UserStatus status,
+            @JsonProperty("status") String status,
             @JsonProperty("timeBanExit") LocalDateTime timeBanExit,
             @JsonProperty("banCount") int banCount) {
         this.id = id;
@@ -72,7 +72,7 @@ public class UserDetailsDtoResponse {
         return isSuper;
     }
 
-    public UserStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
@@ -89,23 +89,22 @@ public class UserDetailsDtoResponse {
         if (this == o) return true;
         if (!(o instanceof UserDetailsDtoResponse)) return false;
         UserDetailsDtoResponse that = (UserDetailsDtoResponse) o;
-        return getId() == that.getId() &&
-                isOnline() == that.isOnline() &&
-                isDeleted() == that.isDeleted() &&
-                getBanCount() == that.getBanCount() &&
-                Objects.equals(getName(), that.getName()) &&
-                Objects.equals(getEmail(), that.getEmail()) &&
-                Objects.equals(getTimeRegistered(), that.getTimeRegistered()) &&
-                Objects.equals(isSuper(), that.isSuper()) &&
-                getStatus() == that.getStatus() &&
-                Objects.equals(getTimeBanExit(), that.getTimeBanExit());
+        return id == that.id &&
+                online == that.online &&
+                deleted == that.deleted &&
+                banCount == that.banCount &&
+                Objects.equals(name, that.name) &&
+                Objects.equals(email, that.email) &&
+                Objects.equals(timeRegistered, that.timeRegistered) &&
+                Objects.equals(isSuper, that.isSuper) &&
+                Objects.equals(status, that.status) &&
+                Objects.equals(timeBanExit, that.timeBanExit);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getId(), getName(), getEmail(), getTimeRegistered(),
-                isOnline(), isDeleted(), isSuper(), getStatus(),
-                getTimeBanExit(), getBanCount()
+        return Objects.hash(id, name, email, timeRegistered,
+                online, deleted, isSuper, status, timeBanExit, banCount
         );
     }
 }

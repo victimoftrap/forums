@@ -34,7 +34,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
                 tree.getSubject(), tree.getForum().getId()
         );
 
-        try(SqlSession sqlSession = sqlSessionFactory.openSession()) {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 final MessageItem rootMessage = tree.getRootMessage();
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);

@@ -27,7 +27,7 @@ public class DebugDaoImpl extends MapperCreatorDao implements DebugDao {
 
         try (SqlSession session = sqlSessionFactory.openSession()) {
             try {
-                getUserMapper(session).deleteAll();
+                getUserMapper(session).deleteAllWithoutAdmin();
                 getTagMapper(session).deleteAll();
                 getMessageTreeMapper(session).deleteAll();
                 getForumMapper(session).deleteAll();

@@ -1,8 +1,8 @@
 package net.thumbtack.forums.dao;
 
-import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.UserSession;
+import net.thumbtack.forums.exception.ServerException;
 
 import java.util.List;
 
@@ -26,6 +26,8 @@ public interface UserDao {
     List<UserSession> getAllWithSessions() throws ServerException;
 
     void update(User user) throws ServerException;
+
+    void banUser(User user, boolean isPermanent) throws ServerException;
 
     void deactivateById(int id) throws ServerException;
 

@@ -30,7 +30,8 @@ public interface UserMapper {
     @Results(id = "userResult",
             value = {
                     @Result(property = "registeredAt", column = "registered_at", javaType = LocalDateTime.class),
-                    @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class)
+                    @Result(property = "bannedUntil", column = "banned_until", javaType = LocalDateTime.class),
+                    @Result(property = "banCount", column = "ban_count", javaType = int.class)
             }
     )
     User getById(int id);
@@ -101,18 +102,26 @@ public interface UserMapper {
     })
     List<UserSession> getAllWithSessions();
 
-    @Update({"UPDATE users SET ",
-            "role = COALESCE(#{role.name}, role), ",
-            "email = COALESCE(#{email}, email), ",
-            "password = COALESCE(#{password}, password), ",
-            "banned_until = #{bannedUntil}, ",
-            "ban_count = COALESCE(#{banCount}, ban_count) ",
+    @Update({"UPDATE users SET",
+            "role = COALESCE(#{role.name}, role),",
+            "email = COALESCE(#{email}, email),",
+            "password = COALESCE(#{password}, password)",
             "WHERE id = #{id}"
     })
     void update(User user);
 
+    @Update({"UPDATE users SET",
+            "banned_until = #{bannedUntil},",
+            "ban_count = COALESCE(#{banCount}, ban_count)",
+            "WHERE id = #{id}"
+    })
+    void banUser(User user);
+
     @Update("UPDATE users SET deleted = TRUE WHERE id = #{id}")
     void deactivateById(int id);
+
+    @Delete("DELETE FROM users WHERE username <> 'admin'")
+    void deleteAllWithoutAdmin();
 
     @Delete("DELETE FROM users")
     void deleteAll();
