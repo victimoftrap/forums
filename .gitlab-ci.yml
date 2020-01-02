@@ -12,7 +12,7 @@ variables:
 compile_test:
   script:
     - find /var/lib/mysql/mysql -exec touch -c -a {} + && service mysql start
-    - mysql -h localhost -u test -p Password/19 < sql/forums.sql
+    - mysql -h localhost -u test -pPassword/19 < sql/forums.sql
     - mvn $MAVEN_CLI_OPTS clean compile test
 
   tags:
