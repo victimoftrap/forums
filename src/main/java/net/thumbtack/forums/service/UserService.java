@@ -19,13 +19,12 @@ import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
@@ -161,10 +160,9 @@ public class UserService extends ServiceBase {
         final int banCount;
         final int maxBanCount = serverProperties.getMaxBanCount();
         if (restrictedUser.getBanCount() < maxBanCount - 1) {
-            banTime = LocalDateTime.of(
-                    LocalDate.now().plus(serverProperties.getBanTime(), ChronoUnit.DAYS),
-                    LocalTime.of(0, 0)
-            )
+            banTime = LocalDateTime
+                    .now()
+                    .plus( serverProperties.getBanTime() - 1, ChronoUnit.DAYS)
                     .truncatedTo(ChronoUnit.SECONDS);
             banCount = restrictedUser.getBanCount() + 1;
             isPermanent = false;
@@ -183,5 +181,11 @@ public class UserService extends ServiceBase {
         restrictedUser.setBanCount(banCount);
         userDao.banUser(restrictedUser, isPermanent);
         return new EmptyDtoResponse();
+    }
+
+    @Scheduled(cron = "0 0 0 ? * * *")
+    public void unbanUsers() throws ServerException {
+        final LocalDateTime currentDate = LocalDateTime.now();
+        userDao.unbanAllByDate(currentDate);
     }
 }

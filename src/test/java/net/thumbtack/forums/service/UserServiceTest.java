@@ -23,6 +23,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalField;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -614,8 +617,16 @@ class UserServiceTest {
                 .banUser(any(User.class), eq(false));
 
         userService.banUser(token, bannedUser.getId());
+
         assertEquals(1, bannedUser.getBanCount());
         assertNotNull(bannedUser.getBannedUntil());
+        final LocalDate currentDate = LocalDate
+                .now()
+                .plus(banDays - 1, ChronoUnit.DAYS);
+
+        assertEquals(currentDate.getYear(), bannedUser.getBannedUntil().getYear());
+        assertEquals(currentDate.getMonth(), bannedUser.getBannedUntil().getMonth());
+        assertEquals(currentDate.getDayOfMonth(), bannedUser.getBannedUntil().getDayOfMonth());
 
         verify(sessionDao)
                 .getUserByToken(anyString());

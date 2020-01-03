@@ -5,6 +5,7 @@ import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.exception.ServerException;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 public interface UserDao {
     User save(User user) throws ServerException;
@@ -28,6 +29,8 @@ public interface UserDao {
     void update(User user) throws ServerException;
 
     void banUser(User user, boolean isPermanent) throws ServerException;
+
+    void unbanAllByDate(LocalDateTime date) throws ServerException;
 
     void deactivateById(int id) throws ServerException;
 

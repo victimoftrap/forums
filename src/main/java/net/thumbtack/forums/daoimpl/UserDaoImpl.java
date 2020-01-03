@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component("userDao")
@@ -204,6 +205,22 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 }
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to ban user with ID {}", user.getId(), ex);
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
+
+    @Override
+    public void unbanAllByDate(LocalDateTime date) throws ServerException {
+        LOGGER.debug("Unban all users that need to be unbanned on {}", date);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                getUserMapper(sqlSession).unbanAllByDate(date);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to unban users on date {}", date, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

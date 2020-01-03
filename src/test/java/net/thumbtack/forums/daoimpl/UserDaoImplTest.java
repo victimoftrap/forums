@@ -10,6 +10,8 @@ import net.thumbtack.forums.model.enums.UserRole;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
@@ -578,6 +580,65 @@ class UserDaoImplTest extends DaoTestEnvironment {
                 () -> assertEquals(bannedUserForum.getId(), selectedForum.getId()),
                 () -> assertTrue(selectedForum.isReadonly())
         );
+    }
+
+    @Test
+    void testUnbanUsersByDate() throws ServerException {
+        final User bannedUser1 = new User(
+                "user1", "user@mail.ca", "userpass123"
+        );
+        final User bannedUser2 = new User(
+                "user2", "user@fastmail.com", "userpass456"
+        );
+        final User bannedUser3 = new User(
+                "user3", "user@safemail.online", "userpass789"
+        );
+        final User bannedUser4 = new User(
+                "user4", "user@mailbox.org", "00userpass00"
+        );
+        userDao.save(bannedUser1);
+        userDao.save(bannedUser2);
+        userDao.save(bannedUser3);
+        userDao.save(bannedUser4);
+
+        bannedUser1.setBanCount(1);
+        bannedUser1.setBannedUntil(
+                LocalDateTime
+                        .now()
+                        .plus(7, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        userDao.banUser(bannedUser1, false);
+
+        bannedUser3.setBanCount(3);
+        bannedUser3.setBannedUntil(
+                LocalDateTime
+                        .now()
+                        .plus(5, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        userDao.banUser(bannedUser3, false);
+
+        bannedUser4.setBanCount(2);
+        bannedUser4.setBannedUntil(
+                LocalDateTime
+                        .now()
+                        .plus(10, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        userDao.banUser(bannedUser4, false);
+
+        final LocalDateTime unbanDate = LocalDateTime.of(
+                LocalDate.now().plus(8, ChronoUnit.DAYS),
+                LocalTime.of(0, 0, 0)
+        );
+        userDao.unbanAllByDate(unbanDate);
+
+        final List<User> users = userDao.getAll();
+        assertNull(users.get(1).getBannedUntil());
+        assertNull(users.get(2).getBannedUntil());
+        assertNull(users.get(3).getBannedUntil());
+        assertNotNull(users.get(4).getBannedUntil());
     }
 
     @Test
