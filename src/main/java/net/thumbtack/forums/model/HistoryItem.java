@@ -61,4 +61,13 @@ public class HistoryItem {
     public int hashCode() {
         return Objects.hash(getBody(), getState(), getCreatedAt());
     }
+
+    @Override
+    public String toString() {
+        return "HistoryItem{" +
+                "body='" + body + '\'' +
+                ", state=" + state +
+                ", createdAt=" + createdAt +
+                '}';
+    }
 }

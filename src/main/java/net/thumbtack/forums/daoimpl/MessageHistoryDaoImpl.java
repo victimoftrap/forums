@@ -13,8 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.List;
-
 @Component("messageHistoryDao")
 public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHistoryDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(MessageHistoryDaoImpl.class);
@@ -27,14 +25,14 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
 
     @Override
     public HistoryItem saveNewVersion(MessageItem item) throws ServerException {
-        LOGGER.debug("Saving new version of message with ID {}", item.getId());
+        LOGGER.debug("Saving new version of message {}", item);
         final HistoryItem newVersion = item.getHistory().get(0);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageHistoryMapper(sqlSession).saveHistory(item.getId(), newVersion);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save new version of message {}", item.getId(), ex);
+                LOGGER.info("Unable to save new version of message {}", item, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -45,7 +43,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
 
     @Override
     public void editLatestVersion(MessageItem item) throws ServerException {
-        LOGGER.debug("Updating unpublished version of message with ID {}", item.getId());
+        LOGGER.debug("Updating unpublished version of message {}", item);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
@@ -53,7 +51,7 @@ public class MessageHistoryDaoImpl extends MapperCreatorDao implements MessageHi
                         item.getId(), item.getHistory().get(0)
                 );
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to update unpublished version of message {}", item.getId());
+                LOGGER.info("Unable to update unpublished version of message {}", item);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

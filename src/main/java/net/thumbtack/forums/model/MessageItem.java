@@ -203,4 +203,20 @@ public class MessageItem {
                 childrenComments, history, createdAt, updatedAt, averageRating
         );
     }
+
+    @Override
+    public String toString() {
+        return "MessageItem{" +
+                "id=" + id +
+                ", owner=" + owner +
+                ", messageTree.id=" + messageTree.getId() +
+                ", parentMessage=" + parentMessage +
+                ", childrenComments=" + childrenComments +
+                ", history=" + history +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                ", averageRating=" + averageRating +
+                ", ratings=" + ratings +
+                '}';
+    }
 }
