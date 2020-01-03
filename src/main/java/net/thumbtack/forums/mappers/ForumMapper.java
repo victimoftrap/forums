@@ -34,16 +34,36 @@ public interface ForumMapper {
                             )
                     ),
                     @Result(property = "name", column = "name", javaType = String.class),
+                    @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class),
                     @Result(property = "readonly", column = "readonly", javaType = boolean.class),
-                    @Result(property = "createdAt", column = "created_at", javaType = LocalDateTime.class)
+                    @Result(property = "messageCount", column = "id", javaType = int.class,
+                            one = @One(
+                                    select = "net.thumbtack.forums.mappers.ForumMapper.getPublishedMessagesCount",
+                                    fetchType = FetchType.LAZY
+                            )
+                    ),
+                    @Result(property = "commentCount", column = "id", javaType = int.class,
+                            one = @One(
+                                    select = "net.thumbtack.forums.mappers.ForumMapper.getPublishedCommentCount",
+                                    fetchType = FetchType.LAZY
+                            )
+                    )
             })
     Forum getById(@Param("id") int id);
 
-    @Select({"SELECT COUNT(*) FROM message_history WHERE state = 'PUBLISHED' AND message_id IN (",
-            "SELECT root_message FROM messages_tree WHERE forum_id = #{id}",
+    @Select({"SELECT COUNT(*) AS pmc FROM message_history WHERE state = 'PUBLISHED' AND message_id IN (",
+            "SELECT id FROM messages WHERE parent_message IS NULL AND tree_id IN (",
+            "SELECT id FROM messages_tree WHERE forum_id = #{forumId} )",
             ")"
     })
-    int getPublishedMessagesCountInForum(@Param("id") int forumId);
+    int getPublishedMessagesCount(@Param("forumId") int forumId);
+
+    @Select({"SELECT COUNT(*) AS pcc FROM message_history WHERE state = 'PUBLISHED' AND message_id IN (",
+            "SELECT id FROM messages WHERE parent_message IS NOT NULL AND tree_id IN (",
+            "SELECT id FROM messages_tree WHERE forum_id = #{forumId} )",
+            ")"
+    })
+    int getPublishedCommentCount(@Param("forumId") int forumId);
 
     @Select("SELECT id, forum_type, owner_id, name, readonly, created_at FROM forums")
     @ResultMap("forumResult")

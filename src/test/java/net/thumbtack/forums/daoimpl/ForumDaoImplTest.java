@@ -2,15 +2,17 @@ package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.model.Forum;
-import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.ForumType;
+import net.thumbtack.forums.model.enums.MessagePriority;
+import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.model.enums.UserRole;
 
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -107,6 +109,122 @@ class ForumDaoImplTest extends DaoTestEnvironment {
 
         Forum selectedForum = forumDao.getById(forum.getId());
         assertEquals(forum, selectedForum);
+    }
+
+    @Test
+    void testGetForumById_forumHasMessagesAndComments() throws ServerException {
+        User forumOwner = new User(
+                UserRole.USER,
+                "g.house", "greg.house@gmail.com", "cuddy",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(forumOwner);
+
+        Forum forum = new Forum(
+                ForumType.UNMODERATED,
+                forumOwner,
+                "TestForum",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false,
+                0, 0
+        );
+        forumDao.save(forum);
+
+        HistoryItem message1History = new HistoryItem(
+                "Message #1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        MessageTree message1Tree = new MessageTree(
+                forum, "Tree #1", null, MessagePriority.NORMAL
+        );
+        MessageItem message1 = new MessageItem(
+                forumOwner, message1Tree, null,
+                Collections.singletonList(message1History),
+                message1History.getCreatedAt(), message1History.getCreatedAt()
+        );
+        message1Tree.setRootMessage(message1);
+        messageTreeDao.saveMessageTree(message1Tree);
+
+        HistoryItem message2History = new HistoryItem(
+                "Message #2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        MessageTree message2Tree = new MessageTree(
+                forum, "Tree #2", null, MessagePriority.NORMAL
+        );
+        MessageItem message2 = new MessageItem(
+                forumOwner, message2Tree, null,
+                Collections.singletonList(message2History),
+                message2History.getCreatedAt(), message2History.getCreatedAt()
+        );
+        message2Tree.setRootMessage(message2);
+        messageTreeDao.saveMessageTree(message2Tree);
+
+        HistoryItem comment1History = new HistoryItem(
+                "Comment #1 -> Message #1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        MessageItem comment1 = new MessageItem(
+                forumOwner, message1Tree, message1,
+                Collections.singletonList(comment1History),
+                comment1History.getCreatedAt(), comment1History.getCreatedAt()
+        );
+        messageDao.saveMessageItem(comment1);
+
+        HistoryItem comment2History = new HistoryItem(
+                "Comment #2 -> Message #1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        MessageItem comment2 = new MessageItem(
+                forumOwner, message1Tree, message1,
+                Collections.singletonList(comment2History),
+                comment2History.getCreatedAt(), comment2History.getCreatedAt()
+        );
+        messageDao.saveMessageItem(comment2);
+
+        HistoryItem comment3History = new HistoryItem(
+                "Comment #3 -> Comment #2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        MessageItem comment3 = new MessageItem(
+                forumOwner, message1Tree, comment2,
+                Collections.singletonList(comment3History),
+                comment3History.getCreatedAt(), comment3History.getCreatedAt()
+        );
+        messageDao.saveMessageItem(comment3);
+
+        HistoryItem comment4History = new HistoryItem(
+                "Comment #4 -> Message #2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        MessageItem comment4 = new MessageItem(
+                forumOwner, message2Tree, message2,
+                Collections.singletonList(comment4History),
+                comment4History.getCreatedAt(), comment4History.getCreatedAt()
+        );
+        messageDao.saveMessageItem(comment4);
+
+        HistoryItem comment5History = new HistoryItem(
+                "Comment #5 -> Comment #4", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        MessageItem comment5 = new MessageItem(
+                forumOwner, message1Tree, comment4,
+                Collections.singletonList(comment5History),
+                comment5History.getCreatedAt(), comment5History.getCreatedAt()
+        );
+        messageDao.saveMessageItem(comment5);
+
+        Forum selectedForum = forumDao.getById(forum.getId());
+        assertEquals(forum.getId(), selectedForum.getId());
+        assertEquals(forum.getType(), selectedForum.getType());
+        assertEquals(forum.getName(), selectedForum.getName());
+        assertEquals(forum.getOwner(), selectedForum.getOwner());
+        assertEquals(forum.isReadonly(), selectedForum.isReadonly());
+        assertEquals(forum.getCreatedAt(), selectedForum.getCreatedAt());
+        assertEquals(2, selectedForum.getMessageCount());
+        assertEquals(5, selectedForum.getCommentCount());
     }
 
     @Test
