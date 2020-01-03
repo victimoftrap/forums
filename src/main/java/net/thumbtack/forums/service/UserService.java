@@ -183,7 +183,7 @@ public class UserService extends ServiceBase {
         return new EmptyDtoResponse();
     }
 
-    @Scheduled(cron = "0 0 0 ? * * *")
+    @Scheduled(cron = "${cronUnbanExpression}")
     public void unbanUsers() throws ServerException {
         final LocalDateTime currentDate = LocalDateTime.now();
         userDao.unbanAllByDate(currentDate);
