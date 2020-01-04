@@ -49,8 +49,14 @@ public class MessageService extends ServiceBase {
         return priority == null ? MessagePriority.NORMAL : MessagePriority.valueOf(priority);
     }
 
-    private MessageState getMessageStateByForumType(final ForumType type) {
-        return type == ForumType.UNMODERATED ? MessageState.PUBLISHED : MessageState.UNPUBLISHED;
+    private MessageState getMessageState(final Forum forum, final User messageCreator) {
+        if (forum.getType() == ForumType.UNMODERATED) {
+            return MessageState.PUBLISHED;
+        }
+        if (forum.getOwner().equals(messageCreator)) {
+            return MessageState.PUBLISHED;
+        }
+        return MessageState.UNPUBLISHED;
     }
 
     private MessageItem getMessageById(final int messageId) throws ServerException {
@@ -67,8 +73,8 @@ public class MessageService extends ServiceBase {
         }
     }
 
-    private void checkIsUserMessageCreator(final MessageItem item, final User user) throws ServerException {
-        if (!item.getOwner().equals(user)) {
+    private void checkPermission(final User owner, final User requesterUser) throws ServerException {
+        if (!owner.equals(requesterUser)) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
     }
@@ -85,7 +91,7 @@ public class MessageService extends ServiceBase {
         checkIsForumReadOnly(forum);
 
         final MessagePriority priority = getMessagePriority(request.getPriority());
-        final MessageState state = getMessageStateByForumType(forum.getType());
+        final MessageState state = getMessageState(forum, creator);
         final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         final HistoryItem historyItem = new HistoryItem(
@@ -121,7 +127,7 @@ public class MessageService extends ServiceBase {
         final Forum forum = parentMessage.getMessageTree().getForum();
         checkIsForumReadOnly(forum);
 
-        final MessageState state = getMessageStateByForumType(forum.getType());
+        final MessageState state = getMessageState(forum, creator);
         final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         final HistoryItem historyItem = new HistoryItem(
@@ -145,7 +151,7 @@ public class MessageService extends ServiceBase {
         checkUserBannedPermanently(requesterUser);
 
         final MessageItem deletingMessage = getMessageById(messageId);
-        checkIsUserMessageCreator(deletingMessage, requesterUser);
+        checkPermission(deletingMessage.getOwner(), requesterUser);
 
         final Forum forum = deletingMessage.getMessageTree().getForum();
         checkIsForumReadOnly(forum);
@@ -171,26 +177,20 @@ public class MessageService extends ServiceBase {
         checkUserBanned(requesterUser);
 
         final MessageItem editingMessage = getMessageById(messageId);
-        checkIsUserMessageCreator(editingMessage, requesterUser);
+        checkPermission(editingMessage.getOwner(), requesterUser);
 
         final Forum forum = editingMessage.getMessageTree().getForum();
         checkIsForumReadOnly(forum);
 
-        final ForumType type = forum.getType();
-        final User forumOwner = forum.getOwner();
         final HistoryItem latestHistory = editingMessage.getHistory().get(0);
-
-        MessageState messageState = MessageState.UNPUBLISHED;
+        MessageState messageState;
         if (latestHistory.getState() == MessageState.PUBLISHED) {
             final List<HistoryItem> newHistory = new ArrayList<>(editingMessage.getHistory());
-            if (type == ForumType.UNMODERATED || requesterUser.equals(forumOwner)) {
-                messageState = MessageState.PUBLISHED;
-            }
-            if (type == ForumType.MODERATED && !requesterUser.equals(forumOwner)) {
-                messageState = MessageState.UNPUBLISHED;
-            }
+            messageState = getMessageState(forum, requesterUser);
+
             final HistoryItem newVersion = new HistoryItem(
-                    request.getBody(), messageState, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                    request.getBody(), messageState,
+                    LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
             );
             newHistory.add(0, newVersion);
             editingMessage.setHistory(newHistory);
@@ -211,7 +211,7 @@ public class MessageService extends ServiceBase {
         checkUserBanned(requesterUser);
 
         final MessageItem editingMessage = getMessageById(messageId);
-        checkIsUserMessageCreator(editingMessage, requesterUser);
+        checkPermission(editingMessage.getOwner(), requesterUser);
 
         final Forum forum = editingMessage.getMessageTree().getForum();
         checkIsForumReadOnly(forum);
@@ -237,11 +237,8 @@ public class MessageService extends ServiceBase {
 
         final MessageTree oldTree = newRootMessage.getMessageTree();
         final Forum forum = oldTree.getForum();
-
         checkIsForumReadOnly(forum);
-        if (!forum.getOwner().equals(requesterUser)) {
-            throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
-        }
+        checkPermission(forum.getOwner(), requesterUser);
 
         final MessageTree newTree = new MessageTree(
                 oldTree.getForum(), request.getSubject(), newRootMessage,
@@ -264,11 +261,7 @@ public class MessageService extends ServiceBase {
         final MessageTree tree = publishingMessage.getMessageTree();
         final Forum forum = tree.getForum();
         checkIsForumReadOnly(forum);
-
-        final User forumOwner = forum.getOwner();
-        if (!requesterUser.equals(forumOwner)) {
-            throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
-        }
+        checkPermission(forum.getOwner(), requesterUser);
 
         final List<HistoryItem> messageHistory = publishingMessage.getHistory();
         final HistoryItem latestHistoryToPublish = messageHistory.get(0);

@@ -37,8 +37,8 @@ class MessageServiceTest {
     private MessageDao mockMessageDao;
     private MessageHistoryDao mockMessageHistoryDao;
     private RatingDao mockRatingDao;
-    private MessageService messageService;
     private ServerConfigurationProperties mockServerProperties;
+    private MessageService messageService;
 
     @BeforeEach
     void initMocks() {
@@ -57,26 +57,47 @@ class MessageServiceTest {
         );
     }
 
-    @Test
-    void testCreateMessage() throws ServerException {
-        final User user = new User("MarvinGaye", "gaye@motown.com", "whatsGoingOn");
-        final Forum forum = new Forum(ForumType.UNMODERATED, user,
-                "Soul Music", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+    static Stream<Arguments> userAndForumParams() {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@motown.com", "whatsGoingOn"
+        );
+        final User messageCreator = new User(
+                "MessageCreator", "MessageCreator@motown.com", "whatsGoingOn"
+        );
+
+        return Stream.of(
+                Arguments.arguments(ForumType.MODERATED, forumOwner, forumOwner, MessageState.PUBLISHED),
+                Arguments.arguments(ForumType.UNMODERATED, forumOwner, forumOwner, MessageState.PUBLISHED),
+                Arguments.arguments(ForumType.UNMODERATED, forumOwner, messageCreator, MessageState.PUBLISHED),
+                Arguments.arguments(ForumType.MODERATED, forumOwner, messageCreator, MessageState.UNPUBLISHED)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("userAndForumParams")
+    void testCreateMessage(
+            ForumType forumType, User forumOwner, User messageCreator, MessageState messageState
+    ) throws ServerException {
+        final Forum forum = new Forum(
+                forumType, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
 
         final String token = "token";
         final int forumId = 1939;
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
-                "My new album", "I wrote new album",
+                "Message Subject", "Message Body",
                 MessagePriority.HIGH.name(), null
         );
         final int messageId = 9391;
         final MessageDtoResponse expectedResponse = new MessageDtoResponse(
-                messageId, MessageState.PUBLISHED.name()
+                messageId, messageState.name()
         );
 
-        when(mockSessionDao.getUserByToken(anyString())).thenReturn(user);
-        when(mockForumDao.getById(anyInt())).thenReturn(forum);
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageCreator);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(forum);
         doAnswer(invocationOnMock -> {
             MessageTree tree = invocationOnMock.getArgument(0);
             tree.getRootMessage().setId(messageId);
@@ -88,9 +109,37 @@ class MessageServiceTest {
         final MessageDtoResponse actualResponse = messageService.addMessage(token, forumId, request);
         assertEquals(expectedResponse, actualResponse);
 
-        verify(mockSessionDao).getUserByToken(anyString());
-        verify(mockForumDao).getById(anyInt());
-        verify(mockMessageTreeDao).saveMessageTree(any(MessageTree.class));
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(anyInt());
+        verify(mockMessageTreeDao)
+                .saveMessageTree(any(MessageTree.class));
+    }
+
+    @Test
+    void testCreateMessage_userNotFoundByToken_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
+                "Message Subject", "Message Body",
+                MessagePriority.HIGH.name(), null
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.addMessage(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageDao, never())
+                .saveMessageItem(any(MessageItem.class));
     }
 
     @Test
@@ -157,33 +206,39 @@ class MessageServiceTest {
                 .saveMessageTree(any(MessageTree.class));
     }
 
-    @Test
-    void testCreateComment() throws ServerException {
-        final User user = new User("MarvinGaye", "gaye@motown.com", "whatsGoingOn");
-        final Forum forum = new Forum(ForumType.UNMODERATED, user,
-                "Soul Music", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+    @ParameterizedTest
+    @MethodSource("userAndForumParams")
+    void testCreateComment(
+            ForumType forumType, User forumOwner, User messageCreator, MessageState messageState
+    ) throws ServerException {
+        final Forum forum = new Forum(
+                forumType, forumOwner, "TestForum",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
+
         final HistoryItem parentHistory = new HistoryItem(
-                "I made new album", MessageState.PUBLISHED,
+                "Message body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                user, Collections.singletonList(parentHistory),
+                forumOwner, Collections.singletonList(parentHistory),
                 parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "My new album", parentMessage, MessagePriority.NORMAL
+                forum, "Subject", parentMessage, MessagePriority.NORMAL
         );
         parentMessage.setMessageTree(tree);
 
-        final User other = new User("MickFleetwood", "fleetwood@fw.com", "thunderOnlyHappens");
         final String token = "token";
         final int parentMessageId = 527;
         final int childMessageId = 528;
-        final CreateCommentDtoRequest request = new CreateCommentDtoRequest("I prefer Fleetwood Mac");
+        final CreateCommentDtoRequest request = new CreateCommentDtoRequest("Comment body");
+        final MessageDtoResponse expectedResponse = new MessageDtoResponse(
+                childMessageId, messageState.name()
+        );
 
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(other);
+                .thenReturn(messageCreator);
         when(mockMessageDao.getMessageById(anyInt()))
                 .thenReturn(parentMessage);
         doAnswer(invocationOnMock -> {
@@ -194,13 +249,34 @@ class MessageServiceTest {
                 .when(mockMessageDao)
                 .saveMessageItem(any(MessageItem.class));
 
-        final MessageDtoResponse response = messageService.addComment(token, parentMessageId, request);
-        assertEquals(childMessageId, response.getId());
-        assertEquals(MessageState.PUBLISHED.name(), response.getState());
+        final MessageDtoResponse actualResponse = messageService.addComment(token, parentMessageId, request);
+        assertEquals(expectedResponse, actualResponse);
 
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageDao).saveMessageItem(any(MessageItem.class));
+    }
+
+    @Test
+    void testCreateComment_userNotFoundByToken_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final CreateCommentDtoRequest request = new CreateCommentDtoRequest("Comment Body");
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.addComment(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageDao, never())
+                .saveMessageItem(any(MessageItem.class));
     }
 
     @Test
@@ -225,6 +301,34 @@ class MessageServiceTest {
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageDao, never())
+                .saveMessageItem(any(MessageItem.class));
+    }
+
+    @Test
+    void testCreateComment_parentMessageNotFound_shouldThrowException() throws ServerException {
+        final User user = new User(
+                "TestUser", "TestUser@motown.com", "whatsGoingOn"
+        );
+
+        final String token = "token";
+        final int parentMessageId = 527;
+        final CreateCommentDtoRequest request = new CreateCommentDtoRequest("Comment Body");
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(null);
+
+        try {
+            messageService.addComment(token, parentMessageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
                 .getMessageById(anyInt());
         verify(mockMessageDao, never())
                 .saveMessageItem(any(MessageItem.class));
@@ -273,8 +377,11 @@ class MessageServiceTest {
 
     @Test
     void testCreateComment_forumReadOnly_shouldThrowException() throws ServerException {
-        final User user = new User("User", "user@testmail.ca", "whatsGoingOn");
-        final Forum readOnlyForum = new Forum(ForumType.UNMODERATED, user,
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@testmail.ca", "whatsGoingOn"
+        );
+        final Forum readOnlyForum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         readOnlyForum.setReadonly(true);
@@ -283,7 +390,7 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                user, Collections.singletonList(parentHistory),
+                forumOwner, Collections.singletonList(parentHistory),
                 parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
@@ -424,6 +531,83 @@ class MessageServiceTest {
     }
 
     @Test
+    void testDeleteMessage_userNotFoundByToken_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.deleteMessage(token, messageId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockServerProperties);
+        verifyZeroInteractions(mockMessageDao);
+        verifyZeroInteractions(mockMessageTreeDao);
+    }
+
+    @Test
+    void testDeleteMessage_userPermanentlyBanned_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        messageOwner.setBanCount(maxBanCount);
+
+        final String token = "token";
+        final int messageId = 951;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+
+        try {
+            messageService.deleteMessage(token, messageId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockServerProperties)
+                .getMaxBanCount();
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .deleteTreeById(anyInt());
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+    }
+
+    @Test
+    void testDeleteMessage_messageNotFound_shouldThrowException() throws ServerException {
+        final User user = new User(
+                "TestUser", "TestUser@motown.com", "whatsGoingOn"
+        );
+        final int maxBanCount = 5;
+        final String token = "token";
+        final int messageId = 123;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+
+        try {
+            messageService.deleteMessage(token, messageId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
+    }
+
+    @Test
     void testDeleteMessage_requestFromNotMessageCreator_shouldThrowException() throws ServerException {
         final int maxBanCount = 5;
         final User messageOwner = new User(
@@ -470,6 +654,55 @@ class MessageServiceTest {
                 .getMaxBanCount();
         verify(mockMessageDao)
                 .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .deleteTreeById(anyInt());
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+    }
+
+    @Test
+    void testDeleteMessage_forumReadOnly_shouldThrowException() throws ServerException {
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum readOnlyForum = new Forum(ForumType.UNMODERATED, messageOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        readOnlyForum.setReadonly(true);
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                readOnlyForum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 951;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(5);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.deleteMessage(token, messageId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORUM_READ_ONLY, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockServerProperties)
+                .getMaxBanCount();
         verify(mockMessageTreeDao, never())
                 .deleteTreeById(anyInt());
         verify(mockMessageDao, never())
@@ -539,107 +772,11 @@ class MessageServiceTest {
                 .deleteTreeById(anyInt());
     }
 
-    @Test
-    void testDeleteMessage_userPermanentlyBanned_shouldThrowException() throws ServerException {
-        final int maxBanCount = 5;
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
-        messageOwner.setBanCount(maxBanCount);
-
-        final String token = "token";
-        final int messageId = 951;
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(messageOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-
-        try {
-            messageService.deleteMessage(token, messageId);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-    }
-
-    @Test
-    void testDeleteMessage_forumReadOnly_shouldThrowException() throws ServerException {
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
-        final Forum readOnlyForum = new Forum(ForumType.UNMODERATED, messageOwner,
-                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
-        );
-        readOnlyForum.setReadonly(true);
-        final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
-        );
-        final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
-        );
-        final MessageTree tree = new MessageTree(
-                readOnlyForum, "TreeSubject", parentMessage, MessagePriority.NORMAL
-        );
-        parentMessage.setMessageTree(tree);
-
-        final String token = "token";
-        final int messageId = 951;
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(messageOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(5);
-        when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(parentMessage);
-
-        try {
-            messageService.deleteMessage(token, messageId);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.FORUM_READ_ONLY, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-    }
-
-    static Stream<Arguments> userAndForumParams() {
-        final User forumOwner = new User(
-                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
-        );
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
-        return Stream.of(
-                Arguments.arguments(messageOwner, forumOwner, ForumType.UNMODERATED, MessageState.PUBLISHED),
-                Arguments.arguments(messageOwner, forumOwner, ForumType.MODERATED, MessageState.UNPUBLISHED),
-                Arguments.arguments(forumOwner, forumOwner, ForumType.UNMODERATED, MessageState.PUBLISHED),
-                Arguments.arguments(forumOwner, forumOwner, ForumType.MODERATED, MessageState.PUBLISHED)
-        );
-    }
-
     @ParameterizedTest
     @MethodSource("userAndForumParams")
-    void testEditPublishedMessage(User messageOwner, User forumOwner, ForumType forumType, MessageState expectedState)
-            throws ServerException {
+    void testEditPublishedMessage(
+            ForumType forumType, User forumOwner, User messageOwner, MessageState expectedState
+    ) throws ServerException {
         final Forum forum = new Forum(
                 forumType, forumOwner,
                 "ForumName",
@@ -678,11 +815,15 @@ class MessageServiceTest {
         final EditMessageOrCommentDtoResponse response = messageService.editMessage(
                 token, messageId, request
         );
-        verify(mockSessionDao).getUserByToken(anyString());
-        verify(mockMessageDao).getMessageById(anyInt());
-        verify(mockMessageHistoryDao).saveNewVersion(any(MessageItem.class));
-        verify(mockMessageHistoryDao, never()).editLatestVersion(any(MessageItem.class));
         assertEquals(expectedState.name(), response.getState());
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageHistoryDao)
+                .saveNewVersion(any(MessageItem.class));
+        verify(mockMessageHistoryDao, never())
+                .editLatestVersion(any(MessageItem.class));
     }
 
     @Test
@@ -729,11 +870,63 @@ class MessageServiceTest {
         final EditMessageOrCommentDtoResponse response = messageService.editMessage(
                 token, messageId, request
         );
-        verify(mockSessionDao).getUserByToken(anyString());
-        verify(mockMessageDao).getMessageById(anyInt());
-        verify(mockMessageHistoryDao, never()).saveNewVersion(any(MessageItem.class));
-        verify(mockMessageHistoryDao).editLatestVersion(any(MessageItem.class));
         assertEquals(MessageState.UNPUBLISHED.name(), response.getState());
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageHistoryDao)
+                .editLatestVersion(any(MessageItem.class));
+        verify(mockMessageHistoryDao, never())
+                .saveNewVersion(any(MessageItem.class));
+    }
+
+    @Test
+    void testEditMessage_userNotFoundByToken_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final EditMessageOrCommentDtoRequest request = new EditMessageOrCommentDtoRequest(
+                "New Root Message Body"
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.editMessage(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao);
+        verifyZeroInteractions(mockMessageHistoryDao);
+    }
+
+    @Test
+    void testEditMessage_userBanned_shouldThrowException() throws ServerException {
+        final User bannedUser = new User(
+                "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
+        );
+        bannedUser.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+
+        final String token = "token";
+        final int forumId = 1939;
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(bannedUser);
+
+        try {
+            messageService.editMessage(token, forumId, null);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageHistoryDao, never())
+                .saveNewVersion(any(MessageItem.class));
+        verify(mockMessageHistoryDao, never())
+                .editLatestVersion(any(MessageItem.class));
     }
 
     @Test
@@ -783,30 +976,54 @@ class MessageServiceTest {
     }
 
     @Test
-    void testEditMessage_userBanned_shouldThrowException() throws ServerException {
-        final User bannedUser = new User(
-                "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
+    void testEditMessage_forumReadOnly_shouldThrowException() throws ServerException {
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
-        bannedUser.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        forumOwner.setDeleted(true);
+        final Forum readOnlyForum = new Forum(
+                ForumType.MODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        readOnlyForum.setReadonly(true);
+
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                readOnlyForum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
 
         final String token = "token";
-        final int forumId = 1939;
+        final int messageId = 951;
+        final EditMessageOrCommentDtoRequest request = new EditMessageOrCommentDtoRequest(
+                "New Root Message Body"
+        );
+
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(bannedUser);
+                .thenReturn(messageOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
 
         try {
-            messageService.editMessage(token, forumId, null);
+            messageService.editMessage(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
+            assertEquals(ErrorCode.FORUM_READ_ONLY, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
-        verify(mockMessageDao, never())
+        verify(mockMessageDao)
                 .getMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .saveNewVersion(any(MessageItem.class));
-        verify(mockMessageHistoryDao, never())
-                .editLatestVersion(any(MessageItem.class));
+        verifyZeroInteractions(mockMessageHistoryDao);
     }
 
     @Test
@@ -857,6 +1074,83 @@ class MessageServiceTest {
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao).changeBranchPriority(any(MessageTree.class));
+    }
+
+    @Test
+    void testChangePriority_userNotFoundByToken_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
+                MessagePriority.HIGH.name()
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.changeMessagePriority(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao);
+        verifyZeroInteractions(mockMessageTreeDao);
+    }
+
+    @Test
+    void testChangePriority_userBanned_shouldThrowException() throws ServerException {
+        final User bannedUser = new User(
+                "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
+        );
+        bannedUser.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+
+        final String token = "token";
+        final int messageId = 123;
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
+                MessagePriority.HIGH.name()
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(bannedUser);
+
+        try {
+            messageService.changeMessagePriority(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .changeBranchPriority(any(MessageTree.class));
+    }
+
+    @Test
+    void testChangePriority_parentMessageNotFound_shouldThrowException() throws ServerException {
+        final User requesterUser = new User(
+                "User", "User@email.com", "teardrop_on_the_fire"
+        );
+
+        final String token = "token";
+        final int messageId = 123;
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
+                MessagePriority.HIGH.name()
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(requesterUser);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(null);
+
+        try {
+            messageService.changeMessagePriority(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
     }
 
     @Test
@@ -911,31 +1205,53 @@ class MessageServiceTest {
     }
 
     @Test
-    void testChangePriority_userBanned_shouldThrowException() throws ServerException {
-        final User bannedUser = new User(
-                "BannedCreator", "BannedCreator@email.com", "passwordOfBannedUser"
+    void testChangePriority_forumReadOnly_shouldThrowException() throws ServerException {
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
-        bannedUser.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        forumOwner.setDeleted(true);
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forum.setReadonly(true);
+
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
 
         final String token = "token";
         final int messageId = 123;
         final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
                 MessagePriority.HIGH.name()
         );
+
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(bannedUser);
+                .thenReturn(messageOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
 
         try {
             messageService.changeMessagePriority(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
+            assertEquals(ErrorCode.FORUM_READ_ONLY, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .changeBranchPriority(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
     }
 
     @Test
@@ -1005,6 +1321,87 @@ class MessageServiceTest {
     }
 
     @Test
+    void testNewBranchFromComment_userNotFound_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.newBranchFromComment(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .newBranch(any(MessageTree.class));
+    }
+
+    @Test
+    void testNewBranchFromComment_forumOwnerBanned_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        forumOwner.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
+
+        final String token = "token";
+        final int messageId = 123;
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+
+        try {
+            messageService.newBranchFromComment(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .newBranch(any(MessageTree.class));
+    }
+
+    @Test
+    void testNewBranchFromComment_messageNotFound_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+
+        final String token = "token";
+        final int messageId = 123;
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "NewTreeSubject", MessagePriority.NORMAL.name(), null
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(null);
+
+        try {
+            messageService.newBranchFromComment(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .newBranch(any(MessageTree.class));
+    }
+
+    @Test
     void testNewBranchFromComment_tryingToMakeBranchFromExistingBranch_shouldThrowException() throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
@@ -1048,96 +1445,6 @@ class MessageServiceTest {
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
-    }
-
-    @Test
-    void testNewBranchFromComment_requestNotFromForumOwner_shouldThrowException() throws ServerException {
-        final User forumOwner = new User(
-                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
-        );
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
-        final User commentOwner = new User(
-                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
-        );
-        final Forum forum = new Forum(
-                ForumType.UNMODERATED, forumOwner,
-                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
-        );
-        final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
-        );
-        final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
-        );
-        final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
-        );
-        parentMessage.setMessageTree(tree);
-
-        final HistoryItem commentHistory = new HistoryItem(
-                "Comment Message Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
-        );
-        final MessageItem commentMessage = new MessageItem(
-                commentOwner, tree, parentMessage,
-                Collections.singletonList(parentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
-        );
-
-        final String token = "token";
-        final int messageId = 123;
-        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL.name(), null
-        );
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(commentOwner);
-        when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(commentMessage);
-
-        try {
-            messageService.newBranchFromComment(token, messageId, request);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.FORBIDDEN_OPERATION, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
-    }
-
-    @Test
-    void testNewBranchFromComment_forumOwnerBanned_shouldThrowException() throws ServerException {
-        final User forumOwner = new User(
-                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
-        );
-        forumOwner.setBannedUntil(LocalDateTime.now().plus(1, ChronoUnit.DAYS));
-
-        final String token = "token";
-        final int messageId = 123;
-        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL.name(), null
-        );
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-
-        try {
-            messageService.newBranchFromComment(token, messageId, request);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
                 .getMessageById(anyInt());
         verify(mockMessageTreeDao, never())
                 .newBranch(any(MessageTree.class));
@@ -1207,9 +1514,41 @@ class MessageServiceTest {
     }
 
     @Test
-    void testNewBranchFromComment_messageNotFound_shouldThrowException() throws ServerException {
+    void testNewBranchFromComment_requestNotFromForumOwner_shouldThrowException() throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final User commentOwner = new User(
+                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final HistoryItem commentHistory = new HistoryItem(
+                "Comment Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentMessage = new MessageItem(
+                commentOwner, tree, parentMessage,
+                Collections.singletonList(parentHistory),
+                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1219,41 +1558,18 @@ class MessageServiceTest {
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
+                .thenReturn(commentOwner);
         when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(null);
+                .thenReturn(commentMessage);
 
         try {
             messageService.newBranchFromComment(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+            assertEquals(ErrorCode.FORBIDDEN_OPERATION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
-    }
-
-    @Test
-    void testNewBranchFromComment_userNotFound_shouldThrowException() throws ServerException {
-        final String token = "token";
-        final int messageId = 123;
-        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
-                "NewTreeSubject", MessagePriority.NORMAL.name(), null
-        );
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(null);
-
-        try {
-            messageService.newBranchFromComment(token, messageId, request);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
                 .getMessageById(anyInt());
         verify(mockMessageTreeDao, never())
                 .newBranch(any(MessageTree.class));
@@ -1516,6 +1832,182 @@ class MessageServiceTest {
     }
 
     @Test
+    void testPublishMessage_userNotFound_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final int messageId = 123;
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            messageService.publish(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+
+        verify(mockServerProperties, never())
+                .getMaxBanCount();
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageDao, never())
+                .publish(any(MessageItem.class));
+        verify(mockMessageTreeDao, never())
+                .deleteTreeById(anyInt());
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+        verify(mockMessageHistoryDao, never())
+                .unpublishNewVersionBy(anyInt());
+    }
+
+    @Test
+    void testPublishMessage_userPermanentlyBanned_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        forumOwner.setBanCount(maxBanCount);
+
+        final String token = "token";
+        final int messageId = 123;
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+
+        try {
+            messageService.publish(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockServerProperties)
+                .getMaxBanCount();
+
+        verify(mockMessageDao, never())
+                .getMessageById(anyInt());
+        verify(mockMessageDao, never())
+                .publish(any(MessageItem.class));
+        verify(mockMessageTreeDao, never())
+                .deleteTreeById(anyInt());
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+        verify(mockMessageHistoryDao, never())
+                .unpublishNewVersionBy(anyInt());
+    }
+
+    @Test
+    void testPublishMessage_messageNotFound_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+
+        final String token = "token";
+        final int messageId = 123;
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(null);
+
+        try {
+            messageService.publish(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockServerProperties)
+                .getMaxBanCount();
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+
+        verify(mockMessageDao, never())
+                .publish(any(MessageItem.class));
+        verify(mockMessageTreeDao, never())
+                .deleteTreeById(anyInt());
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+        verify(mockMessageHistoryDao, never())
+                .unpublishNewVersionBy(anyInt());
+    }
+
+    @Test
+    void testPublishMessage_forumReadOnly_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forum.setReadonly(true);
+
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.publish(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORUM_READ_ONLY, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockServerProperties)
+                .getMaxBanCount();
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+
+        verify(mockMessageDao, never())
+                .publish(any(MessageItem.class));
+        verifyZeroInteractions(mockMessageTreeDao);
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+        verifyZeroInteractions(mockMessageHistoryDao);
+    }
+
+    @Test
     void testPublishMessage_requestNotFromForumOwner_shouldThrowException() throws ServerException {
         final int maxBanCount = 5;
         final User forumOwner = new User(
@@ -1627,120 +2119,6 @@ class MessageServiceTest {
         verify(mockMessageDao)
                 .getMessageById(anyInt());
 
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
-    }
-
-    @Test
-    void testPublishMessage_userNotFound_shouldThrowException() throws ServerException {
-        final String token = "token";
-        final int messageId = 123;
-        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES.name()
-        );
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(null);
-
-        try {
-            messageService.publish(token, messageId, request);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-
-        verify(mockServerProperties, never())
-                .getMaxBanCount();
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
-    }
-
-    @Test
-    void testPublishMessage_messageNotFound_shouldThrowException() throws ServerException {
-        final int maxBanCount = 5;
-        final User forumOwner = new User(
-                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
-        );
-
-        final String token = "token";
-        final int messageId = 123;
-        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES.name()
-        );
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-        when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(null);
-
-        try {
-            messageService.publish(token, messageId, request);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
-    }
-
-    @Test
-    void testPublishMessage_userPermanentlyBanned_shouldThrowException() throws ServerException {
-        final int maxBanCount = 5;
-        final User forumOwner = new User(
-                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
-        );
-        forumOwner.setBanCount(maxBanCount);
-
-        final String token = "token";
-        final int messageId = 123;
-        final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
-                PublicationDecision.YES.name()
-        );
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-
-        try {
-            messageService.publish(token, messageId, request);
-        } catch (ServerException se) {
-            assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, se.getErrorCode());
-        }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
         verify(mockMessageDao, never())
                 .publish(any(MessageItem.class));
         verify(mockMessageTreeDao, never())
