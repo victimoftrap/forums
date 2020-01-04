@@ -1,12 +1,13 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.User;
-import net.thumbtack.forums.model.enums.ForumType;
-import net.thumbtack.forums.model.enums.UserRole;
+import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.UserSession;
-import net.thumbtack.forums.dao.ForumDao;
+import net.thumbtack.forums.model.enums.UserRole;
+import net.thumbtack.forums.model.enums.ForumType;
+import net.thumbtack.forums.model.enums.UserStatus;
 import net.thumbtack.forums.dao.UserDao;
+import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
@@ -17,12 +18,10 @@ import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
-import net.thumbtack.forums.model.enums.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -64,19 +63,12 @@ class UserServiceTest {
                 "jolybell", "ahoi@jolybell.com", "password123"
         );
         final User createdUser = new User(
-                1,
-                UserRole.USER,
-                request.getName(),
-                request.getEmail(),
-                request.getPassword(),
-                LocalDateTime.now(),
-                false
+                1, UserRole.USER, request.getName(), request.getEmail(), request.getPassword(),
+                LocalDateTime.now(), false
         );
         final UserSession session = new UserSession(createdUser, "token");
         final UserDtoResponse expectedResponse = new UserDtoResponse(
-                createdUser.getId(),
-                createdUser.getUsername(),
-                createdUser.getEmail(),
+                createdUser.getId(), createdUser.getUsername(), createdUser.getEmail(),
                 session.getToken()
         );
 
@@ -91,48 +83,38 @@ class UserServiceTest {
                 .save(any(User.class), any(UserSession.class));
 
         final UserDtoResponse actualResponse = userService.registerUser(request);
+        assertEquals(expectedResponse.getId(), actualResponse.getId());
+        assertEquals(expectedResponse.getName(), actualResponse.getName());
+        assertEquals(expectedResponse.getEmail(), actualResponse.getEmail());
+
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
         verify(userDao)
                 .save(any(User.class), any(UserSession.class));
         verifyZeroInteractions(sessionDao);
-
-        assertEquals(expectedResponse.getId(), actualResponse.getId());
-        assertEquals(expectedResponse.getName(), actualResponse.getName());
-        assertEquals(expectedResponse.getEmail(), actualResponse.getEmail());
     }
 
     @Test
     void testRegisterUser_userWithRequestedNameExists_shouldThrowException() throws ServerException {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "jolybell",
-                "ahoi@jolybell.com",
-                "password123"
+                "jolybell", "ahoi@jolybell.com", "password123"
         );
 
         when(userDao.getByName(eq(request.getName()), anyBoolean()))
                 .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA));
-        when(userDao.getByName(eq(request.getName()), anyBoolean()))
-                .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA));
-
-        assertThrows(ServerException.class, () -> userService.registerUser(request));
         try {
             userService.registerUser(request);
         } catch (ServerException e) {
             assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
         }
-
-        verify(userDao, times(2))
-                .getByName(eq(request.getName()), anyBoolean());
+        verify(userDao).getByName(eq(request.getName()), anyBoolean());
         verifyZeroInteractions(sessionDao);
     }
 
     @Test
     void testRegisterUser_onGetUserDatabaseError_shouldThrowException() throws ServerException {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "jolybell",
-                "ahoi@jolybell.com",
-                "password123"
+                "jolybell", "ahoi@jolybell.com", "password123"
         );
         when(userDao.getByName(eq(request.getName()), anyBoolean()))
                 .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
@@ -142,7 +124,6 @@ class UserServiceTest {
         } catch (ServerException e) {
             assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
         }
-
         verify(userDao)
                 .getByName(anyString(), anyBoolean());
         verify(userDao, never())
@@ -153,9 +134,7 @@ class UserServiceTest {
     @Test
     void testRegisterUser_onSaveUserDatabaseError_shouldThrowException() throws ServerException {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "jolybell",
-                "ahoi@jolybell.com",
-                "password123"
+                "jolybell", "ahoi@jolybell.com", "password123"
         );
 
         when(userDao.getByName(anyString(), anyBoolean()))
@@ -223,7 +202,7 @@ class UserServiceTest {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
         final User user = new User(request.getName(), "white@thirdman.com", request.getPassword());
 
-        when(userDao.getByName(anyString()))
+        when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(user);
         doNothing()
                 .when(sessionDao)
@@ -231,14 +210,13 @@ class UserServiceTest {
 
         final UserDtoResponse response = userService.login(request);
 
-        verify(userDao)
-                .getByName(anyString());
-        verify(sessionDao)
-                .upsertSession(any(UserSession.class));
-
         assertEquals(user.getId(), response.getId());
         assertEquals(user.getUsername(), response.getName());
         assertEquals(user.getEmail(), response.getEmail());
+        verify(userDao)
+                .getByName(anyString(), anyBoolean());
+        verify(sessionDao)
+                .upsertSession(any(UserSession.class));
     }
 
     @Test
@@ -248,43 +226,35 @@ class UserServiceTest {
         );
         final User user = new User("kaelthas", "kulthas@gmail.com", request.getPassword());
 
-        when(userDao.getByName(anyString()))
+        when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(user);
         doNothing()
                 .when(sessionDao)
                 .upsertSession(any(UserSession.class));
 
         final UserDtoResponse response = userService.login(request);
-
-        verify(userDao)
-                .getByName(anyString());
-        verify(sessionDao)
-                .upsertSession(any(UserSession.class));
-
         assertEquals(user.getId(), response.getId());
         assertEquals(user.getUsername(), response.getName());
         assertEquals(user.getEmail(), response.getEmail());
+
+        verify(userDao)
+                .getByName(anyString(), anyBoolean());
+        verify(sessionDao)
+                .upsertSession(any(UserSession.class));
     }
 
     @Test
-    void testLoginUser_userNotFound_shouldThrowException() throws ServerException {
+    void testLoginUser_userNotFoundByName_shouldThrowException() throws ServerException {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "white_stripes");
-        when(userDao.getByName(anyString()))
-                .thenReturn(null);
-        when(userDao.getByName(anyString()))
+        when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(null);
 
-        assertThrows(ServerException.class,
-                () -> userService.login(request)
-        );
         try {
             userService.login(request);
         } catch (ServerException e) {
             assertEquals(ErrorCode.USER_NOT_FOUND, e.getErrorCode());
         }
-
-        verify(userDao, times(2))
-                .getByName(anyString());
+        verify(userDao).getByName(anyString(), anyBoolean());
         verifyZeroInteractions(sessionDao);
     }
 
@@ -293,7 +263,7 @@ class UserServiceTest {
         final LoginUserDtoRequest request = new LoginUserDtoRequest("while", "correct_password");
         final User user = new User(request.getName(), "white@thirdman.com", "INCORRECT_password");
 
-        when(userDao.getByName(anyString()))
+        when(userDao.getByName(anyString(), anyBoolean()))
                 .thenReturn(user);
 
         try {
@@ -301,8 +271,7 @@ class UserServiceTest {
         } catch (ServerException e) {
             assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
         }
-
-        verify(userDao).getByName(anyString());
+        verify(userDao).getByName(anyString(), anyBoolean());
         verifyZeroInteractions(sessionDao);
     }
 
@@ -422,13 +391,14 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdatePassword_passwordTooShort_shouldThrowException() throws ServerException {
+    void testUpdatePassword_oldPasswordNotMatches_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
-        final User user = new User("alvvays", "aloha@alvvays.ca", "password123");
-        final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
-                user.getUsername(), user.getPassword(), "short!"
+        final User user = new User(
+                "alvvays", "aloha@alvvays.ca", "password123"
         );
-
+        final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
+                user.getUsername(), "INCORRECT_PASS", "sUp3rSTR0nG_pa55"
+        );
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
 
@@ -437,8 +407,8 @@ class UserServiceTest {
         } catch (ServerException e) {
             assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
         }
-        verify(sessionDao)
-                .getUserByToken(anyString());
+        verify(sessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(userDao);
     }
 
     @Test
@@ -537,7 +507,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testMadeSuperuser_requestFromRegularUser_shouldThrowException() throws ServerException {
+    void testMadeSuperuser_requestNotFromSuperuser_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User regularUser = new User(123, UserRole.USER,
                 "regular_user", "regular@forums.ca", "regularpass123",
@@ -561,7 +531,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testMadeSuperuser_userNotFoundOrDeletedById_shouldThrowException() throws ServerException {
+    void testMadeSuperuser_newSuperuserNotFoundOrDeletedById_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User superuser = new User(123, UserRole.SUPERUSER,
                 "superuser", "super@forums.ca", "superpass123",
@@ -614,8 +584,16 @@ class UserServiceTest {
                 .banUser(any(User.class), eq(false));
 
         userService.banUser(token, bannedUser.getId());
+
         assertEquals(1, bannedUser.getBanCount());
         assertNotNull(bannedUser.getBannedUntil());
+        final LocalDate currentDate = LocalDate
+                .now()
+                .plus(banDays - 1, ChronoUnit.DAYS);
+
+        assertEquals(currentDate.getYear(), bannedUser.getBannedUntil().getYear());
+        assertEquals(currentDate.getMonth(), bannedUser.getBannedUntil().getMonth());
+        assertEquals(currentDate.getDayOfMonth(), bannedUser.getBannedUntil().getDayOfMonth());
 
         verify(sessionDao)
                 .getUserByToken(anyString());
@@ -704,38 +682,6 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser_restrictedUserAreSuperuser_shouldThrowException() throws ServerException {
-        final String token = "token";
-        final User superuser = new User(123, UserRole.SUPERUSER,
-                "superuser", "super@forums.ca", "superpass123",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
-        );
-        final User bannedUser = new User(456, UserRole.SUPERUSER,
-                "user", "user@forums.ca", "userpass456",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
-        );
-
-        when(sessionDao.getUserByToken(anyString()))
-                .thenReturn(superuser);
-        when(userDao.getById(anyInt(), anyBoolean()))
-                .thenReturn(bannedUser);
-        try {
-            userService.banUser(token, bannedUser.getId());
-        } catch (ServerException e) {
-            assertEquals(ErrorCode.FORBIDDEN_OPERATION, e.getErrorCode());
-        }
-
-        verify(sessionDao)
-                .getUserByToken(anyString());
-        verify(userDao)
-                .getById(anyInt(), anyBoolean());
-
-        verifyZeroInteractions(mockConfigurationProperties);
-        verify(userDao, never())
-                .banUser(any(User.class), anyBoolean());
-    }
-
-    @Test
     void testBanUser_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         when(sessionDao.getUserByToken(eq(sessionToken)))
@@ -758,7 +704,7 @@ class UserServiceTest {
     }
 
     @Test
-    void testBanUser_requestFromRegularUser_shouldThrowException() throws ServerException {
+    void testBanUser_requestNotFromSuperuser_shouldThrowException() throws ServerException {
         final String sessionToken = UUID.randomUUID().toString();
         final User regularUser = new User(123, UserRole.USER,
                 "regular_user", "regular@forums.ca", "regularpass123",
@@ -805,6 +751,38 @@ class UserServiceTest {
                 .getUserByToken(eq(sessionToken));
         verify(userDao)
                 .getById(anyInt(), anyBoolean());
+        verifyZeroInteractions(mockConfigurationProperties);
+        verify(userDao, never())
+                .banUser(any(User.class), anyBoolean());
+    }
+
+    @Test
+    void testBanUser_restrictedUserAreSuperuser_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final User superuser = new User(123, UserRole.SUPERUSER,
+                "superuser", "super@forums.ca", "superpass123",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+        final User bannedUser = new User(456, UserRole.SUPERUSER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        when(sessionDao.getUserByToken(anyString()))
+                .thenReturn(superuser);
+        when(userDao.getById(anyInt(), anyBoolean()))
+                .thenReturn(bannedUser);
+        try {
+            userService.banUser(token, bannedUser.getId());
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.FORBIDDEN_OPERATION, e.getErrorCode());
+        }
+
+        verify(sessionDao)
+                .getUserByToken(anyString());
+        verify(userDao)
+                .getById(anyInt(), anyBoolean());
+
         verifyZeroInteractions(mockConfigurationProperties);
         verify(userDao, never())
                 .banUser(any(User.class), anyBoolean());
@@ -863,10 +841,9 @@ class UserServiceTest {
                 .thenReturn(sessions);
 
         final UserDetailsListDtoResponse actualResponse = userService.getUsers(sessionToken);
-
+        assertEquals(expectedResponse, actualResponse);
         verify(sessionDao).getUserByToken(anyString());
         verify(userDao).getAllWithSessions();
-        assertEquals(expectedResponse, actualResponse);
     }
 
     @Test
@@ -922,9 +899,23 @@ class UserServiceTest {
                 .thenReturn(sessions);
 
         final UserDetailsListDtoResponse actualResponse = userService.getUsers(sessionToken);
-
+        assertEquals(expectedResponse, actualResponse);
         verify(sessionDao).getUserByToken(anyString());
         verify(userDao).getAllWithSessions();
-        assertEquals(expectedResponse, actualResponse);
+    }
+
+    @Test
+    void testGetAllUsers_userNotFoundByToken_shouldThrowException() throws ServerException {
+        final String sessionToken = UUID.randomUUID().toString();
+        when(sessionDao.getUserByToken(eq(sessionToken)))
+                .thenReturn(null);
+
+        try {
+            userService.getUsers(sessionToken);
+        } catch (ServerException e) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+        }
+        verify(sessionDao).getUserByToken(eq(sessionToken));
+        verifyZeroInteractions(userDao);
     }
 }

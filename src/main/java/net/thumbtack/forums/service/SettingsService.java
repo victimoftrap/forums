@@ -24,19 +24,24 @@ public class SettingsService {
 
     public SettingsDtoResponse getSettings(final String sessionToken) throws ServerException {
         final User user = sessionDao.getUserByToken(sessionToken);
+        final int maxNameLength = properties.getMaxNameLength();
+        final int minPasswordLength = properties.getMinPasswordLength();
+
         if (user == null) {
-            return new SettingsDtoResponse(null, null,
-                    properties.getMaxNameLength(), properties.getMinPasswordLength()
+            return new SettingsDtoResponse(
+                    null, null,
+                    maxNameLength, minPasswordLength
             );
         }
         if (user.getRole() == UserRole.SUPERUSER) {
             return new SettingsDtoResponse(
                     properties.getBanTime(), properties.getMaxBanCount(),
-                    properties.getMaxNameLength(), properties.getMinPasswordLength()
+                    maxNameLength, minPasswordLength
             );
         }
-        return new SettingsDtoResponse(null, null,
-                properties.getMaxNameLength(), properties.getMinPasswordLength()
+        return new SettingsDtoResponse(
+                null, null,
+                maxNameLength, minPasswordLength
         );
     }
 }

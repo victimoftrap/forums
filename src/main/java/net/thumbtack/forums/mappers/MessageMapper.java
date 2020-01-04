@@ -14,11 +14,11 @@ import java.util.List;
 public interface MessageMapper {
     @Insert({"INSERT INTO messages",
             "(owner_id, tree_id, parent_message, created_at, updated_at)",
-            "VALUES(#{item.owner.id}, #{item.messageTree.id}, #{item.parentMessage.id},",
-            "#{item.createdAt}, #{item.updatedAt})"
+            "VALUES(#{owner.id}, #{messageTree.id}, #{parentMessage.id},",
+            "#{createdAt}, #{updatedAt})"
     })
-    @Options(useGeneratedKeys = true, keyProperty = "item.id")
-    Integer saveMessageItem(@Param("item") MessageItem item);
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    Integer saveMessageItem(MessageItem item);
 
     @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at",
             "FROM messages WHERE id = #{id}"
@@ -80,14 +80,6 @@ public interface MessageMapper {
     @ResultMap("messageResult")
     MessageItem getRootMessageById(int treeId);
 
-    @Update({"UPDATE messages",
-            "SET tree_id = COALESCE(#{messageTree.id}, tree_id),",
-            "SET parent_message = #{parentMessage.id}",
-            "SET updated_at = COALESCE(#{updatedAt}, updated_at),",
-            "WHERE id = #{id}"
-    })
-    void update(MessageItem item);
-
     @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at",
             "FROM messages WHERE parent_message = #{id}",
             "ORDER BY created_at DESC"
@@ -95,12 +87,13 @@ public interface MessageMapper {
     @ResultMap("messageResult")
     List<MessageItem> getChildrenMessages(int id);
 
-    @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at",
-            "FROM messages WHERE parent_message = #{id}",
-            "ORDER BY created_at #{order.name}"
+    @Update({"UPDATE messages",
+            "SET tree_id = COALESCE(#{messageTree.id}, tree_id),",
+            "SET parent_message = #{parentMessage.id}",
+            "SET updated_at = COALESCE(#{updatedAt}, updated_at),",
+            "WHERE id = #{id}"
     })
-    List<MessageItem> getComments(@Param("id") int messageId,
-                                  @Param("order") MessageOrder order);
+    void update(MessageItem item);
 
     @Update({"UPDATE messages",
             "SET tree_id = COALESCE(#{messageTree.id}, tree_id),",

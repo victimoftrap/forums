@@ -142,4 +142,17 @@ public class MessageTree {
     public int hashCode() {
         return Objects.hash(id, forum, subject, rootMessage, priority, createdAt, tags);
     }
+
+    @Override
+    public String toString() {
+        return "MessageTree{" +
+                "id=" + id +
+                ", forum=" + forum +
+                ", subject='" + subject + '\'' +
+                ", rootMessage.id=" + rootMessage +
+                ", priority=" + priority +
+                ", createdAt=" + createdAt +
+                ", tags=" + tags +
+                '}';
+    }
 }

@@ -7,12 +7,14 @@ import net.thumbtack.forums.exception.ServerException;
 
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.exceptions.PersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
+import java.sql.SQLIntegrityConstraintViolationException;
 
 @Component("forumDao")
 public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
@@ -31,9 +33,14 @@ public class ForumDaoImpl extends MapperCreatorDao implements ForumDao {
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getForumMapper(sqlSession).save(forum);
+            } catch (PersistenceException e) {
+                if (e.getCause() instanceof SQLIntegrityConstraintViolationException) {
+                    LOGGER.info("Forum name already used {} {}", forum, e.getMessage());
+                    sqlSession.rollback();
+                    throw new ServerException(ErrorCode.FORUM_NAME_ALREADY_USED);
+                }
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to save forum {} in database", forum, ex);
-
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

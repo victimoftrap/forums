@@ -14,9 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 @Component("messageTreeDao")
 public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeDao {
@@ -30,23 +28,24 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
 
     @Override
     public MessageTree saveMessageTree(MessageTree tree) throws ServerException {
-        LOGGER.debug("Creating new message tree with subject {} in forum {}",
-                tree.getSubject(), tree.getForum().getId()
-        );
+        LOGGER.debug("Creating new message tree {}", tree);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 final MessageItem rootMessage = tree.getRootMessage();
+
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
                 getMessageMapper(sqlSession).saveMessageItem(rootMessage);
                 getMessageHistoryMapper(sqlSession).saveHistory(
                         rootMessage.getId(), rootMessage.getHistory().get(0)
                 );
+
                 if (!tree.getTags().isEmpty()) {
-                    getTagMapper(sqlSession).saveMessageForAllTags(tree);
+                    getTagMapper(sqlSession).saveAllTags(tree.getTags());
+                    getTagMapper(sqlSession).safeBindMessageAndTags(tree);
                 }
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to create new tree in forum {}", tree.getForum().getId(), ex);
+                LOGGER.info("Unable to create new tree {}", tree, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -57,19 +56,18 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
 
     @Override
     public MessageTree newBranch(MessageTree tree) throws ServerException {
-        LOGGER.debug("Creating new tree from message with ID {} in forum {}",
-                tree.getRootMessage().getId(), tree.getForum().getId()
-        );
+        LOGGER.debug("Creating new tree from message {}", tree);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
                 if (!tree.getTags().isEmpty()) {
-                    getTagMapper(sqlSession).saveMessageForAllTags(tree);
+                    getTagMapper(sqlSession).saveAllTags(tree.getTags());
+                    getTagMapper(sqlSession).safeBindMessageAndTags(tree);
                 }
                 getMessageMapper(sqlSession).madeTreeRootMessage(tree.getRootMessage());
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to made new branch from message {}", tree.getRootMessage().getId(), ex);
+                LOGGER.info("Unable to made new branch from message {}", tree, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -79,8 +77,8 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     }
 
     @Override
-    public MessageItem getTreeRootMessage(int messageId, MessageOrder order,
-                                          boolean noComments, boolean allVersions, boolean unpublished
+    public MessageItem getTreeRootMessage(
+            int messageId, MessageOrder order, boolean noComments, boolean allVersions, boolean unpublished
     ) throws ServerException {
         LOGGER.debug(
                 "Getting root message by ID {} with params: order={}, noComments={}, allVersions={}, unpublished={}",
@@ -104,9 +102,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
 
     @Override
     public void changeBranchPriority(MessageTree tree) throws ServerException {
-        LOGGER.debug("Changing priority of message tree with ID {} in tree {}",
-                tree.getRootMessage().getId(), tree.getId()
-        );
+        LOGGER.debug("Changing priority of message tree {}", tree);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {

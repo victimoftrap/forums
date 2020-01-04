@@ -25,16 +25,13 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
 
     @Override
     public void upsertSession(UserSession session) throws ServerException {
-        LOGGER.debug("Creating new session for user {}", session.getUser());
+        LOGGER.debug("Upserting user session {}", session);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getSessionMapper(sqlSession).upsertSession(session);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save session token in database {} for user {}",
-                        session.getToken(), session.getUser(), ex
-                );
-
+                LOGGER.info("Unable to upsert session {}", session, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -44,7 +41,7 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
 
     @Override
     public UserSession getSessionByToken(String token) throws ServerException {
-        LOGGER.debug("Getting user session by session token {}", token);
+        LOGGER.debug("Getting user session by token {}", token);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
@@ -72,14 +69,13 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
 
     @Override
     public void deleteSession(String token) throws ServerException {
-        LOGGER.debug("Deleting user session by token {}", token);
+        LOGGER.debug("Deleting session by token {}", token);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getSessionMapper(sqlSession).deleteByToken(token);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to delete user session by token {}", token, ex);
-
+                LOGGER.info("Unable to delete session by token {}", token, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -89,14 +85,13 @@ public class SessionDaoImpl extends MapperCreatorDao implements SessionDao {
 
     @Override
     public void deleteAll() throws ServerException {
-        LOGGER.debug("Deleting all sessions for all users");
+        LOGGER.debug("Deleting all sessions of all users");
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getSessionMapper(sqlSession).deleteAll();
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to delete all sessions for users", ex);
-
+                LOGGER.info("Unable to delete all sessions of users", ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

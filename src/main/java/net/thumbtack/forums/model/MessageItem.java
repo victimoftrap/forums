@@ -1,10 +1,9 @@
 package net.thumbtack.forums.model;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
+import java.time.LocalDateTime;
 
 public class MessageItem {
     private int id;
@@ -76,28 +75,27 @@ public class MessageItem {
     }
 
     public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
-                       List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                       List<MessageItem> childrenComments,
+                       List<HistoryItem> history, LocalDateTime initialDate) {
         this(0, owner, messageTree, parentMessage,
-                new ArrayList<>(), history, createdAt, updatedAt,
+                childrenComments, history, initialDate, initialDate,
                 0., new ArrayList<>()
         );
     }
 
-    public MessageItem(User owner, List<HistoryItem> history, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this(0, owner, null, null,
-                new ArrayList<>(), history, createdAt, updatedAt,
+    public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
+                       List<HistoryItem> history, LocalDateTime initialDate) {
+        this(0, owner, messageTree, parentMessage,
+                new ArrayList<>(), history, initialDate, initialDate,
                 0., new ArrayList<>()
         );
     }
 
-    public MessageItem(User owner, List<HistoryItem> history) {
+    public MessageItem(User owner, List<HistoryItem> history, LocalDateTime initialDate) {
         this(0, owner, null, null,
-                new ArrayList<>(), history, null, null,
+                new ArrayList<>(), history, initialDate, initialDate,
                 0., new ArrayList<>()
         );
-        LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-        setCreatedAt(createdAt);
-        setUpdatedAt(createdAt);
     }
 
     public int getId() {
@@ -202,5 +200,21 @@ public class MessageItem {
         return Objects.hash(id, owner, messageTree, parentMessage,
                 childrenComments, history, createdAt, updatedAt, averageRating
         );
+    }
+
+    @Override
+    public String toString() {
+        return "MessageItem{" +
+                "id=" + id +
+                ", owner=" + owner +
+                ", messageTree.id=" + messageTree.getId() +
+                ", parentMessage=" + parentMessage +
+                ", childrenComments=" + childrenComments +
+                ", history=" + history +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
+                ", averageRating=" + averageRating +
+                ", ratings=" + ratings +
+                '}';
     }
 }

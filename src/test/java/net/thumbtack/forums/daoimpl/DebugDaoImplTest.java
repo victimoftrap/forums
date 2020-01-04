@@ -39,15 +39,18 @@ class DebugDaoImplTest extends DaoTestEnvironment {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         version1 = new HistoryItem(
-                "1st body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "1st body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         messageTree = new MessageTree(
-                forum, "TestTree", null, MessagePriority.NORMAL
+                forum, "TestTree", null,
+                MessagePriority.NORMAL,
+                version1.getCreatedAt()
         );
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(version1),
-                version1.getCreatedAt(), version1.getCreatedAt()
+                version1.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
     }
@@ -63,11 +66,13 @@ class DebugDaoImplTest extends DaoTestEnvironment {
                 "otherUser", "other@email.com", "passwd"
         );
         final HistoryItem commentHistory = new HistoryItem(
-                "comment body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "comment body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem comment = new MessageItem(
-                commentCreator, messageTree, messageItem, Collections.singletonList(commentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                commentCreator, messageTree, messageItem,
+                Collections.singletonList(commentHistory),
+                commentHistory.getCreatedAt()
         );
         final UserSession commentCreatorSession = new UserSession(commentCreator, UUID.randomUUID().toString());
         userDao.save(commentCreator, commentCreatorSession);

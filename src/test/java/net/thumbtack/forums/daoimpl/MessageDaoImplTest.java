@@ -41,12 +41,14 @@ class MessageDaoImplTest extends DaoTestEnvironment {
                 "1st body", MessageState.UNPUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         messageTree = new MessageTree(
-                forum, "TestTree", null, MessagePriority.NORMAL
+                forum, "TestTree", null,
+                MessagePriority.NORMAL,
+                singleHistory.getCreatedAt()
         );
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(singleHistory),
-                singleHistory.getCreatedAt(), singleHistory.getCreatedAt()
+                singleHistory.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
     }
@@ -64,8 +66,9 @@ class MessageDaoImplTest extends DaoTestEnvironment {
                 "comment body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem comment = new MessageItem(
-                commentCreator, messageTree, messageItem, Collections.singletonList(commentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                commentCreator, messageTree, messageItem,
+                Collections.singletonList(commentHistory),
+                commentHistory.getCreatedAt()
         );
         userDao.save(commentCreator);
         messageDao.saveMessageItem(comment);
@@ -130,7 +133,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
         final MessageItem messageItem1 = new MessageItem(
                 creator, messageTree, messageItem,
                 Collections.singletonList(historyItem1),
-                historyItem1.getCreatedAt(), historyItem1.getCreatedAt()
+                historyItem1.getCreatedAt()
         );
         messageDao.saveMessageItem(messageItem1);
 
@@ -141,7 +144,7 @@ class MessageDaoImplTest extends DaoTestEnvironment {
         final MessageItem messageItem2 = new MessageItem(
                 commentMaker, messageTree, messageItem,
                 Collections.singletonList(historyItem2),
-                historyItem2.getCreatedAt(), historyItem2.getCreatedAt()
+                historyItem2.getCreatedAt()
         );
         messageDao.saveMessageItem(messageItem2);
 
@@ -169,14 +172,16 @@ class MessageDaoImplTest extends DaoTestEnvironment {
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(version1),
-                version1.getCreatedAt(), version1.getCreatedAt()
+                version1.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
         messageTreeDao.saveMessageTree(messageTree);
 
         final HistoryItem version2 = new HistoryItem(
                 "version 2.0", MessageState.UNPUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).plus(1, ChronoUnit.HOURS)
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
         );
         List<HistoryItem> updatedVersions = Arrays.asList(version2, version1);
         messageItem.setHistory(updatedVersions);
@@ -184,7 +189,9 @@ class MessageDaoImplTest extends DaoTestEnvironment {
 
         final HistoryItem version3 = new HistoryItem(
                 "version 3.0", MessageState.UNPUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).plus(1, ChronoUnit.DAYS)
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.DAYS)
         );
         updatedVersions = Arrays.asList(version3, version2, version1);
         messageItem.setHistory(updatedVersions);
@@ -228,11 +235,13 @@ class MessageDaoImplTest extends DaoTestEnvironment {
                 "otherUser", "other@email.com", "passwd"
         );
         final HistoryItem commentHistory = new HistoryItem(
-                "comment body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "comment body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem comment = new MessageItem(
-                commentCreator, messageTree, messageItem, Collections.singletonList(commentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                commentCreator, messageTree, messageItem,
+                Collections.singletonList(commentHistory),
+                commentHistory.getCreatedAt()
         );
         userDao.save(commentCreator);
         messageDao.saveMessageItem(comment);

@@ -117,6 +117,16 @@ public interface UserMapper {
     })
     void banUser(User user);
 
+    @Update({"UPDATE users SET banned_until = NULL",
+            "WHERE id = #{id}"
+    })
+    void unbanUser(User user);
+
+    @Update({"UPDATE users SET banned_until = NULL",
+            "WHERE banned_until < #{date}"
+    })
+    void unbanAllByDate(LocalDateTime date);
+
     @Update("UPDATE users SET deleted = TRUE WHERE id = #{id}")
     void deactivateById(int id);
 

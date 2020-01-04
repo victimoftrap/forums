@@ -25,15 +25,15 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
 
     @Override
     public void upsertRating(MessageItem message, User user, int rating) throws ServerException {
-        LOGGER.debug("Inserting or updating rating for message {} from user {}",
-                message.getId(), user.getId()
+        LOGGER.debug("Upserting rating {} for message {} from user {}",
+                rating, message, user
         );
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).upsertRating(message, user, rating);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to upsert for message {}", message.getId(), ex);
+                LOGGER.info("Unable to upsert rating for message {}", message, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -43,13 +43,15 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
 
     @Override
     public void rate(MessageItem message, User user, int rating) throws ServerException {
-        LOGGER.debug("Saving new rate for message {} from user {}", message.getId(), user.getId());
+        LOGGER.debug("Saving new rate {} for message {} from user {}",
+                rating, message, user
+        );
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).rate(message, user, rating);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save new rate for message {}", message.getId(), ex);
+                LOGGER.info("Unable to save new rate for message {}", message, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -59,13 +61,15 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
 
     @Override
     public void changeRating(MessageItem message, User user, int rating) throws ServerException {
-        LOGGER.debug("Changing rating for message {} from user {}", message.getId(), user.getId());
+        LOGGER.debug("Changing rating to {} for message {} from user {}",
+                rating, message, user
+        );
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).changeRating(message, user, rating);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to change rating for message {}", message.getId(), ex);
+                LOGGER.info("Unable to change rating for message {}", message, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -75,13 +79,13 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
 
     @Override
     public void deleteRate(MessageItem message, User user) throws ServerException {
-        LOGGER.debug("Deleting rating for message {} from user {}", message.getId(), user.getId());
+        LOGGER.debug("Deleting rating for message {} from user {}", message, user);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getRatingMapper(sqlSession).deleteRate(message, user);
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to delete rating for message {}", message.getId(), ex);
+                LOGGER.info("Unable to delete rating for message {}", message, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -90,13 +94,14 @@ public class RatingDaoImpl extends MapperCreatorDao implements RatingDao {
     }
 
     @Override
-    public double getMessageRating(MessageItem item) throws ServerException {
-        LOGGER.debug("Getting rating of message with ID {}", item.getId());
+    public double getMessageRating(MessageItem message) throws ServerException {
+        LOGGER.debug("Getting rating of message {}", message);
+
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
-                return getRatingMapper(sqlSession).getMessageRating(item.getId());
+                return getRatingMapper(sqlSession).getMessageRating(message.getId());
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to get rating of message {}", item.getId(), ex);
+                LOGGER.info("Unable to get rating of message {}", message, ex);
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }

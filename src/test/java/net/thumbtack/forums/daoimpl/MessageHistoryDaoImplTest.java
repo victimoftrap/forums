@@ -38,7 +38,8 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         version1 = new HistoryItem(
-                "1st body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "1st body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         messageTree = new MessageTree(
                 forum, "TestTree", null, MessagePriority.NORMAL
@@ -53,7 +54,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(version1),
-                version1.getCreatedAt(), version1.getCreatedAt()
+                version1.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
         messageTreeDao.saveMessageTree(messageTree);
@@ -82,7 +83,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(version1),
-                version1.getCreatedAt(), version1.getCreatedAt()
+                version1.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
         messageTreeDao.saveMessageTree(messageTree);
@@ -115,7 +116,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(version1),
-                version1.getCreatedAt(), version1.getCreatedAt()
+                version1.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
         messageTreeDao.saveMessageTree(messageTree);

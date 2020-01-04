@@ -36,15 +36,18 @@ class RatingDaoImplTest extends DaoTestEnvironment {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         singleHistory = new HistoryItem(
-                "1st body", MessageState.UNPUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "1st body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         messageTree = new MessageTree(
-                forum, "TestTree", null, MessagePriority.NORMAL
+                forum, "TestTree", null,
+                MessagePriority.NORMAL,
+                singleHistory.getCreatedAt()
         );
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(singleHistory),
-                singleHistory.getCreatedAt(), singleHistory.getCreatedAt()
+                singleHistory.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
     }

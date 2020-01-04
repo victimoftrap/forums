@@ -160,4 +160,19 @@ public class User {
                 isDeleted(), getRegisteredAt(), getBannedUntil(), getBanCount()
         );
     }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", role=" + role +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", password='" + password + '\'' +
+                ", registeredAt=" + registeredAt +
+                ", deleted=" + deleted +
+                ", bannedUntil=" + bannedUntil +
+                ", banCount=" + banCount +
+                '}';
+    }
 }

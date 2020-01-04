@@ -2,17 +2,20 @@ package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.UserDao;
 import net.thumbtack.forums.model.User;
+import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.model.UserSession;
 
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.exceptions.PersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component("userDao")
@@ -32,9 +35,14 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).save(user);
+            } catch (PersistenceException e) {
+                if (e.getCause() instanceof SQLIntegrityConstraintViolationException) {
+                    LOGGER.info("Username already used {} {}", user, e.getMessage());
+                    sqlSession.rollback();
+                    throw new ServerException(ErrorCode.USER_NAME_ALREADY_USED);
+                }
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save user {} in database", user, ex);
-
+                LOGGER.info("Unable to save user {}", user, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -45,15 +53,20 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
     @Override
     public UserSession save(User user, UserSession session) throws ServerException {
-        LOGGER.debug("Saving new user {} and creating session {} for him", user, session);
+        LOGGER.debug("Saving new user and creating session for him {}", session);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).save(user);
                 getSessionMapper(sqlSession).upsertSession(session);
+            } catch (PersistenceException e) {
+                if (e.getCause() instanceof SQLIntegrityConstraintViolationException) {
+                    LOGGER.info("Username already used {} {}", session, e.getMessage());
+                    sqlSession.rollback();
+                    throw new ServerException(ErrorCode.USER_NAME_ALREADY_USED);
+                }
             } catch (RuntimeException ex) {
-                LOGGER.info("Unable to save user {} and session {}", user, session, ex);
-
+                LOGGER.info("Unable to save user and session {}", session, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -171,9 +184,9 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).update(user);
+                getUserMapper(sqlSession).unbanUser(user);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to update user {} in database", user, ex);
-
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -183,9 +196,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
 
     @Override
     public void banUser(User user, boolean isPermanent) throws ServerException {
-        LOGGER.debug("Banning user with ID {} until {} ban_count={}, permanent={}",
-                user.getId(), user.getBannedUntil(), user.getBanCount(), isPermanent
-        );
+        LOGGER.debug("Banning user {}, {}", isPermanent ? "permanent" : "", user);
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
@@ -195,6 +206,22 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 }
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to ban user with ID {}", user.getId(), ex);
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
+
+    @Override
+    public void unbanAllByDate(LocalDateTime date) throws ServerException {
+        LOGGER.debug("Unban all users that need to be unbanned on {}", date);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                getUserMapper(sqlSession).unbanAllByDate(date);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to unban users on date {}", date, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -213,7 +240,6 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 getUserMapper(sqlSession).deactivateById(id);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to deactivate user by ID {}", id, ex);
-
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -230,7 +256,6 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
                 getUserMapper(sqlSession).deleteAllWithoutAdmin();
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable delete all users from database", ex);
-
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }

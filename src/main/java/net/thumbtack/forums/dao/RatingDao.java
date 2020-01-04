@@ -14,5 +14,5 @@ public interface RatingDao {
 
     void deleteRate(MessageItem message, User user) throws ServerException;
 
-    double getMessageRating(MessageItem item) throws ServerException;
+    double getMessageRating(MessageItem message) throws ServerException;
 }
