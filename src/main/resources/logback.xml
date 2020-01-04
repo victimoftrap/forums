@@ -2,6 +2,7 @@
 <configuration>
     <logger name="org.springframework" level="ERROR"/>
     <logger name="org.apache.ibatis" level="ERROR"/>
+    <logger name="io.netty.util" level="ERROR"/>
     <logger name="net.thumbtack.forums.mappers" level="ERROR"/>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">

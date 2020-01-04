@@ -14,11 +14,11 @@ import java.util.List;
 public interface MessageMapper {
     @Insert({"INSERT INTO messages",
             "(owner_id, tree_id, parent_message, created_at, updated_at)",
-            "VALUES(#{item.owner.id}, #{item.messageTree.id}, #{item.parentMessage.id},",
-            "#{item.createdAt}, #{item.updatedAt})"
+            "VALUES(#{owner.id}, #{messageTree.id}, #{parentMessage.id},",
+            "#{createdAt}, #{updatedAt})"
     })
-    @Options(useGeneratedKeys = true, keyProperty = "item.id")
-    Integer saveMessageItem(@Param("item") MessageItem item);
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    Integer saveMessageItem(MessageItem item);
 
     @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at",
             "FROM messages WHERE id = #{id}"

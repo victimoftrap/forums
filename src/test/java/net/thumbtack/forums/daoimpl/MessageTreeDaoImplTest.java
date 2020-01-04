@@ -59,8 +59,6 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         messageTreeDao.saveMessageTree(messageTree);
         assertNotEquals(0, messageItem.getId());
         assertNotEquals(0, messageTree.getId());
-        assertNotEquals(0, messageTree.getTags().get(0).getId());
-        assertNotEquals(0, messageTree.getTags().get(1).getId());
     }
 
     @Test

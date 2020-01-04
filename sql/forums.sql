@@ -98,7 +98,7 @@ CREATE TABLE message_tags(
   tree_id INT NOT NULL,
 
   FOREIGN KEY (tag_id)  REFERENCES available_tags(id) ON DELETE CASCADE,
-  FOREIGN KEY (tree_id) REFERENCES messages(id)       ON DELETE CASCADE
+  FOREIGN KEY (tree_id) REFERENCES messages_tree(id)  ON DELETE CASCADE
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 INSERT INTO users 

@@ -14,9 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 @Component("messageTreeDao")
 public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeDao {
@@ -35,13 +33,16 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 final MessageItem rootMessage = tree.getRootMessage();
+
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
                 getMessageMapper(sqlSession).saveMessageItem(rootMessage);
                 getMessageHistoryMapper(sqlSession).saveHistory(
                         rootMessage.getId(), rootMessage.getHistory().get(0)
                 );
+
                 if (!tree.getTags().isEmpty()) {
-                    getTagMapper(sqlSession).saveMessageForAllTags(tree);
+                    getTagMapper(sqlSession).saveAllTags(tree.getTags());
+                    getTagMapper(sqlSession).safeBindMessageAndTags(tree);
                 }
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to create new tree {}", tree, ex);
@@ -61,7 +62,8 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
             try {
                 getMessageTreeMapper(sqlSession).saveMessageTree(tree);
                 if (!tree.getTags().isEmpty()) {
-                    getTagMapper(sqlSession).saveMessageForAllTags(tree);
+                    getTagMapper(sqlSession).saveAllTags(tree.getTags());
+                    getTagMapper(sqlSession).safeBindMessageAndTags(tree);
                 }
                 getMessageMapper(sqlSession).madeTreeRootMessage(tree.getRootMessage());
             } catch (RuntimeException ex) {

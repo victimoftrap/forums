@@ -28,9 +28,9 @@ public class MessageDtoResponse {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MessageDtoResponse)) return false;
-        MessageDtoResponse that = (MessageDtoResponse) o;
-        return getId() == that.getId() &&
-                getState() == that.getState();
+        MessageDtoResponse response = (MessageDtoResponse) o;
+        return id == response.id &&
+                Objects.equals(state, response.state);
     }
 
     @Override
