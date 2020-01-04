@@ -28,7 +28,6 @@ public class DaoTestEnvironment {
 
     @BeforeEach
     void clearDatabase() throws ServerException {
-        userDao.deleteAll();
-        messageDao.deleteAll();
+        debugDao.clear();
     }
 }

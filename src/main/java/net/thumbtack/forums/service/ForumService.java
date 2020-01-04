@@ -26,7 +26,6 @@ import java.util.List;
 @Service("forumService")
 public class ForumService extends ServiceBase {
     private final ForumDao forumDao;
-    private final ServerConfigurationProperties serverProperties;
 
     @Autowired
     public ForumService(final ForumDao forumDao,
@@ -34,7 +33,6 @@ public class ForumService extends ServiceBase {
                         final ServerConfigurationProperties serverProperties) {
         super(sessionDao, forumDao, serverProperties);
         this.forumDao = forumDao;
-        this.serverProperties = serverProperties;
     }
 
     public ForumDtoResponse createForum(

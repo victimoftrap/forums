@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,8 +30,8 @@ import static org.mockito.Mockito.*;
 class ForumServiceTest {
     private ForumDao mockForumDao;
     private SessionDao mockSessionDao;
-    private ForumService forumService;
     private ServerConfigurationProperties mockServerProperties;
+    private ForumService forumService;
 
     @BeforeEach
     void initMocks() {
@@ -173,33 +173,19 @@ class ForumServiceTest {
     }
 
     @Test
-    void testDeleteForum_userNotForumOwner_shouldThrowException() throws ServerException {
-        final int maxBanCount = 5;
+    void testDeleteUser_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String token = "token";
-        final User user = new User("user", "user@email.com", "password=pass");
-        final User forumOwner = new User("owner", "owner@email.com", "owner_passwd");
-        final Forum forum = new Forum(
-                123, ForumType.UNMODERATED, forumOwner, "name",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
-        );
-
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(user);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-        when(mockForumDao.getById(anyInt()))
-                .thenReturn(forum);
+                .thenReturn(null);
 
         try {
-            forumService.deleteForum(token, forum.getId());
-        } catch (ServerException ex) {
-            assertEquals(ErrorCode.FORBIDDEN_OPERATION, ex.getErrorCode());
+            forumService.deleteForum(token, 1234);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
         }
-
         verify(mockSessionDao).getUserByToken(anyString());
-        verify(mockServerProperties).getMaxBanCount();
-        verify(mockForumDao).getById(anyInt());
-        verify(mockForumDao, never()).deleteById(anyInt());
+        verifyZeroInteractions(mockServerProperties);
+        verifyZeroInteractions(mockForumDao);
     }
 
     @Test
@@ -226,6 +212,36 @@ class ForumServiceTest {
 
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockForumDao, never()).getById(anyInt());
+        verify(mockForumDao, never()).deleteById(anyInt());
+    }
+
+    @Test
+    void testDeleteForum_userNotForumOwner_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
+        final String token = "token";
+        final User user = new User("user", "user@email.com", "password=pass");
+        final User forumOwner = new User("owner", "owner@email.com", "owner_passwd");
+        final Forum forum = new Forum(
+                123, ForumType.UNMODERATED, forumOwner, "name",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(forum);
+
+        try {
+            forumService.deleteForum(token, forum.getId());
+        } catch (ServerException ex) {
+            assertEquals(ErrorCode.FORBIDDEN_OPERATION, ex.getErrorCode());
+        }
+
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockForumDao).getById(anyInt());
         verify(mockForumDao, never()).deleteById(anyInt());
     }
 
@@ -262,7 +278,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testGetForumById_userNotFound_shouldThrowException() throws ServerException {
+    void testGetForumById_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String token = "token";
         final int forumId = 12020;
         when(mockSessionDao.getUserByToken(anyString()))
@@ -383,7 +399,7 @@ class ForumServiceTest {
     }
 
     @Test
-    void testGetForumList_userNotFound_shouldThrowException() throws ServerException {
+    void testGetForumList_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String token = "token";
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(null);

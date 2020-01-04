@@ -82,7 +82,7 @@ public class UserService extends ServiceBase {
     public UserDtoResponse login(
             final LoginUserDtoRequest request
     ) throws ServerException {
-        final User user = userDao.getByName(request.getName());
+        final User user = userDao.getByName(request.getName(), false);
         if (user == null) {
             throw new ServerException(ErrorCode.USER_NOT_FOUND, RequestFieldName.USERNAME);
         }
@@ -121,8 +121,8 @@ public class UserService extends ServiceBase {
             final String sessionToken,
             final int newSuperUserId
     ) throws ServerException {
-        final User user = getUserBySession(sessionToken);
-        if (user.getRole() != UserRole.SUPERUSER) {
+        final User requesterUser = getUserBySession(sessionToken);
+        if (requesterUser.getRole() != UserRole.SUPERUSER) {
             throw new ServerException(ErrorCode.FORBIDDEN_OPERATION);
         }
 

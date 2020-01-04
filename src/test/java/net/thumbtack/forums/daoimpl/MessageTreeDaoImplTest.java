@@ -39,7 +39,9 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         messageTree = new MessageTree(
-                forum, "TestTree", null, MessagePriority.NORMAL
+                forum, "TestTree", null, MessagePriority.NORMAL,
+                historyItem.getCreatedAt(),
+                Arrays.asList(new Tag("Tag1"), new Tag("Tag2"), new Tag("Tag3"))
         );
         messageItem = new MessageItem(
                 creator, messageTree, null,
@@ -55,10 +57,10 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         forumDao.save(forum);
 
         messageTreeDao.saveMessageTree(messageTree);
-        assertAll(
-                () -> assertNotEquals(0, messageTree.getId()),
-                () -> assertNotEquals(0, messageItem.getId())
-        );
+        assertNotEquals(0, messageItem.getId());
+        assertNotEquals(0, messageTree.getId());
+        assertNotEquals(0, messageTree.getTags().get(0).getId());
+        assertNotEquals(0, messageTree.getTags().get(1).getId());
     }
 
     @Test

@@ -184,6 +184,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).update(user);
+                getUserMapper(sqlSession).unbanUser(user);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to update user {} in database", user, ex);
                 sqlSession.rollback();

@@ -169,7 +169,7 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
         httpHeaders.add(HttpHeaders.COOKIE, cookie);
         HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
-        restTemplate.exchange(SERVER_URL + "/users", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class);
+        restTemplate.exchange(SERVER_URL + "/sessions", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class);
 
         LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
                 "testUsername", "anyOtherPassword"
@@ -178,6 +178,7 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
             restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            String res = ce.getResponseBodyAsString();
             assertTrue(ce.getResponseBodyAsString().contains(RequestFieldName.PASSWORD.getName()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
         }

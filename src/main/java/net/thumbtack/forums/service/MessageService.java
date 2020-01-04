@@ -27,7 +27,6 @@ public class MessageService extends ServiceBase {
     private final MessageDao messageDao;
     private final MessageHistoryDao messageHistoryDao;
     private final RatingDao ratingDao;
-    private final ServerConfigurationProperties serverProperties;
 
     @Autowired
     public MessageService(final SessionDao sessionDao,
@@ -42,7 +41,6 @@ public class MessageService extends ServiceBase {
         this.messageDao = messageDao;
         this.messageHistoryDao = messageHistoryDao;
         this.ratingDao = ratingDao;
-        this.serverProperties = serverProperties;
     }
 
     private MessagePriority getMessagePriority(final String priority) {

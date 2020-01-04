@@ -86,7 +86,59 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
     }
 
     @Test
-    void testGetForumById() {
+    void testCreateForum_forumNameAlreadyUsed_shouldReturnBadRequest() {
+        RegisterUserDtoRequest registerRequest1 = new RegisterUserDtoRequest(
+                "UserOne", "UserOne@email.com", "w3ryStr0nGPa55wD"
+        );
+        ResponseEntity<UserDtoResponse> registerResponse1 = restTemplate.postForEntity(
+                SERVER_URL + "/users", registerRequest1, UserDtoResponse.class
+        );
+        String userCookie1 = registerResponse1.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+        CreateForumDtoRequest createForumRequest1 = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+
+        HttpHeaders createForumsHeaders1 = new HttpHeaders();
+        createForumsHeaders1.setContentType(MediaType.APPLICATION_JSON);
+        createForumsHeaders1.add(HttpHeaders.COOKIE, userCookie1);
+        HttpEntity<Object> createForumEntity1 = new HttpEntity<>(createForumRequest1, createForumsHeaders1);
+        ResponseEntity<ForumDtoResponse> createForumResponse1 = restTemplate.exchange(
+                SERVER_URL + "/forums", HttpMethod.POST, createForumEntity1, ForumDtoResponse.class
+        );
+        assertEquals(HttpStatus.OK, createForumResponse1.getStatusCode());
+        assertEquals(createForumRequest1.getName(), createForumResponse1.getBody().getName());
+        assertEquals(createForumRequest1.getType(), createForumResponse1.getBody().getType());
+
+        RegisterUserDtoRequest registerRequest2 = new RegisterUserDtoRequest(
+                "UserTwo", "UserTwo@email.com", "w3ryStr0nGPa55wD"
+        );
+        ResponseEntity<UserDtoResponse> registerResponse2 = restTemplate.postForEntity(
+                SERVER_URL + "/users", registerRequest2, UserDtoResponse.class
+        );
+        String userCookie2 = registerResponse2.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+        CreateForumDtoRequest createForumRequest2 = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+
+        HttpHeaders createForumsHeaders2 = new HttpHeaders();
+        createForumsHeaders2.setContentType(MediaType.APPLICATION_JSON);
+        createForumsHeaders2.add(HttpHeaders.COOKIE, userCookie1);
+        HttpEntity<Object> createForumEntity2 = new HttpEntity<>(createForumRequest1, createForumsHeaders1);
+        try {
+            restTemplate.exchange(
+                    SERVER_URL + "/forums", HttpMethod.POST, createForumEntity2, ForumDtoResponse.class
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NAME_ALREADY_USED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(RequestFieldName.FORUM_NAME.getName()));
+        }
+    }
+
+    @Test
+    void testGetEmptyForumById() {
         RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
                 "TestUser", "testuser@email.com", "w3ryStr0nGPa55wD"
         );
@@ -120,6 +172,8 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         assertEquals(createForumResponse.getBody().getType(), response.getType());
         assertEquals(registerRequest.getName(), response.getCreatorName());
         assertFalse(response.isReadonly());
+        assertEquals(0, response.getMessageCount());
+        assertEquals(0, response.getCommentCount());
     }
 
     @Test
