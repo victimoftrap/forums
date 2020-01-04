@@ -221,11 +221,11 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                forumOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                forumOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "Subject", parentMessage, MessagePriority.NORMAL
+                forum, "Subject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -345,11 +345,11 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                user, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                user, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "My new album", parentMessage, MessagePriority.NORMAL
+                forum, "My new album", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -390,11 +390,11 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                forumOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                forumOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                readOnlyForum, "Tree Subject", parentMessage, MessagePriority.NORMAL
+                readOnlyForum, "Tree Subject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -437,11 +437,11 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -492,7 +492,7 @@ class MessageServiceTest {
         final MessageItem comment1 = new MessageItem(
                 messageOwner, tree, null,
                 Collections.singletonList(comment1History),
-                comment1History.getCreatedAt(), comment1History.getCreatedAt()
+                comment1History.getCreatedAt()
         );
         final List<MessageItem> comments = Arrays.asList(comment1);
 
@@ -503,10 +503,11 @@ class MessageServiceTest {
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, tree, null,
                 comments, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt(), 0
+                parentHistory.getCreatedAt()
         );
         comment1.setParentMessage(parentMessage);
         tree.setRootMessage(parentMessage);
+        tree.setCreatedAt(parentHistory.getCreatedAt());
 
         final String token = "token";
         final int messageId = 951;
@@ -621,11 +622,11 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -675,7 +676,7 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
                 readOnlyForum, "TreeSubject", parentMessage, MessagePriority.NORMAL
@@ -729,7 +730,7 @@ class MessageServiceTest {
         final MessageItem comment1 = new MessageItem(
                 messageOwner, tree, null,
                 Collections.singletonList(comment1History),
-                comment1History.getCreatedAt(), comment1History.getCreatedAt()
+                comment1History.getCreatedAt()
         );
         final List<MessageItem> comments = Arrays.asList(comment1);
 
@@ -740,10 +741,11 @@ class MessageServiceTest {
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, tree, null,
                 comments, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt(), 0
+                parentHistory.getCreatedAt()
         );
         comment1.setParentMessage(parentMessage);
         tree.setRootMessage(parentMessage);
+        tree.setCreatedAt(parentHistory.getCreatedAt());
 
         final String token = "token";
         final int messageId = 951;
@@ -788,10 +790,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -846,10 +849,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -950,10 +954,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 victimUser, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -996,10 +1001,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                readOnlyForum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                readOnlyForum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1044,10 +1050,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1174,10 +1181,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1226,10 +1234,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1275,10 +1284,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1289,7 +1299,7 @@ class MessageServiceTest {
         final MessageItem commentMessage = new MessageItem(
                 commentOwner, tree, parentMessage,
                 Collections.singletonList(parentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1419,10 +1429,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1471,8 +1482,9 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                messageOwner,
+                Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
                 readOnlyForum, "TreeSubject", parentMessage, MessagePriority.NORMAL
@@ -1486,7 +1498,7 @@ class MessageServiceTest {
         final MessageItem commentMessage = new MessageItem(
                 commentOwner, tree, parentMessage,
                 Collections.singletonList(parentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1534,10 +1546,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1548,7 +1561,7 @@ class MessageServiceTest {
         final MessageItem commentMessage = new MessageItem(
                 commentOwner, tree, parentMessage,
                 Collections.singletonList(parentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1594,10 +1607,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1658,10 +1672,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1716,10 +1731,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1730,7 +1746,7 @@ class MessageServiceTest {
         final MessageItem commentMessage = new MessageItem(
                 messageOwner, tree, parentMessage,
                 Collections.singletonList(commentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1793,10 +1809,11 @@ class MessageServiceTest {
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, null, null,
                 Arrays.asList(multiHistory3, multiHistory2, multiHistory1),
-                multiHistory3.getCreatedAt(), multiHistory3.getCreatedAt()
+                multiHistory3.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, multiHistory3.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1967,10 +1984,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2026,10 +2044,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2087,10 +2106,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2148,10 +2168,11 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2205,11 +2226,12 @@ class MessageServiceTest {
         final int oldRate = 5;
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         parentMessage.setAverageRating(oldRate);
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2263,11 +2285,12 @@ class MessageServiceTest {
         final int oldRate = 5;
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         parentMessage.setAverageRating(oldRate);
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2401,8 +2424,8 @@ class MessageServiceTest {
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
         final Forum forum = new Forum(
-                ForumType.UNMODERATED, forumOwner,
-                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                ForumType.UNMODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final HistoryItem parentHistory = new HistoryItem(
                 "Root Message Body", MessageState.PUBLISHED,
@@ -2410,11 +2433,12 @@ class MessageServiceTest {
         );
         final MessageItem parentMessage = new MessageItem(
                 messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt(), parentHistory.getCreatedAt()
+                parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL,
-                parentMessage.getCreatedAt(), Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentMessage.getCreatedAt(),
+                Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
         );
         parentMessage.setMessageTree(tree);
 

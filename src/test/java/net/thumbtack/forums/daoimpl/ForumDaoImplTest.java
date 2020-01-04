@@ -48,7 +48,8 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         User user1 = new User(
                 UserRole.USER,
                 "g.house", "greg.house@gmail.com", "cuddy",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS),
                 false
         );
         userDao.save(user1);
@@ -57,7 +58,8 @@ class ForumDaoImplTest extends DaoTestEnvironment {
                 ForumType.UNMODERATED,
                 user1,
                 "USED_NAME",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS),
                 false,
                 0, 0
         );
@@ -66,7 +68,9 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         User user2 = new User(
                 UserRole.USER,
                 "e.foreman", "house_lite@gmail.com", "thirteen",
-                LocalDateTime.now().plus(1, ChronoUnit.WEEKS).truncatedTo(ChronoUnit.SECONDS),
+                LocalDateTime.now()
+                        .plus(1, ChronoUnit.WEEKS)
+                        .truncatedTo(ChronoUnit.SECONDS),
                 false
         );
         userDao.save(user2);
@@ -75,7 +79,9 @@ class ForumDaoImplTest extends DaoTestEnvironment {
                 ForumType.UNMODERATED,
                 user2,
                 "USED_NAME",
-                LocalDateTime.now().plus(1, ChronoUnit.WEEKS).truncatedTo(ChronoUnit.SECONDS),
+                LocalDateTime.now()
+                        .plus(1, ChronoUnit.WEEKS)
+                        .truncatedTo(ChronoUnit.SECONDS),
                 false,
                 0, 0
         );
@@ -136,39 +142,45 @@ class ForumDaoImplTest extends DaoTestEnvironment {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         MessageTree message1Tree = new MessageTree(
-                forum, "Tree #1", null, MessagePriority.NORMAL
+                forum, "Tree #1", null,
+                MessagePriority.NORMAL,
+                message1History.getCreatedAt()
         );
         MessageItem message1 = new MessageItem(
                 forumOwner, message1Tree, null,
                 Collections.singletonList(message1History),
-                message1History.getCreatedAt(), message1History.getCreatedAt()
+                message1History.getCreatedAt()
         );
         message1Tree.setRootMessage(message1);
         messageTreeDao.saveMessageTree(message1Tree);
 
         HistoryItem message2History = new HistoryItem(
                 "Message #2", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         MessageTree message2Tree = new MessageTree(
-                forum, "Tree #2", null, MessagePriority.NORMAL
+                forum, "Tree #2", null,
+                MessagePriority.NORMAL,
+                message2History.getCreatedAt()
         );
         MessageItem message2 = new MessageItem(
                 forumOwner, message2Tree, null,
                 Collections.singletonList(message2History),
-                message2History.getCreatedAt(), message2History.getCreatedAt()
+                message2History.getCreatedAt()
         );
         message2Tree.setRootMessage(message2);
         messageTreeDao.saveMessageTree(message2Tree);
 
         HistoryItem comment1History = new HistoryItem(
                 "Comment #1 -> Message #1", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         MessageItem comment1 = new MessageItem(
                 forumOwner, message1Tree, message1,
                 Collections.singletonList(comment1History),
-                comment1History.getCreatedAt(), comment1History.getCreatedAt()
+                comment1History.getCreatedAt()
         );
         messageDao.saveMessageItem(comment1);
 
@@ -179,40 +191,43 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         MessageItem comment2 = new MessageItem(
                 forumOwner, message1Tree, message1,
                 Collections.singletonList(comment2History),
-                comment2History.getCreatedAt(), comment2History.getCreatedAt()
+                comment2History.getCreatedAt()
         );
         messageDao.saveMessageItem(comment2);
 
         HistoryItem comment3History = new HistoryItem(
                 "Comment #3 -> Comment #2", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         MessageItem comment3 = new MessageItem(
                 forumOwner, message1Tree, comment2,
                 Collections.singletonList(comment3History),
-                comment3History.getCreatedAt(), comment3History.getCreatedAt()
+                comment3History.getCreatedAt()
         );
         messageDao.saveMessageItem(comment3);
 
         HistoryItem comment4History = new HistoryItem(
                 "Comment #4 -> Message #2", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         MessageItem comment4 = new MessageItem(
                 forumOwner, message2Tree, message2,
                 Collections.singletonList(comment4History),
-                comment4History.getCreatedAt(), comment4History.getCreatedAt()
+                comment4History.getCreatedAt()
         );
         messageDao.saveMessageItem(comment4);
 
         HistoryItem comment5History = new HistoryItem(
                 "Comment #5 -> Comment #4", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
         );
         MessageItem comment5 = new MessageItem(
                 forumOwner, message1Tree, comment4,
                 Collections.singletonList(comment5History),
-                comment5History.getCreatedAt(), comment5History.getCreatedAt()
+                comment5History.getCreatedAt()
         );
         messageDao.saveMessageItem(comment5);
 

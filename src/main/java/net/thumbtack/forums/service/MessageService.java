@@ -96,11 +96,10 @@ public class MessageService extends ServiceBase {
                 request.getBody(), state, createdAt
         );
         final MessageItem messageItem = new MessageItem(
-                creator, Collections.singletonList(historyItem), createdAt, createdAt
+                creator, Collections.singletonList(historyItem), createdAt
         );
         final MessageTree tree = new MessageTree(
-                forum, request.getSubject(), messageItem,
-                priority, createdAt,
+                forum, request.getSubject(), messageItem, priority, createdAt,
                 TagConverter.tagNamesToTagList(request.getTags())
         );
         messageItem.setMessageTree(tree);
@@ -132,9 +131,7 @@ public class MessageService extends ServiceBase {
                 request.getBody(), state, createdAt
         );
         final MessageItem messageItem = new MessageItem(
-                // REVU передавать один и тот же параметр 2 раза некрасиво
-                // сделайте еще один конструктор в MessageItem
-                creator, Collections.singletonList(historyItem), createdAt, createdAt
+                creator, Collections.singletonList(historyItem), createdAt
         );
 
         messageDao.saveMessageItem(messageItem);
@@ -239,8 +236,8 @@ public class MessageService extends ServiceBase {
         checkPermission(forum.getOwner(), requesterUser);
 
         final MessageTree newTree = new MessageTree(
-                oldTree.getForum(), request.getSubject(), newRootMessage,
-                request.getPriority(), LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                oldTree.getForum(), request.getSubject(), newRootMessage, request.getPriority(),
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                 TagConverter.tagNamesToTagList(request.getTags())
         );
         messageTreeDao.newBranch(newTree);

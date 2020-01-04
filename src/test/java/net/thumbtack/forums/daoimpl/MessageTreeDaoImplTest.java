@@ -39,14 +39,15 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         messageTree = new MessageTree(
-                forum, "TestTree", null, MessagePriority.NORMAL,
+                forum, "TestTree", null,
+                MessagePriority.NORMAL,
                 historyItem.getCreatedAt(),
                 Arrays.asList(new Tag("Tag1"), new Tag("Tag2"), new Tag("Tag3"))
         );
         messageItem = new MessageItem(
                 creator, messageTree, null,
                 Collections.singletonList(historyItem),
-                historyItem.getCreatedAt(), historyItem.getCreatedAt()
+                historyItem.getCreatedAt()
         );
         messageTree.setRootMessage(messageItem);
     }
@@ -72,13 +73,15 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem comment = new MessageItem(
-                creator, messageTree, messageItem, Collections.singletonList(commentHistory),
-                commentHistory.getCreatedAt(), commentHistory.getCreatedAt()
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory),
+                commentHistory.getCreatedAt()
         );
         messageDao.saveMessageItem(comment);
 
         final MessageTree newMessageTree = new MessageTree(
-                forum, "Eastern Europe", comment, MessagePriority.NORMAL
+                forum, "Eastern Europe", comment,
+                MessagePriority.NORMAL
         );
         comment.setParentMessage(null);
         comment.setMessageTree(newMessageTree);
@@ -115,7 +118,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem messageItem1 = new MessageItem(
                 creator, messageTree, messageItem,
                 Collections.singletonList(historyItem1),
-                historyItem1.getCreatedAt(), historyItem1.getCreatedAt()
+                historyItem1.getCreatedAt()
         );
         messageDao.saveMessageItem(messageItem1);
 
@@ -126,7 +129,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem messageItem2 = new MessageItem(
                 commentMaker, messageTree, messageItem,
                 Collections.singletonList(historyItem2),
-                historyItem2.getCreatedAt(), historyItem2.getCreatedAt()
+                historyItem2.getCreatedAt()
         );
         messageDao.saveMessageItem(messageItem2);
 
@@ -160,7 +163,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem1 = new MessageItem(
                 creator, messageTree, messageItem,
                 Collections.singletonList(commentHistory1),
-                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+                commentHistory1.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem1);
 
@@ -173,7 +176,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem2 = new MessageItem(
                 commentMaker, messageTree, messageItem,
                 Collections.singletonList(commentHistory2),
-                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+                commentHistory2.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem2);
 
@@ -231,7 +234,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem1 = new MessageItem(
                 creator, messageTree, messageItem,
                 Collections.singletonList(commentHistory1),
-                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+                commentHistory1.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem1);
 
@@ -244,7 +247,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem2 = new MessageItem(
                 commentMaker, messageTree, messageItem,
                 Collections.singletonList(commentHistory2),
-                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+                commentHistory2.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem2);
 
@@ -285,7 +288,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem1 = new MessageItem(
                 creator, messageTree, messageItem,
                 Collections.singletonList(commentHistory1),
-                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+                commentHistory1.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem1);
 
@@ -298,7 +301,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem2 = new MessageItem(
                 commentMaker, messageTree, messageItem,
                 Collections.singletonList(commentHistory2),
-                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+                commentHistory2.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem2);
 
@@ -350,7 +353,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem1 = new MessageItem(
                 creator, messageTree, messageItem,
                 Collections.singletonList(commentHistory1),
-                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+                commentHistory1.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem1);
 
@@ -363,7 +366,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem2 = new MessageItem(
                 commentMaker, messageTree, messageItem,
                 Collections.singletonList(commentHistory2),
-                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+                commentHistory2.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem2);
 
@@ -424,7 +427,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem1 = new MessageItem(
                 creator, messageTree, messageItem,
                 Collections.singletonList(commentHistory1),
-                commentHistory1.getCreatedAt(), commentHistory1.getCreatedAt()
+                commentHistory1.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem1);
 
@@ -437,7 +440,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem commentItem2 = new MessageItem(
                 commentMaker, messageTree, messageItem,
                 Collections.singletonList(commentHistory2),
-                commentHistory2.getCreatedAt(), commentHistory2.getCreatedAt()
+                commentHistory2.getCreatedAt()
         );
         messageDao.saveMessageItem(commentItem2);
 
@@ -493,7 +496,6 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
                 () -> assertNull(messageItem.getParentMessage()),
                 () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage())
         );
-//        assertEquals(messageTree, selectedTree); // stack overflow because of toString on fail nested objects
     }
 
     @Test
