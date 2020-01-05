@@ -105,8 +105,8 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
     @Override
     public List<MessageTree> getForumTrees(
             int forumId,
-            boolean noComments, boolean allVersions, boolean unpublished,
-            MessageOrder order, int offset, int limit
+            boolean allVersions, boolean noComments, boolean unpublished,
+            List<String> tags, MessageOrder order, int offset, int limit
     ) throws ServerException {
         LOGGER.debug(
                 "Getting messages with params: offset={}, limit={}, order={}, " +
@@ -117,7 +117,7 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 List<MessageTree> trees = getParametrizedMessageTreeMapper(sqlSession)
-                        .getTrees(forumId, offset, limit, order.name(), allVersions, unpublished);
+                        .getTrees(forumId, offset, limit, order.name(), tags, allVersions, unpublished);
                 if (noComments) {
                     trees.forEach(tree -> tree.getRootMessage()
                             .setChildrenComments(Collections.emptyList())

@@ -256,6 +256,59 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
+    void testChangeTreePriority() throws ServerException {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        messageTree.setPriority(MessagePriority.HIGH);
+        messageTreeDao.changeBranchPriority(messageTree);
+
+        final MessageItem message = messageDao.getMessageById(messageItem.getId());
+        assertAll(
+                () -> assertEquals(messageItem.getId(), message.getId()),
+                () -> assertEquals(messageItem.getOwner(), message.getOwner()),
+                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage()),
+                () -> assertEquals(messageItem.getHistory(), message.getHistory()),
+                () -> assertEquals(messageItem.getUpdatedAt(), message.getUpdatedAt()),
+                () -> assertEquals(messageItem.getCreatedAt(), message.getCreatedAt()),
+                () -> assertEquals(messageItem.getAverageRating(), message.getAverageRating()),
+                () -> assertEquals(messageItem.getChildrenComments(), message.getChildrenComments()),
+                () -> assertEquals(messageItem.getMessageTree().getId(), message.getMessageTree().getId()),
+                () -> assertNull(messageItem.getParentMessage()),
+                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage())
+        );
+    }
+
+    @Test
+    void testDeleteMessageTreeById() throws ServerException {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNotNull(selectedRootBeforeDeletion);
+
+        messageTreeDao.deleteTreeById(messageItem.getMessageTree().getId());
+        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNull(selectedRootAfterDeletion);
+    }
+
+    @Test
+    void testDeleteMessageTreeByRootMessageId() throws ServerException {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNotNull(selectedRootBeforeDeletion);
+
+        messageTreeDao.deleteTreeByRootMessageId(messageItem.getId());
+        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNull(selectedRootAfterDeletion);
+    }
+
+    @Test
     void testGetRootMessage_noComments() throws ServerException {
         final User commentMaker = new User(
                 "commentMaker", "user@gmail.com", "passwd"
@@ -531,59 +584,6 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
-    void testChangeTreePriority() throws ServerException {
-        userDao.save(creator);
-        forumDao.save(forum);
-        messageTreeDao.saveMessageTree(messageTree);
-
-        messageTree.setPriority(MessagePriority.HIGH);
-        messageTreeDao.changeBranchPriority(messageTree);
-
-        final MessageItem message = messageDao.getMessageById(messageItem.getId());
-        assertAll(
-                () -> assertEquals(messageItem.getId(), message.getId()),
-                () -> assertEquals(messageItem.getOwner(), message.getOwner()),
-                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage()),
-                () -> assertEquals(messageItem.getHistory(), message.getHistory()),
-                () -> assertEquals(messageItem.getUpdatedAt(), message.getUpdatedAt()),
-                () -> assertEquals(messageItem.getCreatedAt(), message.getCreatedAt()),
-                () -> assertEquals(messageItem.getAverageRating(), message.getAverageRating()),
-                () -> assertEquals(messageItem.getChildrenComments(), message.getChildrenComments()),
-                () -> assertEquals(messageItem.getMessageTree().getId(), message.getMessageTree().getId()),
-                () -> assertNull(messageItem.getParentMessage()),
-                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage())
-        );
-    }
-
-    @Test
-    void testDeleteMessageTreeById() throws ServerException {
-        userDao.save(creator);
-        forumDao.save(forum);
-        messageTreeDao.saveMessageTree(messageTree);
-
-        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNotNull(selectedRootBeforeDeletion);
-
-        messageTreeDao.deleteTreeById(messageItem.getMessageTree().getId());
-        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNull(selectedRootAfterDeletion);
-    }
-
-    @Test
-    void testDeleteMessageTreeByRootMessageId() throws ServerException {
-        userDao.save(creator);
-        forumDao.save(forum);
-        messageTreeDao.saveMessageTree(messageTree);
-
-        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNotNull(selectedRootBeforeDeletion);
-
-        messageTreeDao.deleteTreeByRootMessageId(messageItem.getId());
-        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNull(selectedRootAfterDeletion);
-    }
-
-    @Test
     void testGetMessages() throws ServerException {
         final User commentMaker = new User(
                 "commentMaker", "user@gmail.com", "passwd"
@@ -654,8 +654,8 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
 
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
-                false, true, true,
-                MessageOrder.DESC, 0, 10
+                true, false, true,
+                null, MessageOrder.DESC, 0, 10
         );
         assertEquals(2, trees.size());
 
@@ -684,8 +684,8 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
 
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
-                false, true, true,
-                MessageOrder.DESC, 0, 10
+                true, false, true,
+                null, MessageOrder.DESC, 0, 10
         );
         assertTrue(trees.isEmpty());
     }
@@ -762,7 +762,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
                 true, true, true,
-                MessageOrder.DESC, 0, 10
+                null, MessageOrder.DESC, 0, 10
         );
         assertEquals(2, trees.size());
 
@@ -775,5 +775,175 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         assertTreeEquals(secondMessageTree, selectedTree2);
         assertMessageEquals(secondMessageItem, selectedTree2.getRootMessage());
         assertEquals(0, selectedTree2.getRootMessage().getChildrenComments().size());
+    }
+
+    @Test
+    void testGetMessages_getByTagsWithoutComments_shouldReturnTreesWithOneOfRequestedTags() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "comment body 1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "comment body 2", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
+        final MessageItem commentItem2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem2);
+
+        final HistoryItem secondHistoryItem = new HistoryItem(
+                "ROOT MESSAGE", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .plus(1, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageTree secondMessageTree = new MessageTree(
+                forum, "SECOND SUBJECT", null,
+                MessagePriority.LOW,
+                secondHistoryItem.getCreatedAt(),
+                Arrays.asList(new Tag("Tag4"), new Tag("Tag2"), new Tag("Tag5"))
+        );
+        final MessageItem secondMessageItem = new MessageItem(
+                commentMaker, secondMessageTree, null,
+                Collections.singletonList(secondHistoryItem),
+                secondHistoryItem.getCreatedAt()
+        );
+        secondMessageTree.setRootMessage(secondMessageItem);
+        messageTreeDao.saveMessageTree(secondMessageTree);
+
+        final HistoryItem secondCommentHistory = new HistoryItem(
+                "COMMENT #1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .plus(2, ChronoUnit.DAYS)
+                        .plus(1, ChronoUnit.HOURS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem secondCommentItem = new MessageItem(
+                creator, secondMessageTree, secondMessageItem,
+                Collections.singletonList(secondCommentHistory),
+                secondCommentHistory.getCreatedAt()
+        );
+        messageDao.saveMessageItem(secondCommentItem);
+
+        final HistoryItem thirdHistoryItem = new HistoryItem(
+                "THIRD MESSAGE", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .plus(3, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageTree thirdMessageTree = new MessageTree(
+                forum, "THIRD SUBJECT", null,
+                MessagePriority.LOW,
+                thirdHistoryItem.getCreatedAt(),
+                Arrays.asList(new Tag("Tag4"), new Tag("Tag6"))
+        );
+        final MessageItem thirdMessageItem = new MessageItem(
+                commentMaker, thirdMessageTree, null,
+                Collections.singletonList(thirdHistoryItem),
+                thirdHistoryItem.getCreatedAt()
+        );
+        thirdMessageTree.setRootMessage(thirdMessageItem);
+        messageTreeDao.saveMessageTree(thirdMessageTree);
+
+        final List<MessageTree> trees = messageTreeDao.getForumTrees(
+                forum.getId(),
+                true, true, true,
+                Arrays.asList("Tag4", "Tag_X"), MessageOrder.DESC, 0, 10
+        );
+        assertEquals(2, trees.size());
+
+        final MessageTree selectedTree1 = trees.get(0);
+        assertTreeEquals(thirdMessageTree, selectedTree1);
+        assertMessageEquals(thirdMessageItem, selectedTree1.getRootMessage());
+        assertEquals(0, selectedTree1.getRootMessage().getChildrenComments().size());
+
+        final MessageTree selectedTree2 = trees.get(1);
+        assertTreeEquals(secondMessageTree, selectedTree2);
+        assertMessageEquals(secondMessageItem, selectedTree2.getRootMessage());
+        assertEquals(0, selectedTree2.getRootMessage().getChildrenComments().size());
+    }
+
+    @Test
+    void testGetMessages_getByNotExistedTags_shouldReturnEmptyList() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "comment body 1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentItem1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "comment body 2", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+                        .plus(1, ChronoUnit.HOURS)
+        );
+        final MessageItem commentItem2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(commentItem2);
+
+        final HistoryItem secondHistoryItem = new HistoryItem(
+                "ROOT MESSAGE", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .plus(1, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageTree secondMessageTree = new MessageTree(
+                forum, "SECOND SUBJECT", null,
+                MessagePriority.LOW,
+                secondHistoryItem.getCreatedAt(),
+                Arrays.asList(new Tag("Tag4"), new Tag("Tag2"), new Tag("Tag5"))
+        );
+        final MessageItem secondMessageItem = new MessageItem(
+                commentMaker, secondMessageTree, null,
+                Collections.singletonList(secondHistoryItem),
+                secondHistoryItem.getCreatedAt()
+        );
+        secondMessageTree.setRootMessage(secondMessageItem);
+        messageTreeDao.saveMessageTree(secondMessageTree);
+
+        final List<MessageTree> trees = messageTreeDao.getForumTrees(
+                forum.getId(),
+                true, true, true,
+                Arrays.asList("BAD_TAG", "OTHER_BAD_TAG"), MessageOrder.DESC, 0, 10
+        );
+        assertTrue(trees.isEmpty());
     }
 }

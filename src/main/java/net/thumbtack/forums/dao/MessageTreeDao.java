@@ -19,8 +19,8 @@ public interface MessageTreeDao {
 
     List<MessageTree> getForumTrees(
             int forumId,
-            boolean noComments, boolean allVersions, boolean unpublished,
-            MessageOrder order, int offset, int limit
+            boolean allVersions, boolean noComments, boolean unpublished,
+            List<String> tags, MessageOrder order, int offset, int limit
     ) throws ServerException;
 
     void changeBranchPriority(MessageTree tree) throws ServerException;

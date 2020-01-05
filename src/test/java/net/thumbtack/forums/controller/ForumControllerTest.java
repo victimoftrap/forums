@@ -601,10 +601,11 @@ class ForumControllerTest {
         );
         final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
 
-        when(mockMessageService.getMessagesList(
-                anyString(), anyInt(),
-                eq(null), eq(null), eq(null),
-                eq(null), anyInt(), anyInt()
+        when(mockMessageService
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(null), eq(null), anyInt(), anyInt()
                 )
         )
                 .thenReturn(expectedResponse);
@@ -626,10 +627,10 @@ class ForumControllerTest {
         assertEquals(expectedResponse, actualResponse);
 
         verify(mockMessageService)
-                .getMessagesList(
+                .getForumMessageList(
                         anyString(), anyInt(),
                         eq(null), eq(null), eq(null),
-                        eq(null), anyInt(), anyInt()
+                        eq(null), eq(null), anyInt(), anyInt()
                 );
     }
 
@@ -645,10 +646,10 @@ class ForumControllerTest {
     @MethodSource("getMessagesServiceException")
     void testGetMessageList_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockMessageService
-                .getMessagesList(
+                .getForumMessageList(
                         anyString(), anyInt(),
                         eq(null), eq(null), eq(null),
-                        eq(null), anyInt(), anyInt()
+                        eq(null), eq(null), anyInt(), anyInt()
                 )
         )
                 .thenThrow(new ServerException(errorCode));
@@ -667,10 +668,10 @@ class ForumControllerTest {
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockMessageService)
-                .getMessagesList(
+                .getForumMessageList(
                         anyString(), anyInt(),
                         eq(null), eq(null), eq(null),
-                        eq(null), anyInt(), anyInt()
+                        eq(null), eq(null), anyInt(), anyInt()
                 );
     }
 }

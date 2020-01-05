@@ -12,6 +12,7 @@ import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -301,10 +302,10 @@ public class MessageService extends ServiceBase {
     public MessageInfoDtoResponse getMessage(
             final String token,
             final int messageId,
-            final Boolean allVersions,
-            final Boolean noComments,
-            final Boolean unpublished,
-            final String order
+            @Nullable final Boolean allVersions,
+            @Nullable final Boolean noComments,
+            @Nullable final Boolean unpublished,
+            @Nullable final String order
     ) throws ServerException {
         getUserBySession(token);
 
@@ -323,13 +324,14 @@ public class MessageService extends ServiceBase {
         return MessageConverter.messageToResponse(rootMessage);
     }
 
-    public ListMessageInfoDtoResponse getMessagesList(
+    public ListMessageInfoDtoResponse getForumMessageList(
             final String token,
             final int forumId,
-            final Boolean allVersions,
-            final Boolean noComments,
-            final Boolean unpublished,
-            final String order,
+            @Nullable final Boolean allVersions,
+            @Nullable final Boolean noComments,
+            @Nullable final Boolean unpublished,
+            @Nullable final List<String> tags,
+            @Nullable final String order,
             final int offset,
             final int limit
     ) throws ServerException {
@@ -343,8 +345,8 @@ public class MessageService extends ServiceBase {
 
         final List<MessageTree> messageTrees = messageTreeDao.getForumTrees(
                 forumId,
-                realNoComments, realAllVersions, realUnpublished,
-                realOrder, offset, limit
+                realAllVersions, realNoComments, realUnpublished,
+                tags, realOrder, offset, limit
         );
         return new ListMessageInfoDtoResponse(
                 MessageConverter.messageListToResponse(messageTrees)

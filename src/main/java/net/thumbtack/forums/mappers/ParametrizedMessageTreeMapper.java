@@ -15,12 +15,23 @@ public interface ParametrizedMessageTreeMapper {
             "(SELECT #{allVersions}) AS all_versions," +
             "(SELECT #{unpublished}) AS unpublished";
 
-    @Select({"SELECT id, forum_id, subject, priority, created_at,",
+    @Select({"<script>",
+            "SELECT id, forum_id, subject, priority, created_at,",
             PARAMS_INITIALIZING,
             "FROM messages_tree",
             "WHERE forum_id = #{forumId}",
+
+            "<if test='tags != null'>",
+            "AND id IN (",
+            "SELECT tree_id FROM message_tags WHERE tag_id IN (",
+            "SELECT id FROM available_tags WHERE tag_name IN",
+            "(<foreach collection='tags' item='tag' separator=','> #{tag} </foreach>)",
+            "))",
+            "</if>",
+
             "ORDER BY priority DESC, created_at ${order}",
-            "LIMIT #{limit} OFFSET #{offset}"
+            "LIMIT #{limit} OFFSET #{offset}",
+            "</script>"
     })
     @Results(id = "treeListResult",
             value = {
@@ -54,6 +65,7 @@ public interface ParametrizedMessageTreeMapper {
             @Param("offset") int offset,
             @Param("limit") int limit,
             @Param("order") String order,
+            @Param("tags") List<String> tags,
             @Param("allVersions") boolean allVersions,
             @Param("unpublished") boolean unpublished
     );

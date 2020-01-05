@@ -19,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/forums")
@@ -99,11 +101,14 @@ public class ForumController {
             @RequestParam(value = "nocomments", required = false) Boolean noComments,
             @RequestParam(value = "unpublished", required = false) Boolean unpublished,
             @RequestParam(value = "order", required = false) @AvailableOrder String order,
+            @RequestParam(value = "tags", required = false) List<@NotBlank String> tags,
             @RequestParam(value = "offset", required = true) int offset,
             @RequestParam(value = "limit", required = true) int limit) throws ServerException {
         return ResponseEntity.ok(
-                messageService.getMessagesList(
-                        token, forumId, allVersions, noComments, unpublished, order, offset, limit
+                messageService.getForumMessageList(
+                        token, forumId,
+                        allVersions, noComments, unpublished,
+                        tags, order, offset, limit
                 )
         );
     }

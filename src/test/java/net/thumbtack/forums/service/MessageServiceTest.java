@@ -2569,7 +2569,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        any(MessageOrder.class), anyInt(), anyInt()
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -2610,10 +2610,9 @@ class MessageServiceTest {
                 )
         );
         final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
-        final ListMessageInfoDtoResponse actualResponse = messageService.getMessagesList(
-                token, forum.getId(),
-                true, false, true,
-                MessageOrder.DESC.name(), 0, 10
+        final ListMessageInfoDtoResponse actualResponse = messageService.getForumMessageList(
+                token, forum.getId(), true, false, true,
+                Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
         );
         assertEquals(2, actualResponse.getMessages().size());
         assertEquals(expectedResponse, actualResponse);
@@ -2625,7 +2624,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        any(MessageOrder.class), anyInt(), anyInt()
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
                 );
     }
 
@@ -2651,10 +2650,16 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        any(MessageOrder.class), anyInt(), anyInt()
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Collections.emptyList());
+
+        final ListMessageInfoDtoResponse response = messageService.getForumMessageList(
+                token, forum.getId(), true, false, true,
+                Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
+        );
+        assertTrue(response.getMessages().isEmpty());
     }
 
     @Test
@@ -2663,10 +2668,9 @@ class MessageServiceTest {
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(null);
         try {
-            messageService.getMessagesList(
-                    token, 4567,
-                    true, false, true,
-                    MessageOrder.DESC.name(), 0, 10
+            messageService.getForumMessageList(
+                    token, 4567, true, false, true,
+                    Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
             );
         } catch (ServerException se) {
             assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
@@ -2688,10 +2692,9 @@ class MessageServiceTest {
         when(mockForumDao.getById(anyInt()))
                 .thenReturn(null);
         try {
-            messageService.getMessagesList(
-                    token, 4567,
-                    true, false, true,
-                    MessageOrder.DESC.name(), 0, 10
+            messageService.getForumMessageList(
+                    token, 4567, true, false, true,
+                    Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
             );
         } catch (ServerException se) {
             assertEquals(ErrorCode.FORUM_NOT_FOUND, se.getErrorCode());
