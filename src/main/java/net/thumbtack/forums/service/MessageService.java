@@ -12,6 +12,7 @@ import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -301,10 +302,10 @@ public class MessageService extends ServiceBase {
     public MessageInfoDtoResponse getMessage(
             final String token,
             final int messageId,
-            final Boolean allVersions,
-            final Boolean noComments,
-            final Boolean unpublished,
-            final String order
+            @Nullable final Boolean allVersions,
+            @Nullable final Boolean noComments,
+            @Nullable final Boolean unpublished,
+            @Nullable final String order
     ) throws ServerException {
         getUserBySession(token);
 
@@ -321,5 +322,34 @@ public class MessageService extends ServiceBase {
             throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
         }
         return MessageConverter.messageToResponse(rootMessage);
+    }
+
+    public ListMessageInfoDtoResponse getForumMessageList(
+            final String token,
+            final int forumId,
+            @Nullable final Boolean allVersions,
+            @Nullable final Boolean noComments,
+            @Nullable final Boolean unpublished,
+            @Nullable final List<String> tags,
+            @Nullable final String order,
+            final int offset,
+            final int limit
+    ) throws ServerException {
+        getUserBySession(token);
+        getForumById(forumId);
+
+        final boolean realAllVersions = allVersions == null ? false : allVersions;
+        final boolean realNoComments = noComments == null ? false : noComments;
+        final boolean realUnpublished = unpublished == null ? false : unpublished;
+        final MessageOrder realOrder = order == null ? MessageOrder.DESC : MessageOrder.valueOf(order);
+
+        final List<MessageTree> messageTrees = messageTreeDao.getForumTrees(
+                forumId,
+                realAllVersions, realNoComments, realUnpublished,
+                tags, realOrder, offset, limit
+        );
+        return new ListMessageInfoDtoResponse(
+                MessageConverter.messageListToResponse(messageTrees)
+        );
     }
 }

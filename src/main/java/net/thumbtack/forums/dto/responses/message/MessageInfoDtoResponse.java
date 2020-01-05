@@ -103,8 +103,22 @@ public class MessageInfoDtoResponse {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, creator, subject, body,
-                priority, tags, created, rating, rated, comments
-        );
+        return Objects.hash(id, creator, subject, body, priority, tags, created, rating, rated, comments);
+    }
+
+    @Override
+    public String toString() {
+        return "MessageInfoDtoResponse{" +
+                "id=" + id +
+                ", creator='" + creator + '\'' +
+                ", subject='" + subject + '\'' +
+                ", body=" + body +
+                ", priority='" + priority + '\'' +
+                ", tags=" + tags +
+                ", created=" + created +
+                ", rating=" + rating +
+                ", rated=" + rated +
+                ", comments=" + comments +
+                '}';
     }
 }

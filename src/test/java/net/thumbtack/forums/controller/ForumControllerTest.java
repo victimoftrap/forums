@@ -1,5 +1,8 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.dto.responses.message.CommentInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.message.ListMessageInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessagePriority;
 import net.thumbtack.forums.model.enums.MessageState;
@@ -34,10 +37,9 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import javax.servlet.http.Cookie;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -550,5 +552,126 @@ class ForumControllerTest {
 
         verify(mockMessageService)
                 .addMessage(anyString(), anyInt(), any(CreateMessageDtoRequest.class));
+    }
+
+    @Test
+    void testGetMessageList() throws Exception {
+        final List<MessageInfoDtoResponse> responses = new ArrayList<>();
+        responses.add(
+                new MessageInfoDtoResponse(
+                        123,
+                        "Creator#1",
+                        "Subject#1",
+                        Arrays.asList("Body#2", "Body#1"),
+                        MessagePriority.NORMAL.name(),
+                        Arrays.asList("Tag#1", "Tag#2"),
+                        LocalDateTime.now()
+                                .plus(1, ChronoUnit.WEEKS)
+                                .truncatedTo(ChronoUnit.SECONDS),
+                        4,
+                        3,
+                        Collections.singletonList(
+                                new CommentInfoDtoResponse(
+                                        149, "Creator#3",
+                                        Collections.singletonList("C Body"),
+                                        LocalDateTime.now()
+                                                .plus(6, ChronoUnit.DAYS)
+                                                .truncatedTo(ChronoUnit.SECONDS),
+                                        5, 1,
+                                        Collections.emptyList()
+                                )
+                        )
+                )
+        );
+        responses.add(
+                new MessageInfoDtoResponse(
+                        123,
+                        "Creator#2",
+                        "Subject#2",
+                        Arrays.asList("Body#3", "Body#2", "Body#1"),
+                        MessagePriority.LOW.name(),
+                        Arrays.asList("Tag#2", "Tag#3", "Tag#4"),
+                        LocalDateTime.now()
+                                .plus(2, ChronoUnit.WEEKS)
+                                .truncatedTo(ChronoUnit.SECONDS),
+                        3,
+                        5,
+                        Collections.emptyList()
+                )
+        );
+        final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
+
+        when(mockMessageService
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(null), eq(null), anyInt(), anyInt()
+                )
+        )
+                .thenReturn(expectedResponse);
+
+        final MvcResult mvcResult = mvc.perform(
+                get("/api/forums/{forum_id}/messages?offset={o}&limit={l}", 123, 0, 10)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        final ListMessageInfoDtoResponse actualResponse = mapper.readValue(
+                mvcResult.getResponse().getContentAsString(),
+                ListMessageInfoDtoResponse.class
+        );
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(mockMessageService)
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(null), eq(null), anyInt(), anyInt()
+                );
+    }
+
+    static Stream<Arguments> getMessagesServiceException() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMessagesServiceException")
+    void testGetMessageList_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        when(mockMessageService
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(null), eq(null), anyInt(), anyInt()
+                )
+        )
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                get("/api/forums/{forum_id}/messages?offset={o}&limit={l}", 123, 0, 10)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService)
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(null), eq(null), anyInt(), anyInt()
+                );
     }
 }

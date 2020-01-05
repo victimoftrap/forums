@@ -60,7 +60,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
         messageTreeDao.saveMessageTree(messageTree);
 
         final HistoryItem version2 = new HistoryItem(
-                "version 2.0", MessageState.UNPUBLISHED,
+                "version 2.0", MessageState.PUBLISHED,
                 LocalDateTime
                         .now()
                         .plus(1, ChronoUnit.DAYS)
@@ -106,6 +106,7 @@ class MessageHistoryDaoImplTest extends DaoTestEnvironment {
         final HistoryItem unpublishedAfter = messageItem.getHistory().get(0);
         assertEquals(messageItem.getId(), selectedMessage.getId());
         assertEquals(version2, unpublishedAfter);
+        assertEquals(1 , selectedMessage.getMessageTree().getForum().getMessageCount());
     }
 
     @Test
