@@ -322,4 +322,32 @@ public class MessageService extends ServiceBase {
         }
         return MessageConverter.messageToResponse(rootMessage);
     }
+
+    public ListMessageInfoDtoResponse getMessagesList(
+            final String token,
+            final int forumId,
+            final Boolean allVersions,
+            final Boolean noComments,
+            final Boolean unpublished,
+            final String order,
+            final int offset,
+            final int limit
+    ) throws ServerException {
+        getUserBySession(token);
+        getForumById(forumId);
+
+        final boolean realAllVersions = allVersions == null ? false : allVersions;
+        final boolean realNoComments = noComments == null ? false : noComments;
+        final boolean realUnpublished = unpublished == null ? false : unpublished;
+        final MessageOrder realOrder = order == null ? MessageOrder.DESC : MessageOrder.valueOf(order);
+
+        final List<MessageTree> messageTrees = messageTreeDao.getForumTrees(
+                forumId,
+                realNoComments, realAllVersions, realUnpublished,
+                realOrder, offset, limit
+        );
+        return new ListMessageInfoDtoResponse(
+                MessageConverter.messageListToResponse(messageTrees)
+        );
+    }
 }

@@ -6,6 +6,7 @@ import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.message.CommentInfoDtoResponse;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class MessageConverter {
     public static MessageInfoDtoResponse messageToResponse(final MessageItem message) {
@@ -32,5 +33,38 @@ public class MessageConverter {
                 message.getRatings().size(),
                 commentsResponse
         );
+    }
+
+    public static List<MessageInfoDtoResponse> messageListToResponse(final List<MessageTree> messages) {
+        final List<MessageInfoDtoResponse> messagesResponse = new ArrayList<>();
+
+        for (final MessageTree tree : messages) {
+            final MessageItem root = tree.getRootMessage();
+            final String creator = root.getOwner().getUsername();
+            final List<MessageItem> comments = root.getChildrenComments();
+
+            final List<String> bodyResponse = HistoryConverter
+                    .historyToBodyHistoryList(root.getHistory());
+            final List<String> tagsResponse = TagConverter
+                    .tagListToTagNamesList(tree.getTags());
+            final List<CommentInfoDtoResponse> commentsResponse = CommentConverter
+                    .commentListToResponse(comments);
+
+            messagesResponse.add(
+                    new MessageInfoDtoResponse(
+                            root.getId(),
+                            creator,
+                            tree.getSubject(),
+                            bodyResponse,
+                            tree.getPriority().name(),
+                            tagsResponse,
+                            root.getCreatedAt(),
+                            root.getAverageRating(),
+                            root.getRatings().size(),
+                            commentsResponse
+                    )
+            );
+        }
+        return messagesResponse;
     }
 }

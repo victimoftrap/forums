@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Collections;
+import java.util.List;
 
 @Component("messageTreeDao")
 public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeDao {
@@ -81,7 +82,8 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
             int messageId, MessageOrder order, boolean noComments, boolean allVersions, boolean unpublished
     ) throws ServerException {
         LOGGER.debug(
-                "Getting root message by ID {} with params: order={}, noComments={}, allVersions={}, unpublished={}",
+                "Getting root message by ID {} with params: order={}, " +
+                        "noComments={}, allVersions={}, unpublished={}",
                 messageId, order.name(), noComments, allVersions, unpublished
         );
 
@@ -95,6 +97,35 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
                 return rootMessage;
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to get root message by ID {}", messageId, ex);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public List<MessageTree> getForumTrees(
+            int forumId,
+            boolean noComments, boolean allVersions, boolean unpublished,
+            MessageOrder order, int offset, int limit
+    ) throws ServerException {
+        LOGGER.debug(
+                "Getting messages with params: offset={}, limit={}, order={}, " +
+                        "noComments={}, allVersions={}, unpublished={}",
+                offset, limit, order.name(), noComments, allVersions, unpublished
+        );
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                List<MessageTree> trees = getParametrizedMessageTreeMapper(sqlSession)
+                        .getTrees(forumId, offset, limit, order.name(), allVersions, unpublished);
+                if (noComments) {
+                    trees.forEach(tree -> tree.getRootMessage()
+                            .setChildrenComments(Collections.emptyList())
+                    );
+                }
+                return trees;
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to get messages", ex);
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
         }

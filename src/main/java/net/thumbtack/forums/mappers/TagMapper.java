@@ -4,7 +4,6 @@ import net.thumbtack.forums.model.Tag;
 import net.thumbtack.forums.model.MessageTree;
 
 import org.apache.ibatis.annotations.*;
-import org.apache.ibatis.mapping.ResultSetType;
 
 import java.util.List;
 
@@ -48,15 +47,23 @@ public interface TagMapper {
     void safeBindMessageAndTags(@Param("tree") MessageTree message);
 
     @Select("SELECT id, tag_name FROM available_tags WHERE id = #{id}")
+    @Results(id = "tagResult",
+            value = {
+                    @Result(property = "id", column = "id", javaType = int.class),
+                    @Result(property = "name", column = "tag_name", javaType = String.class)
+            }
+    )
     Tag getById(int id);
 
     @Select("SELECT id, tag_name FROM available_tags WHERE tag_name = LOWER(#{name})")
+    @ResultMap("tagResult")
     Tag getByName(String name);
 
     @Select({"SELECT id, tag_name FROM available_tags WHERE id IN (",
             "SELECT tag_id FROM message_tags WHERE tree_id = #{treeId}",
             ")"
     })
+    @ResultMap("tagResult")
     List<Tag> getMessageTreeTags(int treeId);
 
     @Delete("DELETE FROM available_tags WHERE id = #{id}")

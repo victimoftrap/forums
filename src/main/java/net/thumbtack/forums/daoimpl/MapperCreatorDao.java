@@ -40,4 +40,7 @@ public class MapperCreatorDao {
     protected ParametrizedMessageMapper getParametrizedMessageMapper(final SqlSession sqlSession) {
         return sqlSession.getMapper(ParametrizedMessageMapper.class);
     }
+    protected ParametrizedMessageTreeMapper getParametrizedMessageTreeMapper(final SqlSession sqlSession) {
+        return sqlSession.getMapper(ParametrizedMessageTreeMapper.class);
+    }
 }

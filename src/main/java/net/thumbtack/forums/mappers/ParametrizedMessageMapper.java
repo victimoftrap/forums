@@ -149,4 +149,18 @@ public interface ParametrizedMessageMapper {
             @Param("allVersions") boolean allVersions,
             @Param("unpublished") boolean unpublished
     );
+
+    @Select({
+            "SELECT id, owner_id, tree_id, parent_message, created_at, updated_at,",
+            PARAMS_INITIALIZING,
+            "FROM messages",
+            "WHERE tree_id = #{treeId} AND parent_message IS NULL"
+    })
+    @ResultMap("rootMessageResult")
+    MessageItem getRootByTreeId(
+            @Param("treeId") int treeId,
+            @Param("order") String order,
+            @Param("allVersions") boolean allVersions,
+            @Param("unpublished") boolean unpublished
+    );
 }

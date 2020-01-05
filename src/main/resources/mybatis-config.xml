@@ -34,5 +34,6 @@
         <mapper class="net.thumbtack.forums.mappers.MessageMapper"/>
         <mapper class="net.thumbtack.forums.mappers.MessageHistoryMapper"/>
         <mapper class="net.thumbtack.forums.mappers.ParametrizedMessageMapper"/>
+        <mapper class="net.thumbtack.forums.mappers.ParametrizedMessageTreeMapper"/>
     </mappers>
 </configuration>
