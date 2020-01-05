@@ -51,14 +51,16 @@ public interface ForumMapper {
             })
     Forum getById(@Param("id") int id);
 
-    @Select({"SELECT COUNT(*) AS pmc FROM message_history WHERE state = 'PUBLISHED' AND message_id IN (",
+    @Select({"SELECT COUNT(DISTINCT message_id) AS pmc FROM message_history",
+            "WHERE state = 'PUBLISHED' AND message_id IN (",
             "SELECT id FROM messages WHERE parent_message IS NULL AND tree_id IN (",
             "SELECT id FROM messages_tree WHERE forum_id = #{forumId} )",
             ")"
     })
     int getPublishedMessagesCount(@Param("forumId") int forumId);
 
-    @Select({"SELECT COUNT(*) AS pcc FROM message_history WHERE state = 'PUBLISHED' AND message_id IN (",
+    @Select({"SELECT COUNT(DISTINCT message_id) AS pcc FROM message_history",
+            "WHERE state = 'PUBLISHED' AND message_id IN (",
             "SELECT id FROM messages WHERE parent_message IS NOT NULL AND tree_id IN (",
             "SELECT id FROM messages_tree WHERE forum_id = #{forumId} )",
             ")"

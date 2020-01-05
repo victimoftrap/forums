@@ -12,7 +12,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -154,7 +156,7 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         message1Tree.setRootMessage(message1);
         messageTreeDao.saveMessageTree(message1Tree);
 
-        HistoryItem message2History = new HistoryItem(
+        HistoryItem message2History1 = new HistoryItem(
                 "Message #2", MessageState.PUBLISHED,
                 LocalDateTime.now()
                         .truncatedTo(ChronoUnit.SECONDS)
@@ -162,15 +164,25 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         MessageTree message2Tree = new MessageTree(
                 forum, "Tree #2", null,
                 MessagePriority.NORMAL,
-                message2History.getCreatedAt()
+                message2History1.getCreatedAt()
         );
         MessageItem message2 = new MessageItem(
                 forumOwner, message2Tree, null,
-                Collections.singletonList(message2History),
-                message2History.getCreatedAt()
+                Collections.singletonList(message2History1),
+                message2History1.getCreatedAt()
         );
         message2Tree.setRootMessage(message2);
         messageTreeDao.saveMessageTree(message2Tree);
+
+        HistoryItem message2History2 = new HistoryItem(
+                "Message #2 VERSION 2.0", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .plus(1, ChronoUnit.MINUTES)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final List<HistoryItem> updatedVersions = Arrays.asList(message2History2, message2History1);
+        message2.setHistory(updatedVersions);
+        messageHistoryDao.saveNewVersion(message2);
 
         HistoryItem comment1History = new HistoryItem(
                 "Comment #1 -> Message #1", MessageState.PUBLISHED,
@@ -220,7 +232,7 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         messageDao.saveMessageItem(comment4);
 
         HistoryItem comment5History = new HistoryItem(
-                "Comment #5 -> Comment #4", MessageState.PUBLISHED,
+                "Comment #5 -> Comment #4", MessageState.UNPUBLISHED,
                 LocalDateTime.now()
                         .truncatedTo(ChronoUnit.SECONDS)
         );
@@ -239,7 +251,7 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         assertEquals(forum.isReadonly(), selectedForum.isReadonly());
         assertEquals(forum.getCreatedAt(), selectedForum.getCreatedAt());
         assertEquals(2, selectedForum.getMessageCount());
-        assertEquals(5, selectedForum.getCommentCount());
+        assertEquals(4, selectedForum.getCommentCount());
     }
 
     @Test
