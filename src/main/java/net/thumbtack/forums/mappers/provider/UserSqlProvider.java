@@ -1,8 +1,8 @@
-package net.thumbtack.forums.daoimpl.provider;
+package net.thumbtack.forums.mappers.provider;
 
 import org.apache.ibatis.jdbc.SQL;
 
-public class UserDaoProvider {
+public class UserSqlProvider {
     public String getAllUsersWithSessions() {
         return new SQL()
                 .SELECT("id, role, LOWER(username) AS username, email, password")

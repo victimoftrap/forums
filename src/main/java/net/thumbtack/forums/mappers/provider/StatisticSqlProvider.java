@@ -5,10 +5,9 @@ import org.apache.ibatis.jdbc.SQL;
 public class StatisticSqlProvider {
     public String getMessagesWithRatings(final int offset, final int limit) {
         return new SQL()
-                .SELECT("messages.id AS msg_id",
-                        "IF(messages.parent_message IS NULL, TRUE, FALSE) AS is_message",
-                        "IFNULL(AVG(rating), 0) AS avg_rating"
-                )
+                .SELECT("messages.id AS msg_id")
+                .SELECT("IF(messages.parent_message IS NULL, TRUE, FALSE) AS is_message")
+                .SELECT("IFNULL(AVG(rating), 0) AS avg_rating")
                 .FROM("messages")
                 .LEFT_OUTER_JOIN("message_ratings ON message_ratings.message_id = messages.id")
                 .GROUP_BY("msg_id")
@@ -18,10 +17,9 @@ public class StatisticSqlProvider {
 
     public String getMessagesWithRatingsInForum(final int forumId, final int offset, final int limit) {
         return new SQL()
-                .SELECT("messages.id AS msg_id",
-                        "IF(messages.parent_message IS NULL, TRUE, FALSE) AS is_message",
-                        "IFNULL(AVG(rating), 0) AS avg_rating"
-                )
+                .SELECT("messages.id AS msg_id")
+                .SELECT("IF(messages.parent_message IS NULL, TRUE, FALSE) AS is_message")
+                .SELECT("IFNULL(AVG(rating), 0) AS avg_rating")
                 .FROM("messages")
                 .LEFT_OUTER_JOIN("messages_tree ON messages.tree_id = messages_tree.id")
                 .LEFT_OUTER_JOIN("message_ratings ON message_ratings.message_id = messages.id")
@@ -33,7 +31,9 @@ public class StatisticSqlProvider {
 
     public String getUsersWithRatings(final int offset, final int limit) {
         return new SQL()
-                .SELECT("users.id AS rated_user_id, username, IFNULL(AVG(rating), 0) AS avg_rating")
+                .SELECT("users.id AS rated_user_id")
+                .SELECT("username")
+                .SELECT("IFNULL(AVG(rating), 0) AS avg_rating")
                 .FROM("users")
                 .LEFT_OUTER_JOIN("messages ON users.id = messages.owner_id")
                 .LEFT_OUTER_JOIN("message_ratings ON message_ratings.message_id = messages.id")
@@ -44,7 +44,9 @@ public class StatisticSqlProvider {
 
     public String getUsersWithRatingsInForum(final int forumId, final int offset, final int limit) {
         return new SQL()
-                .SELECT("users.id AS rated_user_id, username, IFNULL(AVG(rating), 0) AS avg_rating")
+                .SELECT("users.id AS rated_user_id")
+                .SELECT("username")
+                .SELECT("IFNULL(AVG(rating), 0) AS avg_rating")
                 .FROM("users")
                 .LEFT_OUTER_JOIN("messages ON users.id = messages.owner_id")
                 .LEFT_OUTER_JOIN("messages_tree ON messages.tree_id = messages_tree.id")

@@ -3,7 +3,7 @@ package net.thumbtack.forums.mappers;
 import net.thumbtack.forums.model.UserSession;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.enums.UserRole;
-import net.thumbtack.forums.daoimpl.provider.UserDaoProvider;
+import net.thumbtack.forums.mappers.provider.UserSqlProvider;
 
 import org.apache.ibatis.annotations.*;
 
@@ -87,7 +87,7 @@ public interface UserMapper {
     @ResultMap("userResult")
     List<User> getAllAndDeleted(@Param("deleted") boolean deleted);
 
-    @SelectProvider(method = "getAllUsersWithSessions", type = UserDaoProvider.class)
+    @SelectProvider(method = "getAllUsersWithSessions", type = UserSqlProvider.class)
     @Results({
             @Result(property = "user.id", column = "id", javaType = int.class),
             @Result(property = "user.role", column = "role", javaType = UserRole.class),
