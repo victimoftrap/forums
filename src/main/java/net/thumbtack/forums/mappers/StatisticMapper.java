@@ -1,5 +1,6 @@
 package net.thumbtack.forums.mappers;
 
+import net.thumbtack.forums.view.MessagesCountView;
 import net.thumbtack.forums.view.MessageRatingView;
 import net.thumbtack.forums.view.UserRatingView;
 import net.thumbtack.forums.mappers.provider.StatisticSqlProvider;
@@ -9,61 +10,36 @@ import org.apache.ibatis.annotations.*;
 import java.util.List;
 
 public interface StatisticMapper {
-    @Select({"<script>",
-            "SELECT COUNT(DISTINCT message_id) AS forum_pmc FROM message_history",
-            "WHERE message_id IN (",
-            "SELECT id FROM messages WHERE parent_message IS NULL AND tree_id IN (",
-            "SELECT id FROM messages_tree WHERE forum_id = #{forumId} )",
-            ")",
-            "<if test='unpublished == false'>",
-            "AND state = 'PUBLISHED'",
-            "</if>",
-            "</script>"
-    })
-    int getMessagesCountInForum(
-            @Param("forumId") int forumId,
-            @Param("unpublished") boolean unpublished
-    );
-
-    @Select({"<script>",
-            "SELECT COUNT(DISTINCT message_id) AS forum_pcc FROM message_history",
-            "WHERE message_id IN (",
-            "SELECT id FROM messages WHERE parent_message IS NOT NULL AND tree_id IN (",
-            "SELECT id FROM messages_tree WHERE forum_id = #{forumId} )",
-            ")",
-            "<if test='unpublished == false'>",
-            "AND state = 'PUBLISHED'",
-            "</if>",
-            "</script>"
-    })
-    int getCommentCountInForum(
-            @Param("forumId") int forumId,
-            @Param("unpublished") boolean unpublished
-    );
-
-    @Select({"<script>",
-            "SELECT COUNT(DISTINCT message_id) AS pmc FROM message_history",
-            "WHERE message_id IN (",
+    @Select({"SELECT COUNT(DISTINCT message_id) AS pmc FROM message_history",
+            "WHERE state = 'PUBLISHED' AND message_id IN (",
             "SELECT id FROM messages WHERE parent_message IS NULL",
-            ")",
-            "<if test='unpublished == false'>",
-            "AND state = 'PUBLISHED'",
-            "</if>",
-            "</script>"
+            ")"
     })
-    int getMessagesCount(@Param("unpublished") boolean unpublished);
+    int getMessagesCount();
 
-    @Select({"<script>",
-            "SELECT COUNT(DISTINCT message_id) AS pcc FROM message_history",
-            "WHERE message_id IN (",
+    @Select({"SELECT COUNT(DISTINCT message_id) AS pcc FROM message_history",
+            "WHERE state = 'PUBLISHED' AND message_id IN (",
             "SELECT id FROM messages WHERE parent_message IS NOT NULL",
-            ")",
-            "<if test='unpublished == false'>",
-            "AND state = 'PUBLISHED'",
-            "</if>",
-            "</script>"
+            ")"
     })
-    int getCommentCount(@Param("unpublished") boolean unpublished);
+    int getCommentsCount();
+
+    @SelectProvider(method = "getMessagesAndCommentsCount", type = StatisticSqlProvider.class)
+    @Results(id = "countsViewResult",
+            value = {
+                    @Result(property = "messagesCount", column = "messages_count", javaType = int.class),
+                    @Result(property = "commentsCount", column = "comments_count", javaType = int.class)
+            }
+    )
+    @ConstructorArgs(value = {
+            @Arg(name = "messagesCount", column = "messages_count", javaType = int.class),
+            @Arg(name = "commentsCount", column = "comments_count", javaType = int.class)
+    })
+    MessagesCountView getMessagesAndCommentsCount();
+
+    @SelectProvider(method = "getMessagesAndCommentsCountInForum", type = StatisticSqlProvider.class)
+    @ResultMap("countsViewResult")
+    MessagesCountView getMessagesAndCommentsCountInForum(@Param("forumId") int forumId);
 
     @SelectProvider(method = "getMessagesWithRatings", type = StatisticSqlProvider.class)
     @Results(id = "messagesRatingsViewResult",

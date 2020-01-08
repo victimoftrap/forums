@@ -5,6 +5,7 @@ import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.model.enums.MessagePriority;
 import net.thumbtack.forums.view.MessageRatingView;
+import net.thumbtack.forums.view.MessagesCountView;
 import net.thumbtack.forums.view.UserRatingView;
 import net.thumbtack.forums.exception.ServerException;
 
@@ -139,6 +140,57 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
         messageDao.saveMessageItem(comment2Raph);
         messageTreeDao.saveMessageTree(messageTree2);
         messageDao.saveMessageItem(comment3Leo);
+    }
+
+    @Test
+    void testGetMessagesAndCommentsCountInServer() throws ServerException {
+        assertEquals(2, statisticDao.getMessagesCount());
+        assertEquals(3, statisticDao.getCommentsCount());
+
+        final MessagesCountView view = statisticDao.getMessagesAndCommentsCount();
+        assertEquals(2, view.getMessagesCount());
+        assertEquals(3, view.getCommentsCount());
+    }
+
+    @Test
+    void testGetMessagesAndCommentsCountInForum() throws ServerException {
+        assertEquals(1, statisticDao.getMessagesCount(forum1.getId()));
+        assertEquals(2, statisticDao.getCommentsCount(forum1.getId()));
+
+        assertEquals(1, statisticDao.getMessagesCount(forum2.getId()));
+        assertEquals(1, statisticDao.getCommentsCount(forum2.getId()));
+
+        final Forum forum3 = new Forum(
+                ForumType.UNMODERATED, userMike, "FORUM #3",
+                LocalDateTime
+                        .now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum3);
+        assertEquals(0, statisticDao.getMessagesCount(forum3.getId()));
+        assertEquals(0, statisticDao.getCommentsCount(forum3.getId()));
+    }
+
+    @Test
+    void testGetMessagesAndCommentsCountInForumByView() throws ServerException {
+        final MessagesCountView view1 = statisticDao.getMessagesAndCommentsCount(forum1.getId());
+        assertEquals(1, view1.getMessagesCount());
+        assertEquals(2, view1.getCommentsCount());
+
+        final MessagesCountView view2 = statisticDao.getMessagesAndCommentsCount(forum2.getId());
+        assertEquals(1, view2.getMessagesCount());
+        assertEquals(1, view2.getCommentsCount());
+
+        final Forum forum3 = new Forum(
+                ForumType.UNMODERATED, userMike, "FORUM #3",
+                LocalDateTime
+                        .now()
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum3);
+        final MessagesCountView view3 = statisticDao.getMessagesAndCommentsCount(forum3.getId());
+        assertEquals(0, view3.getMessagesCount());
+        assertEquals(0, view3.getCommentsCount());
     }
 
     @Test

@@ -2,6 +2,7 @@ package net.thumbtack.forums.daoimpl;
 
 import net.thumbtack.forums.dao.StatisticDao;
 import net.thumbtack.forums.view.MessageRatingView;
+import net.thumbtack.forums.view.MessagesCountView;
 import net.thumbtack.forums.view.UserRatingView;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
@@ -23,6 +24,92 @@ public class StatisticDaoImpl extends MapperCreatorDao implements StatisticDao {
     @Autowired
     public StatisticDaoImpl(final SqlSessionFactory sqlSessionFactory) {
         this.sqlSessionFactory = sqlSessionFactory;
+    }
+
+    @Override
+    public int getMessagesCount() throws ServerException {
+        LOGGER.debug("Getting messages count in server");
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getStatisticMapper(sqlSession).getMessagesCount();
+            } catch (RuntimeException re) {
+                LOGGER.info("Unable to get messages count in server", re);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public int getMessagesCount(int forumId) throws ServerException {
+        LOGGER.debug("Getting messages count in forum with ID {}", forumId);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getForumMapper(sqlSession).getPublishedMessagesCount(forumId);
+            } catch (RuntimeException re) {
+                LOGGER.info("Unable to get messages count in forum with ID {}", forumId, re);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public int getCommentsCount() throws ServerException {
+        LOGGER.debug("Getting comments count in server");
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getStatisticMapper(sqlSession).getCommentsCount();
+            } catch (RuntimeException re) {
+                LOGGER.info("Unable to get comments count in server", re);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public int getCommentsCount(int forumId) throws ServerException {
+        LOGGER.debug("Getting comments count in forum with ID {}", forumId);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getForumMapper(sqlSession).getPublishedCommentCount(forumId);
+            } catch (RuntimeException re) {
+                LOGGER.info("Unable to get comments count in forum with ID {}", forumId, re);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public MessagesCountView getMessagesAndCommentsCount() throws ServerException {
+        LOGGER.debug("Getting messages and comments count in server");
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getStatisticMapper(sqlSession).getMessagesAndCommentsCount();
+            } catch (RuntimeException re) {
+                LOGGER.info("Unable to get messages and comments count in server", re);
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
+    }
+
+    @Override
+    public MessagesCountView getMessagesAndCommentsCount(int forumId) throws ServerException {
+        LOGGER.debug("Getting messages and comments count in forum with ID {}", forumId);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                return getStatisticMapper(sqlSession).getMessagesAndCommentsCountInForum(forumId);
+            } catch (RuntimeException re) {
+                LOGGER.info("Unable to get messages and comments count in forum with ID {}",
+                        forumId, re
+                );
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+        }
     }
 
     @Override

@@ -3,6 +3,28 @@ package net.thumbtack.forums.mappers.provider;
 import org.apache.ibatis.jdbc.SQL;
 
 public class StatisticSqlProvider {
+    public String getMessagesAndCommentsCount() {
+        return new SQL()
+                .SELECT("IFNULL(SUM(IF(parent_message IS NULL, 1, 0)), 0) AS messages_count")
+                .SELECT("IFNULL(SUM(IF(parent_message IS NOT NULL, 1, 0)), 0) AS comments_count")
+                .FROM("messages")
+                .LEFT_OUTER_JOIN("messages_tree ON messages.tree_id = messages_tree.id")
+                .LEFT_OUTER_JOIN("message_history ON messages.id = message_history.message_id")
+                .WHERE("message_history.state = 'PUBLISHED'")
+                .toString();
+    }
+    public String getMessagesAndCommentsCountInForum(final int forumId) {
+        return new SQL()
+                .SELECT("IFNULL(SUM(IF(parent_message IS NULL, 1, 0)), 0) AS messages_count")
+                .SELECT("IFNULL(SUM(IF(parent_message IS NOT NULL, 1, 0)), 0) AS comments_count")
+                .FROM("messages")
+                .LEFT_OUTER_JOIN("messages_tree ON messages.tree_id = messages_tree.id")
+                .LEFT_OUTER_JOIN("message_history ON messages.id = message_history.message_id")
+                .WHERE("message_history.state = 'PUBLISHED'")
+                .WHERE("forum_id = #{forumId}")
+                .toString();
+    }
+
     public String getMessagesWithRatings(final int offset, final int limit) {
         return new SQL()
                 .SELECT("messages.id AS msg_id")
