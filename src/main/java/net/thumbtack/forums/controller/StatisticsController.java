@@ -1,6 +1,7 @@
 package net.thumbtack.forums.controller;
 
 import net.thumbtack.forums.service.StatisticService;
+import net.thumbtack.forums.dto.responses.statistic.MessageRatingListDtoResponse;
 import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
 import net.thumbtack.forums.exception.ServerException;
 
@@ -18,6 +19,22 @@ public class StatisticsController {
     @Autowired
     public StatisticsController(final StatisticService statisticService) {
         this.statisticService = statisticService;
+    }
+
+    @GetMapping(
+            value = "/messages-ratings",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<MessageRatingListDtoResponse> getMessagesRatings(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @RequestParam(value = "forum-id", required = false) Integer forumId,
+            @RequestParam(value = "offset", required = false) Integer offset,
+            @RequestParam(value = "limit", required = false) Integer limit
+    ) throws ServerException {
+        return ResponseEntity.ok(
+                statisticService.getMessagesRatings(token, forumId, offset, limit)
+        );
     }
 
     @GetMapping(

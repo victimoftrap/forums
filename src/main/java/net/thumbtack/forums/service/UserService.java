@@ -41,7 +41,7 @@ public class UserService extends ServiceBase {
                        final ForumDao forumDao,
                        final ConstantsProperties constantsProperties,
                        final ServerConfigurationProperties serverProperties) {
-        super(sessionDao, forumDao, serverProperties);
+        super(sessionDao, forumDao, serverProperties, constantsProperties);
         this.userDao = userDao;
         this.sessionDao = sessionDao;
         this.serverProperties = serverProperties;

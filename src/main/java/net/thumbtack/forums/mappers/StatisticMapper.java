@@ -70,13 +70,15 @@ public interface StatisticMapper {
             value = {
                     @Result(property = "messageId", column = "msg_id", javaType = int.class),
                     @Result(property = "isMessage", column = "is_message", javaType = boolean.class),
-                    @Result(property = "rating", column = "avg_rating", javaType = double.class)
+                    @Result(property = "rating", column = "avg_rating", javaType = double.class),
+                    @Result(property = "rated", column = "rated", javaType = int.class)
             }
     )
     @ConstructorArgs(value = {
             @Arg(name = "messageId", column = "msg_id", javaType = int.class),
             @Arg(name = "isMessage", column = "is_message", javaType = boolean.class),
-            @Arg(name = "rating", column = "avg_rating", javaType = double.class)
+            @Arg(name = "rating", column = "avg_rating", javaType = double.class),
+            @Arg(name = "rated", column = "rated", javaType = int.class)
     })
     List<MessageRatingView> getMessagesRatings(
             @Param("offset") int offset,
@@ -96,13 +98,15 @@ public interface StatisticMapper {
             value = {
                     @Result(property = "userId", column = "rated_user_id", javaType = int.class),
                     @Result(property = "username", column = "username", javaType = String.class),
-                    @Result(property = "userRating", column = "avg_rating", javaType = double.class)
+                    @Result(property = "rating", column = "avg_rating", javaType = double.class),
+                    @Result(property = "rated", column = "rated", javaType = int.class)
             }
     )
     @ConstructorArgs(value = {
             @Arg(name = "userId", column = "rated_user_id", javaType = int.class),
             @Arg(name = "username", column = "username", javaType = String.class),
-            @Arg(name = "userRating", column = "avg_rating", javaType = double.class)
+            @Arg(name = "rating", column = "avg_rating", javaType = double.class),
+            @Arg(name = "rated", column = "rated", javaType = int.class)
     })
     List<UserRatingView> getUsersRatings(
             @Param("offset") int offset,

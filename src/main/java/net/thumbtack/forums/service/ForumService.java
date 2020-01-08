@@ -14,6 +14,7 @@ import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.springframework.stereotype.Service;
@@ -30,8 +31,9 @@ public class ForumService extends ServiceBase {
     @Autowired
     public ForumService(final ForumDao forumDao,
                         final SessionDao sessionDao,
+                        final ConstantsProperties constantsProperties,
                         final ServerConfigurationProperties serverProperties) {
-        super(sessionDao, forumDao, serverProperties);
+        super(sessionDao, forumDao, serverProperties, constantsProperties);
         this.forumDao = forumDao;
     }
 

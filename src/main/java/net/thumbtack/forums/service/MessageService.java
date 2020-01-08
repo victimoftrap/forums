@@ -29,7 +29,6 @@ public class MessageService extends ServiceBase {
     private final MessageDao messageDao;
     private final MessageHistoryDao messageHistoryDao;
     private final RatingDao ratingDao;
-    private final ConstantsProperties constantsProperties;
 
     @Autowired
     public MessageService(final SessionDao sessionDao,
@@ -40,12 +39,11 @@ public class MessageService extends ServiceBase {
                           final RatingDao ratingDao,
                           final ServerConfigurationProperties serverProperties,
                           final ConstantsProperties constantsProperties) {
-        super(sessionDao, forumDao, serverProperties);
+        super(sessionDao, forumDao, serverProperties, constantsProperties);
         this.messageTreeDao = messageTreeDao;
         this.messageDao = messageDao;
         this.messageHistoryDao = messageHistoryDao;
         this.ratingDao = ratingDao;
-        this.constantsProperties = constantsProperties;
     }
 
     private MessagePriority getMessagePriority(@Nullable final String priority) {
@@ -354,20 +352,6 @@ public class MessageService extends ServiceBase {
             throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
         }
         return MessageConverter.messageToResponse(rootMessage);
-    }
-
-    private int getPaginationOffset(@Nullable final Integer receivedOffset) {
-        if (receivedOffset == null) {
-            return constantsProperties.getDefaultOffset();
-        }
-        return receivedOffset;
-    }
-
-    private int getPaginationLimit(@Nullable final Integer receivedLimit) {
-        if (receivedLimit == null) {
-            return constantsProperties.getDefaultLimit();
-        }
-        return receivedLimit;
     }
 
     public ListMessageInfoDtoResponse getForumMessageList(

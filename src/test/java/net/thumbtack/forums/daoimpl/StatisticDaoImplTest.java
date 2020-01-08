@@ -160,19 +160,19 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<MessageRatingView> expectedRatingViews = new ArrayList<>();
         expectedRatingViews.add(new MessageRatingView(
-                message1Leo.getId(), true, 4
+                message1Leo.getId(), true, 4, 3
         ));
         expectedRatingViews.add(new MessageRatingView(
-                comment1Donnie.getId(), false, 4
+                comment1Donnie.getId(), false, 4, 1
         ));
         expectedRatingViews.add(new MessageRatingView(
-                message2Raph.getId(), true, 3.5
+                message2Raph.getId(), true, 3.5, 4
         ));
         expectedRatingViews.add(new MessageRatingView(
-                comment3Leo.getId(), false, 3
+                comment3Leo.getId(), false, 3, 3
         ));
         expectedRatingViews.add(new MessageRatingView(
-                comment2Raph.getId(), false, 0
+                comment2Raph.getId(), false, 0, 0
         ));
 
         final List<MessageRatingView> actualRatingViews = statisticDao.getMessagesRatings(0, 300);
@@ -199,13 +199,13 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<MessageRatingView> expectedRatingViews1 = new ArrayList<>();
         expectedRatingViews1.add(new MessageRatingView(
-                message1Leo.getId(), true, 4
+                message1Leo.getId(), true, 4, 3
         ));
         expectedRatingViews1.add(new MessageRatingView(
-                comment1Donnie.getId(), false, 4
+                comment1Donnie.getId(), false, 4, 1
         ));
         expectedRatingViews1.add(new MessageRatingView(
-                comment2Raph.getId(), false, 0
+                comment2Raph.getId(), false, 0, 0
         ));
 
         final List<MessageRatingView> actualRatingViews1 = statisticDao.getMessagesRatingsInForum(
@@ -216,10 +216,10 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<MessageRatingView> expectedRatingViews2 = new ArrayList<>();
         expectedRatingViews2.add(new MessageRatingView(
-                message2Raph.getId(), true, 3.5
+                message2Raph.getId(), true, 3.5, 4
         ));
         expectedRatingViews2.add(new MessageRatingView(
-                comment3Leo.getId(), false, 3
+                comment3Leo.getId(), false, 3, 3
         ));
 
         final List<MessageRatingView> actualRatingViews2 = statisticDao.getMessagesRatingsInForum(
@@ -233,13 +233,13 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
     void testGetMessagesRatingsInServerInForum_noMessagesRated_shouldReturnViewListWithZeros() throws ServerException {
         final List<MessageRatingView> expectedRatingViews1 = new ArrayList<>();
         expectedRatingViews1.add(new MessageRatingView(
-                message1Leo.getId(), true, 0.
+                message1Leo.getId(), true, 0., 0
         ));
         expectedRatingViews1.add(new MessageRatingView(
-                comment1Donnie.getId(), false, 0.
+                comment1Donnie.getId(), false, 0., 0
         ));
         expectedRatingViews1.add(new MessageRatingView(
-                comment2Raph.getId(), false, 0.
+                comment2Raph.getId(), false, 0., 0
         ));
 
         final List<MessageRatingView> actualRatingViews1 = statisticDao.getMessagesRatingsInForum(
@@ -250,10 +250,10 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<MessageRatingView> expectedRatingViews2 = new ArrayList<>();
         expectedRatingViews2.add(new MessageRatingView(
-                message2Raph.getId(), true, 0.
+                message2Raph.getId(), true, 0., 0
         ));
         expectedRatingViews2.add(new MessageRatingView(
-                comment3Leo.getId(), false, 0.
+                comment3Leo.getId(), false, 0., 0
         ));
 
         final List<MessageRatingView> actualRatingViews2 = statisticDao.getMessagesRatingsInForum(
@@ -308,19 +308,19 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<UserRatingView> expectedRatingViews = new ArrayList<>();
         expectedRatingViews.add(new UserRatingView(
-                userDonnie.getId(), userDonnie.getUsername(), 5
+                userDonnie.getId(), userDonnie.getUsername(), 5, 1
         ));
         expectedRatingViews.add(new UserRatingView(
-                userLeo.getId(), userLeo.getUsername(), 3.6667
+                userLeo.getId(), userLeo.getUsername(), 3.6667, 6
         ));
         expectedRatingViews.add(new UserRatingView(
-                userRaph.getId(), userRaph.getUsername(), 3.25
+                userRaph.getId(), userRaph.getUsername(), 3.25, 4
         ));
         expectedRatingViews.add(new UserRatingView(
-               1, "admin", 0.
+                1, "admin", 0., 0
         ));
         expectedRatingViews.add(new UserRatingView(
-                userMike.getId(), userMike.getUsername(), 0.
+                userMike.getId(), userMike.getUsername(), 0., 0
         ));
 
         final List<UserRatingView> actualRatingViews = statisticDao.getUsersRatings(0, 300);
@@ -347,10 +347,10 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<UserRatingView> expectedRatingViews1 = new ArrayList<>();
         expectedRatingViews1.add(new UserRatingView(
-                userDonnie.getId(), userDonnie.getUsername(), 5
+                userDonnie.getId(), userDonnie.getUsername(), 5, 1
         ));
         expectedRatingViews1.add(new UserRatingView(
-                userLeo.getId(), userLeo.getUsername(), 3.6667
+                userLeo.getId(), userLeo.getUsername(), 3.6667, 6
         ));
 
         final List<UserRatingView> actualRatingViews1 = statisticDao.getUsersRatings(0, 2);
@@ -359,13 +359,13 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<UserRatingView> expectedRatingViews2 = new ArrayList<>();
         expectedRatingViews2.add(new UserRatingView(
-                userLeo.getId(), userLeo.getUsername(), 3.6667
+                userLeo.getId(), userLeo.getUsername(), 3.6667, 6
         ));
         expectedRatingViews2.add(new UserRatingView(
-                userRaph.getId(), userRaph.getUsername(), 3.25
+                userRaph.getId(), userRaph.getUsername(), 3.25, 4
         ));
         expectedRatingViews2.add(new UserRatingView(
-                1, "admin", 0.
+                1, "admin", 0., 0
         ));
 
         final List<UserRatingView> actualRatingViews2 = statisticDao.getUsersRatings(1, 3);
@@ -392,13 +392,13 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<UserRatingView> expectedRatingViews1 = new ArrayList<>();
         expectedRatingViews1.add(new UserRatingView(
-                userDonnie.getId(), userDonnie.getUsername(), 5
+                userDonnie.getId(), userDonnie.getUsername(), 5, 1
         ));
         expectedRatingViews1.add(new UserRatingView(
-                userLeo.getId(), userLeo.getUsername(), 3.6667
+                userLeo.getId(), userLeo.getUsername(), 3.6667, 3
         ));
         expectedRatingViews1.add(new UserRatingView(
-                userRaph.getId(), userRaph.getUsername(), 0.
+                userRaph.getId(), userRaph.getUsername(), 0., 0
         ));
         final List<UserRatingView> actualRatingViews1 = statisticDao.getUsersRatingsInForum(
                 forum1.getId(), 0, 300
@@ -408,10 +408,10 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
 
         final List<UserRatingView> expectedRatingViews2 = new ArrayList<>();
         expectedRatingViews2.add(new UserRatingView(
-                userLeo.getId(), userLeo.getUsername(), 3.6667
+                userLeo.getId(), userLeo.getUsername(), 3.6667, 3
         ));
         expectedRatingViews2.add(new UserRatingView(
-                userRaph.getId(), userRaph.getUsername(), 3.25
+                userRaph.getId(), userRaph.getUsername(), 3.25, 4
         ));
 
         final List<UserRatingView> actualRatingViews2 = statisticDao.getUsersRatingsInForum(
@@ -425,13 +425,13 @@ class StatisticDaoImplTest extends DaoTestEnvironment {
     void testGetUsersRatingsInForum_noMessagesRated_shouldReturnViewListWithZeros() throws ServerException {
         final List<UserRatingView> expectedRatingViews = new ArrayList<>();
         expectedRatingViews.add(new UserRatingView(
-                userLeo.getId(), userLeo.getUsername(), 0.
+                userLeo.getId(), userLeo.getUsername(), 0., 0
         ));
         expectedRatingViews.add(new UserRatingView(
-                userRaph.getId(), userRaph.getUsername(), 0.
+                userRaph.getId(), userRaph.getUsername(), 0., 0
         ));
         expectedRatingViews.add(new UserRatingView(
-                userDonnie.getId(), userDonnie.getUsername(), 0.
+                userDonnie.getId(), userDonnie.getUsername(), 0., 0
         ));
 
         final List<UserRatingView> actualRatingViews = statisticDao.getUsersRatingsInForum(

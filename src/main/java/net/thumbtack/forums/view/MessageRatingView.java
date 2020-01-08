@@ -6,11 +6,13 @@ public class MessageRatingView {
     private int messageId;
     private boolean isMessage;
     private double rating;
+    private int rated;
 
-    public MessageRatingView(int messageId, boolean isMessage, double rating) {
+    public MessageRatingView(int messageId, boolean isMessage, double rating, int rated) {
         this.messageId = messageId;
         this.isMessage = isMessage;
         this.rating = rating;
+        this.rated = rated;
     }
 
     public int getMessageId() {
@@ -37,6 +39,14 @@ public class MessageRatingView {
         this.rating = rating;
     }
 
+    public int getRated() {
+        return rated;
+    }
+
+    public void setRated(int rated) {
+        this.rated = rated;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -44,12 +54,13 @@ public class MessageRatingView {
         MessageRatingView that = (MessageRatingView) o;
         return messageId == that.messageId &&
                 isMessage == that.isMessage &&
-                Double.compare(that.rating, rating) == 0;
+                Double.compare(that.rating, rating) == 0 &&
+                rated == that.rated;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(messageId, isMessage, rating);
+        return Objects.hash(messageId, isMessage, rating, rated);
     }
 
     @Override
@@ -58,6 +69,7 @@ public class MessageRatingView {
                 "messageId=" + messageId +
                 ", isMessage=" + isMessage +
                 ", rating=" + rating +
+                ", rated=" + rated +
                 '}';
     }
 }

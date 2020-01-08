@@ -1,14 +1,16 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dao.StatisticDao;
+import net.thumbtack.forums.view.MessageRatingView;
 import net.thumbtack.forums.view.UserRatingView;
-import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
 import net.thumbtack.forums.converter.StatisticsConverter;
-import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.dto.responses.statistic.MessageRatingListDtoResponse;
+import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
+import net.thumbtack.forums.exception.ServerException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +21,6 @@ import java.util.List;
 @Service("statisticService")
 public class StatisticService extends ServiceBase {
     private final StatisticDao statisticDao;
-    private final ConstantsProperties constantsProperties;
 
     @Autowired
     public StatisticService(
@@ -28,23 +29,29 @@ public class StatisticService extends ServiceBase {
             final ForumDao forumDao,
             final ServerConfigurationProperties serverProperties,
             final ConstantsProperties constantsProperties) {
-        super(sessionDao, forumDao, serverProperties);
+        super(sessionDao, forumDao, serverProperties, constantsProperties);
         this.statisticDao = statisticDao;
-        this.constantsProperties = constantsProperties;
     }
 
-    private int getPaginationOffset(@Nullable final Integer receivedOffset) {
-        if (receivedOffset == null) {
-            return constantsProperties.getDefaultOffset();
-        }
-        return receivedOffset;
-    }
+    public MessageRatingListDtoResponse getMessagesRatings(
+            final String sessionToken,
+            @Nullable final Integer forumId,
+            @Nullable final Integer offset,
+            @Nullable final Integer limit
+    ) throws ServerException {
+        getUserBySession(sessionToken);
 
-    private int getPaginationLimit(@Nullable final Integer receivedLimit) {
-        if (receivedLimit == null) {
-            return constantsProperties.getDefaultLimit();
+        final int realOffset = getPaginationOffset(offset);
+        final int realLimit = getPaginationLimit(limit);
+
+        final List<MessageRatingView> ratings;
+        if (forumId != null) {
+            getForumById(forumId);
+            ratings = statisticDao.getMessagesRatingsInForum(forumId, realOffset, realLimit);
+        } else {
+            ratings = statisticDao.getMessagesRatings(realOffset, realLimit);
         }
-        return receivedLimit;
+        return StatisticsConverter.messagesRatingsToResponse(ratings);
     }
 
     public UserRatingListDtoResponse getUsersRatings(

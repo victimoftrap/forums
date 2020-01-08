@@ -1,6 +1,8 @@
 package net.thumbtack.forums.controller;
 
 import net.thumbtack.forums.service.StatisticService;
+import net.thumbtack.forums.dto.responses.statistic.MessageRatingDtoResponse;
+import net.thumbtack.forums.dto.responses.statistic.MessageRatingListDtoResponse;
 import net.thumbtack.forums.dto.responses.statistic.UserRatingDtoResponse;
 import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
@@ -49,14 +51,121 @@ class StatisticsControllerTest {
     private final String COOKIE_NAME = "JAVASESSIONID";
     private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
+    static Stream<Arguments> getRatingsServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND)
+        );
+    }
+
+    @Test
+    void testGetMessagesRatingsOnServer() throws Exception {
+        final List<MessageRatingDtoResponse> ratings = new ArrayList<>();
+        ratings.add(new MessageRatingDtoResponse(132, "message", 5, 1));
+        ratings.add(new MessageRatingDtoResponse(147, "message", 4.78, 6));
+        ratings.add(new MessageRatingDtoResponse(154, "comment", 4.4, 12));
+        ratings.add(new MessageRatingDtoResponse(101, "message", 4.1, 8));
+        ratings.add(new MessageRatingDtoResponse(204, "comment", 3.88, 7));
+        ratings.add(new MessageRatingDtoResponse(113, "message", 3.5, 4));
+        ratings.add(new MessageRatingDtoResponse(172, "comment", 3.5, 4));
+
+        final MessageRatingListDtoResponse expectedResponse = new MessageRatingListDtoResponse(ratings);
+        when(mockStatisticService.getMessagesRatings(eq(COOKIE_VALUE), eq(null), eq(0), eq(10)))
+                .thenReturn(expectedResponse);
+
+        final MvcResult result = mvc.perform(
+                get("/api/statistics/messages-ratings")
+                        .param("offset", "0")
+                        .param("limit", "10")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.messagesRatings", hasSize(7)))
+                .andReturn();
+
+        final MessageRatingListDtoResponse actualResponse = mapper.readValue(
+                result.getResponse().getContentAsString(),
+                MessageRatingListDtoResponse.class
+        );
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(mockStatisticService)
+                .getMessagesRatings(eq(COOKIE_VALUE), eq(null), eq(0), eq(10));
+    }
+
+    @Test
+    void testGetMessagesRatingsOnForum() throws Exception {
+        final List<MessageRatingDtoResponse> ratings = new ArrayList<>();
+        ratings.add(new MessageRatingDtoResponse(132, "message", 5, 1));
+        ratings.add(new MessageRatingDtoResponse(147, "message", 4.78, 6));
+        ratings.add(new MessageRatingDtoResponse(113, "message", 3.5, 4));
+        ratings.add(new MessageRatingDtoResponse(172, "comment", 3.5, 4));
+        final MessageRatingListDtoResponse expectedResponse = new MessageRatingListDtoResponse(ratings);
+
+        final int forumId = 123;
+        when(mockStatisticService.getMessagesRatings(eq(COOKIE_VALUE), eq(forumId), eq(0), eq(10)))
+                .thenReturn(expectedResponse);
+
+        final MvcResult result = mvc.perform(
+                get("/api/statistics/messages-ratings")
+                        .param("forum-id", String.valueOf(forumId))
+                        .param("offset", "0")
+                        .param("limit", "10")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.messagesRatings", hasSize(4)))
+                .andReturn();
+
+        final MessageRatingListDtoResponse actualResponse = mapper.readValue(
+                result.getResponse().getContentAsString(),
+                MessageRatingListDtoResponse.class
+        );
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(mockStatisticService)
+                .getMessagesRatings(eq(COOKIE_VALUE), eq(forumId), eq(0), eq(10));
+    }
+
+    @ParameterizedTest
+    @MethodSource("getRatingsServiceExceptions")
+    void testGetMessagesRatings_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        when(mockStatisticService.getMessagesRatings(anyString(), eq(null), anyInt(), anyInt()))
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                get("/api/statistics/messages-ratings")
+                        .param("offset", "0")
+                        .param("limit", "10")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockStatisticService)
+                .getMessagesRatings(anyString(), eq(null), anyInt(), anyInt());
+    }
+
     @Test
     void testGetUsersRatingsOnServer() throws Exception {
         final List<UserRatingDtoResponse> ratings = new ArrayList<>();
-        ratings.add(new UserRatingDtoResponse(132, "Leo", 4.64));
-        ratings.add(new UserRatingDtoResponse(137, "Donnie", 4.012));
-        ratings.add(new UserRatingDtoResponse(152, "Raph", 3.5));
-        ratings.add(new UserRatingDtoResponse(173, "Mike", 3.5));
-        ratings.add(new UserRatingDtoResponse(1, "admin", 0.));
+        ratings.add(new UserRatingDtoResponse(132, "Leo", 4.64, 5));
+        ratings.add(new UserRatingDtoResponse(137, "Donnie", 4.012, 6));
+        ratings.add(new UserRatingDtoResponse(152, "Raph", 3.5, 4));
+        ratings.add(new UserRatingDtoResponse(173, "Mike", 3.5, 4));
+        ratings.add(new UserRatingDtoResponse(1, "admin", 0., 0));
 
         final UserRatingListDtoResponse expectedResponse = new UserRatingListDtoResponse(ratings);
         when(mockStatisticService.getUsersRatings(eq(COOKIE_VALUE), eq(null), eq(0), eq(10)))
@@ -88,11 +197,11 @@ class StatisticsControllerTest {
     @Test
     void testGetUsersRatingsOnForum() throws Exception {
         final List<UserRatingDtoResponse> ratings = new ArrayList<>();
-        ratings.add(new UserRatingDtoResponse(132, "Leo", 4.64));
-        ratings.add(new UserRatingDtoResponse(137, "Donnie", 4.012));
-        ratings.add(new UserRatingDtoResponse(152, "Raph", 3.5));
-        ratings.add(new UserRatingDtoResponse(173, "Mike", 3.5));
-        ratings.add(new UserRatingDtoResponse(1, "admin", 0.));
+        ratings.add(new UserRatingDtoResponse(132, "Leo", 4.64, 5));
+        ratings.add(new UserRatingDtoResponse(137, "Donnie", 4.012, 6));
+        ratings.add(new UserRatingDtoResponse(152, "Raph", 3.5, 4));
+        ratings.add(new UserRatingDtoResponse(173, "Mike", 3.5, 4));
+        ratings.add(new UserRatingDtoResponse(1, "admin", 0., 0));
 
         final UserRatingListDtoResponse expectedResponse = new UserRatingListDtoResponse(ratings);
         when(mockStatisticService.getUsersRatings(eq(COOKIE_VALUE), eq(123), eq(0), eq(10)))
@@ -125,11 +234,11 @@ class StatisticsControllerTest {
     @Test
     void testGetUsersRatingsOnServer_noOffsetAndLimitInParams_shouldApplyDefaultInService() throws Exception {
         final List<UserRatingDtoResponse> ratings = new ArrayList<>();
-        ratings.add(new UserRatingDtoResponse(132, "Leo", 4.64));
-        ratings.add(new UserRatingDtoResponse(137, "Donnie", 4.012));
-        ratings.add(new UserRatingDtoResponse(152, "Raph", 3.5));
-        ratings.add(new UserRatingDtoResponse(173, "Mike", 3.5));
-        ratings.add(new UserRatingDtoResponse(1, "admin", 0.));
+        ratings.add(new UserRatingDtoResponse(132, "Leo", 4.64, 5));
+        ratings.add(new UserRatingDtoResponse(137, "Donnie", 4.012, 6));
+        ratings.add(new UserRatingDtoResponse(152, "Raph", 3.5, 4));
+        ratings.add(new UserRatingDtoResponse(173, "Mike", 3.5, 4));
+        ratings.add(new UserRatingDtoResponse(1, "admin", 0., 0));
 
         final UserRatingListDtoResponse expectedResponse = new UserRatingListDtoResponse(ratings);
         when(mockStatisticService.getUsersRatings(anyString(), eq(null), eq(null), eq(null)))
@@ -156,15 +265,8 @@ class StatisticsControllerTest {
                 .getUsersRatings(anyString(), eq(null), eq(null), eq(null));
     }
 
-    static Stream<Arguments> getUsersRatingsServiceExceptions() {
-        return Stream.of(
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND)
-        );
-    }
-
     @ParameterizedTest
-    @MethodSource("getUsersRatingsServiceExceptions")
+    @MethodSource("getRatingsServiceExceptions")
     void testGetUsersRatings_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockStatisticService.getUsersRatings(anyString(), eq(null), anyInt(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
