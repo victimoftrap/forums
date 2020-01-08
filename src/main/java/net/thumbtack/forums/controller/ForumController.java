@@ -102,8 +102,9 @@ public class ForumController {
             @RequestParam(value = "unpublished", required = false) Boolean unpublished,
             @RequestParam(value = "order", required = false) @AvailableOrder String order,
             @RequestParam(value = "tags", required = false) List<@NotBlank String> tags,
-            @RequestParam(value = "offset", required = true) int offset,
-            @RequestParam(value = "limit", required = true) int limit) throws ServerException {
+            @RequestParam(value = "offset", required = false) Integer offset,
+            @RequestParam(value = "limit", required = false) Integer limit
+    ) throws ServerException {
         return ResponseEntity.ok(
                 messageService.getForumMessageList(
                         token, forumId,

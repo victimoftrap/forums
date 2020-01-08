@@ -1,12 +1,13 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.dto.responses.message.*;
 import net.thumbtack.forums.model.*;
 import net.thumbtack.forums.model.enums.*;
 import net.thumbtack.forums.dao.*;
 import net.thumbtack.forums.dto.requests.message.*;
+import net.thumbtack.forums.dto.responses.message.*;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ class MessageServiceTest {
     private MessageHistoryDao mockMessageHistoryDao;
     private RatingDao mockRatingDao;
     private ServerConfigurationProperties mockServerProperties;
+    private ConstantsProperties mockConstantsProperties;
     private MessageService messageService;
 
     @BeforeEach
@@ -48,11 +50,12 @@ class MessageServiceTest {
         mockMessageHistoryDao = mock(MessageHistoryDao.class);
         mockRatingDao = mock(RatingDao.class);
         mockServerProperties = mock(ServerConfigurationProperties.class);
+        mockConstantsProperties = mock(ConstantsProperties.class);
 
         messageService = new MessageService(
                 mockSessionDao, mockForumDao,
                 mockMessageTreeDao, mockMessageDao, mockMessageHistoryDao,
-                mockRatingDao, mockServerProperties
+                mockRatingDao, mockServerProperties, mockConstantsProperties
         );
     }
 
@@ -2471,6 +2474,80 @@ class MessageServiceTest {
     }
 
     @Test
+    void testGetMessage_queryParamsNotReceived_shouldApplyDefaultSettings() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentMessage.getCreatedAt(),
+                Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
+        );
+        parentMessage.setMessageTree(tree);
+
+        final HistoryItem commentHistory = new HistoryItem(
+                "Comment Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentMessage = new MessageItem(
+                forumOwner, Collections.singletonList(commentHistory),
+                commentHistory.getCreatedAt()
+        );
+        parentMessage.setChildrenComments(Collections.singletonList(commentMessage));
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageTreeDao
+                .getTreeRootMessage(
+                        anyInt(), eq(MessageOrder.DESC), eq(false), eq(false), eq(false)
+                )
+        )
+                .thenReturn(parentMessage);
+
+        final String token = "token";
+        final MessageInfoDtoResponse response = messageService.getMessage(
+                token, 123, null, null, null, null
+        );
+        assertEquals(parentMessage.getId(), response.getId());
+        assertEquals(messageOwner.getUsername(), response.getCreator());
+        assertEquals(tree.getSubject(), response.getSubject());
+        assertEquals(tree.getPriority().name(), response.getPriority());
+        assertEquals(parentMessage.getCreatedAt(), response.getCreated());
+        assertEquals(parentMessage.getAverageRating(), response.getRating());
+        assertEquals(parentMessage.getRatings().size(), response.getRated());
+        assertEquals(parentHistory.getBody(), response.getBody().get(0));
+        assertEquals(tree.getTags().get(0).getName(), response.getTags().get(0));
+        assertEquals(tree.getTags().get(1).getName(), response.getTags().get(1));
+
+        assertFalse(response.getComments().isEmpty());
+        assertEquals(commentMessage.getId(), response.getComments().get(0).getId());
+        assertEquals(commentHistory.getBody(), response.getComments().get(0).getBody().get(0));
+        assertEquals(commentMessage.getOwner().getUsername(), response.getComments().get(0).getCreator());
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageTreeDao)
+                .getTreeRootMessage(
+                        anyInt(), eq(MessageOrder.DESC), eq(false), eq(false), eq(false)
+                );
+    }
+
+    @Test
     void testGetMessage_userNotFound_shouldThrowException() throws ServerException {
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
@@ -2625,6 +2702,238 @@ class MessageServiceTest {
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
                         anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                );
+    }
+
+    @Test
+    void testGetMessageList_queryParamsNotReceived_shouldApplyDefaultSettings() throws ServerException {
+        final String token = "token";
+        final User requesterUser = new User(
+                "RequesterUser", "RequesterUser@email.com", "v3ryStr0ngPa55"
+        );
+
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final HistoryItem parentHistory1 = new HistoryItem(
+                "Root Body #1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage1 = new MessageItem(
+                forumOwner, Collections.singletonList(parentHistory1),
+                parentHistory1.getCreatedAt()
+        );
+        final MessageTree tree1 = new MessageTree(
+                forum, "TreeSubject-1", parentMessage1,
+                MessagePriority.NORMAL, parentMessage1.getCreatedAt(),
+                Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
+        );
+        parentMessage1.setMessageTree(tree1);
+
+        final HistoryItem parentHistory2 = new HistoryItem(
+                "Root Body #2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage2 = new MessageItem(
+                forumOwner, Collections.singletonList(parentHistory2),
+                parentHistory2.getCreatedAt()
+        );
+        final MessageTree tree2 = new MessageTree(
+                forum, "TreeSubject-2", parentMessage2,
+                MessagePriority.NORMAL, parentMessage2.getCreatedAt(),
+                Arrays.asList(new Tag("Tag3"), new Tag("Tag2"))
+        );
+        parentMessage2.setMessageTree(tree2);
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(requesterUser);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(forum);
+        when(mockMessageTreeDao
+                .getForumTrees(
+                        anyInt(), eq(false), eq(false), eq(false),
+                        anyList(), eq(MessageOrder.DESC), anyInt(), anyInt()
+                )
+        )
+                .thenReturn(Arrays.asList(tree2, tree1));
+
+        final List<MessageInfoDtoResponse> responses = new ArrayList<>();
+        responses.add(
+                new MessageInfoDtoResponse(
+                        parentMessage2.getId(),
+                        parentMessage2.getOwner().getUsername(),
+                        tree2.getSubject(),
+                        Arrays.asList(parentHistory2.getBody()),
+                        tree2.getPriority().name(),
+                        tree2.getTags()
+                                .stream()
+                                .map(Tag::getName)
+                                .collect(Collectors.toList()),
+                        parentMessage2.getCreatedAt(),
+                        parentMessage2.getAverageRating(),
+                        parentMessage2.getRatings().size(),
+                        new ArrayList<>()
+                )
+        );
+        responses.add(
+                new MessageInfoDtoResponse(
+                        parentMessage1.getId(),
+                        parentMessage1.getOwner().getUsername(),
+                        tree1.getSubject(),
+                        Arrays.asList(parentHistory1.getBody()),
+                        tree1.getPriority().name(),
+                        tree1.getTags()
+                                .stream()
+                                .map(Tag::getName)
+                                .collect(Collectors.toList()),
+                        parentMessage1.getCreatedAt(),
+                        parentMessage1.getAverageRating(),
+                        parentMessage1.getRatings().size(),
+                        new ArrayList<>()
+                )
+        );
+        final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
+        final ListMessageInfoDtoResponse actualResponse = messageService.getForumMessageList(
+                token, forum.getId(), null, null, null,
+                Collections.emptyList(), null, 0, 10
+        );
+        assertEquals(2, actualResponse.getMessages().size());
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(anyInt());
+        verify(mockMessageTreeDao)
+                .getForumTrees(
+                        anyInt(), eq(false), eq(false), eq(false),
+                        anyList(), eq(MessageOrder.DESC), anyInt(), anyInt()
+                );
+    }
+
+    @Test
+    void testGetMessageList_offsetAndLimitNotReceived_shouldApplyDefaultSettings() throws ServerException {
+        final String token = "token";
+        final User requesterUser = new User(
+                "RequesterUser", "RequesterUser@email.com", "v3ryStr0ngPa55"
+        );
+
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final HistoryItem parentHistory1 = new HistoryItem(
+                "Root Body #1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage1 = new MessageItem(
+                forumOwner, Collections.singletonList(parentHistory1),
+                parentHistory1.getCreatedAt()
+        );
+        final MessageTree tree1 = new MessageTree(
+                forum, "TreeSubject-1", parentMessage1,
+                MessagePriority.NORMAL, parentMessage1.getCreatedAt(),
+                Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
+        );
+        parentMessage1.setMessageTree(tree1);
+
+        final HistoryItem parentHistory2 = new HistoryItem(
+                "Root Body #2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage2 = new MessageItem(
+                forumOwner, Collections.singletonList(parentHistory2),
+                parentHistory2.getCreatedAt()
+        );
+        final MessageTree tree2 = new MessageTree(
+                forum, "TreeSubject-2", parentMessage2,
+                MessagePriority.NORMAL, parentMessage2.getCreatedAt(),
+                Arrays.asList(new Tag("Tag3"), new Tag("Tag2"))
+        );
+        parentMessage2.setMessageTree(tree2);
+
+        final int defaultOffset = 0;
+        final int defaultLimit = 20;
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(requesterUser);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(forum);
+        when(mockConstantsProperties.getDefaultOffset())
+                .thenReturn(defaultOffset);
+        when(mockConstantsProperties.getDefaultLimit())
+                .thenReturn(defaultLimit);
+        when(mockMessageTreeDao
+                .getForumTrees(
+                        anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
+                        anyList(), any(MessageOrder.class), eq(defaultOffset), eq(defaultLimit)
+                )
+        )
+                .thenReturn(Arrays.asList(tree2, tree1));
+
+        final List<MessageInfoDtoResponse> responses = new ArrayList<>();
+        responses.add(
+                new MessageInfoDtoResponse(
+                        parentMessage2.getId(),
+                        parentMessage2.getOwner().getUsername(),
+                        tree2.getSubject(),
+                        Arrays.asList(parentHistory2.getBody()),
+                        tree2.getPriority().name(),
+                        tree2.getTags()
+                                .stream()
+                                .map(Tag::getName)
+                                .collect(Collectors.toList()),
+                        parentMessage2.getCreatedAt(),
+                        parentMessage2.getAverageRating(),
+                        parentMessage2.getRatings().size(),
+                        new ArrayList<>()
+                )
+        );
+        responses.add(
+                new MessageInfoDtoResponse(
+                        parentMessage1.getId(),
+                        parentMessage1.getOwner().getUsername(),
+                        tree1.getSubject(),
+                        Arrays.asList(parentHistory1.getBody()),
+                        tree1.getPriority().name(),
+                        tree1.getTags()
+                                .stream()
+                                .map(Tag::getName)
+                                .collect(Collectors.toList()),
+                        parentMessage1.getCreatedAt(),
+                        parentMessage1.getAverageRating(),
+                        parentMessage1.getRatings().size(),
+                        new ArrayList<>()
+                )
+        );
+        final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
+        final ListMessageInfoDtoResponse actualResponse = messageService.getForumMessageList(
+                token, forum.getId(), true, false, true,
+                Collections.emptyList(), MessageOrder.DESC.name(), null, null
+        );
+        assertEquals(2, actualResponse.getMessages().size());
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(anyInt());
+        verify(mockConstantsProperties)
+                .getDefaultOffset();
+        verify(mockConstantsProperties)
+                .getDefaultLimit();
+        verify(mockMessageTreeDao)
+                .getForumTrees(
+                        anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
+                        anyList(), any(MessageOrder.class), eq(defaultOffset), eq(defaultLimit)
                 );
     }
 
