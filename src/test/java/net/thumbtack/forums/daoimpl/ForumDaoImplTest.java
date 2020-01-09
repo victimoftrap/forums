@@ -261,6 +261,48 @@ class ForumDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
+    void testGetAllForums() throws ServerException {
+        User user1 = new User("User1", "user1@mail.com", "abcde");
+        userDao.save(user1);
+
+        Forum forum1 = new Forum(
+                ForumType.MODERATED, user1, "ForumName #1",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum1);
+
+        User user2 = new User("User2", "user2@mail.com", "pass-pass");
+        userDao.save(user2);
+
+        Forum forum2 = new Forum(
+                ForumType.UNMODERATED, user2, "ForumName #2",
+                LocalDateTime
+                        .now()
+                        .plus(1, ChronoUnit.WEEKS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum2);
+
+        Forum forum3 = new Forum(
+                ForumType.MODERATED, user1, "ForumName #3",
+                LocalDateTime
+                        .now()
+                        .plus(3, ChronoUnit.MONTHS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum3);
+
+        List<Forum> forumsInServer = forumDao.getAll();
+        assertEquals(Arrays.asList(forum1, forum2, forum3), forumsInServer);
+    }
+
+    @Test
+    void testGetAllForums_noForumsInServer_shouldReturnEmptyList() throws ServerException {
+        List<Forum> forumList = forumDao.getAll();
+        assertEquals(Collections.emptyList(), forumList);
+    }
+
+    @Test
     void testUpdateReadonlyForumFlag() throws ServerException {
         User user = new User(
                 UserRole.USER,
@@ -322,5 +364,45 @@ class ForumDaoImplTest extends DaoTestEnvironment {
         forumDao.deleteById(forum.getId());
         Forum selectedSecondly = forumDao.getById(forum.getId());
         assertNull(selectedSecondly);
+    }
+
+    @Test
+    void testDeleteAllForums() throws ServerException {
+        User user1 = new User("User1", "user1@mail.com", "abcde");
+        userDao.save(user1);
+
+        Forum forum1 = new Forum(
+                ForumType.MODERATED, user1, "ForumName #1",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum1);
+
+        User user2 = new User("User2", "user2@mail.com", "pass-pass");
+        userDao.save(user2);
+
+        Forum forum2 = new Forum(
+                ForumType.UNMODERATED, user2, "ForumName #2",
+                LocalDateTime
+                        .now()
+                        .plus(1, ChronoUnit.WEEKS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum2);
+
+        Forum forum3 = new Forum(
+                ForumType.MODERATED, user1, "ForumName #3",
+                LocalDateTime
+                        .now()
+                        .plus(3, ChronoUnit.MONTHS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(forum3);
+
+        List<Forum> forumsBeforeDeletion = forumDao.getAll();
+
+        forumDao.deleteAll();
+        List<Forum> forumsAfterDeletion = forumDao.getAll();
+        assertEquals(3, forumsBeforeDeletion.size());
+        assertEquals(Collections.emptyList(), forumsAfterDeletion);
     }
 }

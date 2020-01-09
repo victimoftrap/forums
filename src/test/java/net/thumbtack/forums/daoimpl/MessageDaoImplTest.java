@@ -250,4 +250,42 @@ class MessageDaoImplTest extends DaoTestEnvironment {
         final MessageItem deletedMessage = messageDao.getMessageById(comment.getId());
         assertNull(deletedMessage);
     }
+
+    @Test
+    void testDeleteAllMessages() throws ServerException {
+        final User commentMaker = new User(
+                "commentMaker", "user@gmail.com", "passwd"
+        );
+        userDao.save(creator);
+        userDao.save(commentMaker);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "COMMENT #1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment1 = new MessageItem(
+                creator, messageTree, messageItem,
+                Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt()
+        );
+        messageDao.saveMessageItem(comment1);
+
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "COMMENT #2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment2 = new MessageItem(
+                commentMaker, messageTree, messageItem,
+                Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt()
+        );
+        messageDao.saveMessageItem(comment2);
+
+        messageDao.deleteAll();
+        assertNull(messageDao.getMessageById(messageItem.getId()));
+        assertNull(messageDao.getMessageById(comment1.getId()));
+        assertNull(messageDao.getMessageById(comment2.getId()));
+    }
 }

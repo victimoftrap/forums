@@ -1,7 +1,6 @@
 package net.thumbtack.forums.service;
 
-import net.thumbtack.forums.dto.responses.statistic.MessageRatingDtoResponse;
-import net.thumbtack.forums.dto.responses.statistic.MessageRatingListDtoResponse;
+import net.thumbtack.forums.dto.responses.statistic.*;
 import net.thumbtack.forums.model.User;
 import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.enums.ForumType;
@@ -10,8 +9,6 @@ import net.thumbtack.forums.view.UserRatingView;
 import net.thumbtack.forums.dao.ForumDao;
 import net.thumbtack.forums.dao.SessionDao;
 import net.thumbtack.forums.dao.StatisticDao;
-import net.thumbtack.forums.dto.responses.statistic.UserRatingDtoResponse;
-import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ConstantsProperties;
@@ -50,6 +47,198 @@ class StatisticServiceTest {
                 mockStatisticDao, mockSessionDao, mockForumDao,
                 mockServerConfigurationProperties, mockConstantsProperties
         );
+    }
+
+    @Test
+    void testGetMessagesCount_forumIdNotSend_shouldReturnCountInServer() throws ServerException {
+        final User user = new User("user", "user@email.com", "v3rY$troNGPA$$");
+        final int messagesCount = 1234;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockStatisticDao.getMessagesCount())
+                .thenReturn(messagesCount);
+
+        final MessagesCountDtoResponse response = statisticService.getMessagesCount(
+                "token", null
+        );
+        assertEquals(messagesCount, response.getMessagesCount());
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockStatisticDao)
+                .getMessagesCount();
+
+        verifyZeroInteractions(mockForumDao);
+        verify(mockStatisticDao, never())
+                .getMessagesCount(anyInt());
+    }
+
+    @Test
+    void testGetMessagesCount_forumIdReceived_shouldReturnCountInThisForum() throws ServerException {
+        final User user = new User("user", "user@email.com", "v3rY$troNGPA$$");
+        final User forumOwner = new User("owner", "owner@email.com", "ownerpass");
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final int forumId = 147;
+        final int messagesCount = 45678;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockForumDao.getById(eq(forumId)))
+                .thenReturn(forum);
+        when(mockStatisticDao.getMessagesCount(eq(forumId)))
+                .thenReturn(messagesCount);
+
+        final MessagesCountDtoResponse response = statisticService.getMessagesCount(
+                "token", forumId
+        );
+        assertEquals(messagesCount, response.getMessagesCount());
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(eq(forumId));
+        verify(mockStatisticDao)
+                .getMessagesCount(eq(forumId));
+
+        verify(mockStatisticDao, never())
+                .getMessagesCount();
+    }
+
+    @Test
+    void testGetMessagesCount_userNotFoundByToken_shouldThrowException() throws ServerException {
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            statisticService.getMessagesCount("token", null);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+
+        verifyZeroInteractions(mockForumDao);
+        verifyZeroInteractions(mockStatisticDao);
+    }
+
+    @Test
+    void testGetMessagesCount_forumNotFound_shouldThrowException() throws ServerException {
+        final User user = new User("user", "user@email.com", "v3rY$troNGPA$$");
+        final int forumId = 123;
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockForumDao.getById(eq(forumId)))
+                .thenReturn(null);
+
+        try {
+            statisticService.getMessagesCount("token", forumId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORUM_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(eq(forumId));
+        verifyZeroInteractions(mockStatisticDao);
+    }
+
+    @Test
+    void testGetCommentsCount_forumIdNotSend_shouldReturnCountInServer() throws ServerException {
+        final User user = new User("user", "user@email.com", "v3rY$troNGPA$$");
+        final int commentsCount = 95123;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockStatisticDao.getCommentsCount())
+                .thenReturn(commentsCount);
+
+        final CommentsCountDtoResponse response = statisticService.getCommentsCount(
+                "token", null
+        );
+        assertEquals(commentsCount, response.getCommentsCount());
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockStatisticDao)
+                .getCommentsCount();
+
+        verifyZeroInteractions(mockForumDao);
+        verify(mockStatisticDao, never())
+                .getCommentsCount(anyInt());
+    }
+
+    @Test
+    void testGetCommentsCount_forumIdReceived_shouldReturnCountInThisForum() throws ServerException {
+        final User user = new User("user", "user@email.com", "v3rY$troNGPA$$");
+        final User forumOwner = new User("owner", "owner@email.com", "ownerpass");
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final int forumId = 147;
+        final int commentsCount = 759153;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockForumDao.getById(eq(forumId)))
+                .thenReturn(forum);
+        when(mockStatisticDao.getCommentsCount(eq(forumId)))
+                .thenReturn(commentsCount);
+
+        final CommentsCountDtoResponse response = statisticService.getCommentsCount(
+                "token", forumId
+        );
+        assertEquals(commentsCount, response.getCommentsCount());
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(eq(forumId));
+        verify(mockStatisticDao)
+                .getCommentsCount(eq(forumId));
+
+        verify(mockStatisticDao, never())
+                .getCommentsCount();
+    }
+
+    @Test
+    void testGetCommentsCount_userNotFoundByToken_shouldThrowException() throws ServerException {
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(null);
+
+        try {
+            statisticService.getCommentsCount("token", null);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+
+        verifyZeroInteractions(mockForumDao);
+        verifyZeroInteractions(mockStatisticDao);
+    }
+
+    @Test
+    void testGetCommentsCount_forumNotFound_shouldThrowException() throws ServerException {
+        final User user = new User("user", "user@email.com", "v3rY$troNGPA$$");
+        final int forumId = 123;
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        when(mockForumDao.getById(eq(forumId)))
+                .thenReturn(null);
+
+        try {
+            statisticService.getCommentsCount("token", forumId);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORUM_NOT_FOUND, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(eq(forumId));
+        verifyZeroInteractions(mockStatisticDao);
     }
 
     @Test

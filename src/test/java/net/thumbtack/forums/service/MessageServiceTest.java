@@ -2577,7 +2577,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean())
         )
-                .thenThrow(new ServerException(ErrorCode.MESSAGE_NOT_FOUND));
+                .thenReturn(null);
 
         final String token = "token";
         try {
@@ -2601,6 +2601,9 @@ class MessageServiceTest {
                 "RequesterUser", "RequesterUser@email.com", "v3ryStr0ngPa55"
         );
 
+        final User commentCreator = new User(
+                "CommentCreator", "creator@mail.com", "COOLpassw0rd"
+        );
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
@@ -2623,6 +2626,18 @@ class MessageServiceTest {
                 Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
         );
         parentMessage1.setMessageTree(tree1);
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "Comment #1", MessageState.PUBLISHED,
+                LocalDateTime.now()
+                        .plus(7, ChronoUnit.MINUTES)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment1 = new MessageItem(
+                commentCreator, Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt()
+        );
+        parentMessage1.setChildrenComments(Collections.singletonList(comment1));
 
         final HistoryItem parentHistory2 = new HistoryItem(
                 "Root Body #2", MessageState.PUBLISHED,
@@ -2650,6 +2665,16 @@ class MessageServiceTest {
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
+
+        final CommentInfoDtoResponse commentResponse = new CommentInfoDtoResponse(
+                comment1.getId(),
+                comment1.getOwner().getUsername(),
+                Collections.singletonList(commentHistory1.getBody()),
+                comment1.getCreatedAt(),
+                comment1.getAverageRating(),
+                comment1.getRatings().size(),
+                new ArrayList<>()
+        );
 
         final List<MessageInfoDtoResponse> responses = new ArrayList<>();
         responses.add(
@@ -2683,7 +2708,7 @@ class MessageServiceTest {
                         parentMessage1.getCreatedAt(),
                         parentMessage1.getAverageRating(),
                         parentMessage1.getRatings().size(),
-                        new ArrayList<>()
+                        Collections.singletonList(commentResponse)
                 )
         );
         final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
