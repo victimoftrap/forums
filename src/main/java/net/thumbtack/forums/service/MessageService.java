@@ -10,6 +10,7 @@ import net.thumbtack.forums.converter.TagConverter;
 import net.thumbtack.forums.converter.MessageConverter;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.springframework.lang.Nullable;
@@ -36,15 +37,16 @@ public class MessageService extends ServiceBase {
                           final MessageDao messageDao,
                           final MessageHistoryDao messageHistoryDao,
                           final RatingDao ratingDao,
-                          final ServerConfigurationProperties serverProperties) {
-        super(sessionDao, forumDao, serverProperties);
+                          final ServerConfigurationProperties serverProperties,
+                          final ConstantsProperties constantsProperties) {
+        super(sessionDao, forumDao, serverProperties, constantsProperties);
         this.messageTreeDao = messageTreeDao;
         this.messageDao = messageDao;
         this.messageHistoryDao = messageHistoryDao;
         this.ratingDao = ratingDao;
     }
 
-    private MessagePriority getMessagePriority(final String priority) {
+    private MessagePriority getMessagePriority(@Nullable final String priority) {
         return priority == null ? MessagePriority.NORMAL : MessagePriority.valueOf(priority);
     }
 
@@ -299,6 +301,34 @@ public class MessageService extends ServiceBase {
         return new EmptyDtoResponse();
     }
 
+    private boolean getAllVersionsSetting(@Nullable final Boolean receivedAllVersions) {
+        if (receivedAllVersions == null) {
+            return false;
+        }
+        return receivedAllVersions;
+    }
+
+    private boolean getNoCommentsSetting(@Nullable final Boolean receivedNoComments) {
+        if (receivedNoComments == null) {
+            return false;
+        }
+        return receivedNoComments;
+    }
+
+    private boolean getUnpublishedSetting(@Nullable final Boolean receivedUnpublished) {
+        if (receivedUnpublished == null) {
+            return false;
+        }
+        return receivedUnpublished;
+    }
+
+    private MessageOrder getMessageOrder(@Nullable final String receivedOrder) {
+        if (receivedOrder ==null) {
+            return MessageOrder.DESC;
+        }
+        return MessageOrder.valueOf(receivedOrder);
+    }
+
     public MessageInfoDtoResponse getMessage(
             final String token,
             final int messageId,
@@ -309,10 +339,10 @@ public class MessageService extends ServiceBase {
     ) throws ServerException {
         getUserBySession(token);
 
-        final boolean realAllVersions = allVersions == null ? false : allVersions;
-        final boolean realNoComments = noComments == null ? false : noComments;
-        final boolean realUnpublished = unpublished == null ? false : unpublished;
-        final MessageOrder realOrder = order == null ? MessageOrder.DESC : MessageOrder.valueOf(order);
+        final boolean realAllVersions = getAllVersionsSetting(allVersions);
+        final boolean realNoComments = getNoCommentsSetting(noComments);
+        final boolean realUnpublished = getUnpublishedSetting(unpublished);
+        final MessageOrder realOrder = getMessageOrder(order);
 
         final MessageItem rootMessage = messageTreeDao.getTreeRootMessage(
                 messageId, realOrder,
@@ -332,21 +362,23 @@ public class MessageService extends ServiceBase {
             @Nullable final Boolean unpublished,
             @Nullable final List<String> tags,
             @Nullable final String order,
-            final int offset,
-            final int limit
+            @Nullable final Integer offset,
+            @Nullable final Integer limit
     ) throws ServerException {
         getUserBySession(token);
         getForumById(forumId);
 
-        final boolean realAllVersions = allVersions == null ? false : allVersions;
-        final boolean realNoComments = noComments == null ? false : noComments;
-        final boolean realUnpublished = unpublished == null ? false : unpublished;
-        final MessageOrder realOrder = order == null ? MessageOrder.DESC : MessageOrder.valueOf(order);
+        final boolean realAllVersions = getAllVersionsSetting(allVersions);
+        final boolean realNoComments = getNoCommentsSetting(noComments);
+        final boolean realUnpublished = getUnpublishedSetting(unpublished);
+        final MessageOrder realOrder = getMessageOrder(order);
+        final int realOffset = getPaginationOffset(offset);
+        final int realLimit = getPaginationLimit(limit);
 
         final List<MessageTree> messageTrees = messageTreeDao.getForumTrees(
                 forumId,
                 realAllVersions, realNoComments, realUnpublished,
-                tags, realOrder, offset, limit
+                tags, realOrder, realOffset, realLimit
         );
         return new ListMessageInfoDtoResponse(
                 MessageConverter.messageListToResponse(messageTrees)

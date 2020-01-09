@@ -611,7 +611,9 @@ class ForumControllerTest {
                 .thenReturn(expectedResponse);
 
         final MvcResult mvcResult = mvc.perform(
-                get("/api/forums/{forum_id}/messages?offset={o}&limit={l}", 123, 0, 10)
+                get("/api/forums/{forum_id}/messages", 123)
+                        .param("offset", "0")
+                        .param("limit", "10")
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
@@ -631,6 +633,172 @@ class ForumControllerTest {
                         anyString(), anyInt(),
                         eq(null), eq(null), eq(null),
                         eq(null), eq(null), anyInt(), anyInt()
+                );
+    }
+
+    @Test
+    void testGetMessageList_tagsListsInParams() throws Exception {
+        final List<MessageInfoDtoResponse> responses = new ArrayList<>();
+        responses.add(
+                new MessageInfoDtoResponse(
+                        123,
+                        "Creator#1",
+                        "Subject#1",
+                        Arrays.asList("Body#2", "Body#1"),
+                        MessagePriority.NORMAL.name(),
+                        Arrays.asList("Tag#1", "Tag#2"),
+                        LocalDateTime.now()
+                                .plus(1, ChronoUnit.WEEKS)
+                                .truncatedTo(ChronoUnit.SECONDS),
+                        4,
+                        3,
+                        Collections.singletonList(
+                                new CommentInfoDtoResponse(
+                                        149, "Creator#3",
+                                        Collections.singletonList("C Body"),
+                                        LocalDateTime.now()
+                                                .plus(6, ChronoUnit.DAYS)
+                                                .truncatedTo(ChronoUnit.SECONDS),
+                                        5, 1,
+                                        Collections.emptyList()
+                                )
+                        )
+                )
+        );
+        responses.add(
+                new MessageInfoDtoResponse(
+                        123,
+                        "Creator#2",
+                        "Subject#2",
+                        Arrays.asList("Body#3", "Body#2", "Body#1"),
+                        MessagePriority.LOW.name(),
+                        Arrays.asList("Tag#2", "Tag#3", "Tag#4"),
+                        LocalDateTime.now()
+                                .plus(2, ChronoUnit.WEEKS)
+                                .truncatedTo(ChronoUnit.SECONDS),
+                        3,
+                        5,
+                        Collections.emptyList()
+                )
+        );
+        final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
+        final String tag2 = "Tag#2";
+        final String tag3 = "Tag#3";
+
+        when(mockMessageService
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(Arrays.asList(tag2, tag3)), eq(null),
+                        eq(null), eq(null)
+                )
+        )
+                .thenReturn(expectedResponse);
+
+        final MvcResult mvcResult = mvc.perform(
+                get("/api/forums/{forum_id}/messages", 123)
+                        .param("tags", tag2)
+                        .param("tags", tag3)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        final ListMessageInfoDtoResponse actualResponse = mapper.readValue(
+                mvcResult.getResponse().getContentAsString(),
+                ListMessageInfoDtoResponse.class
+        );
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(mockMessageService)
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(Arrays.asList(tag2, tag3)), eq(null),
+                        eq(null), eq(null)
+                );
+    }
+
+    @Test
+    void testGetMessageList_notExistsAllQueryParams_shouldApplyDefaultSettingsInService() throws Exception {
+        final List<MessageInfoDtoResponse> responses = new ArrayList<>();
+        responses.add(
+                new MessageInfoDtoResponse(
+                        123,
+                        "Creator#1",
+                        "Subject#1",
+                        Arrays.asList("Body#2", "Body#1"),
+                        MessagePriority.NORMAL.name(),
+                        Arrays.asList("Tag#1", "Tag#2"),
+                        LocalDateTime.now()
+                                .plus(1, ChronoUnit.WEEKS)
+                                .truncatedTo(ChronoUnit.SECONDS),
+                        4,
+                        3,
+                        Collections.singletonList(
+                                new CommentInfoDtoResponse(
+                                        149, "Creator#3",
+                                        Collections.singletonList("C Body"),
+                                        LocalDateTime.now()
+                                                .plus(6, ChronoUnit.DAYS)
+                                                .truncatedTo(ChronoUnit.SECONDS),
+                                        5, 1,
+                                        Collections.emptyList()
+                                )
+                        )
+                )
+        );
+        responses.add(
+                new MessageInfoDtoResponse(
+                        123,
+                        "Creator#2",
+                        "Subject#2",
+                        Arrays.asList("Body#3", "Body#2", "Body#1"),
+                        MessagePriority.LOW.name(),
+                        Arrays.asList("Tag#2", "Tag#3", "Tag#4"),
+                        LocalDateTime.now()
+                                .plus(2, ChronoUnit.WEEKS)
+                                .truncatedTo(ChronoUnit.SECONDS),
+                        3,
+                        5,
+                        Collections.emptyList()
+                )
+        );
+        final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
+
+        when(mockMessageService
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(null), eq(null), eq(null), eq(null)
+                )
+        )
+                .thenReturn(expectedResponse);
+
+        final MvcResult mvcResult = mvc.perform(
+                get("/api/forums/{forum_id}/messages", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        final ListMessageInfoDtoResponse actualResponse = mapper.readValue(
+                mvcResult.getResponse().getContentAsString(),
+                ListMessageInfoDtoResponse.class
+        );
+        assertEquals(expectedResponse, actualResponse);
+
+        verify(mockMessageService)
+                .getForumMessageList(
+                        anyString(), anyInt(),
+                        eq(null), eq(null), eq(null),
+                        eq(null), eq(null), eq(null), eq(null)
                 );
     }
 
@@ -655,7 +823,9 @@ class ForumControllerTest {
                 .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
-                get("/api/forums/{forum_id}/messages?offset={o}&limit={l}", 123, 0, 10)
+                get("/api/forums/{forum_id}/messages", 123)
+                        .param("offset", "0")
+                        .param("limit", "10")
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )

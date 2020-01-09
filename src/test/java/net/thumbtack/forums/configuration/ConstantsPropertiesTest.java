@@ -25,5 +25,7 @@ public class ConstantsPropertiesTest {
         assertEquals("JAVASESSIONID", properties.getSessionIdKey());
         assertEquals("9999-01-01 00:00:00", properties.getPermanentBanDatetime());
         assertEquals("yyyy-MM-dd HH:mm:ss", properties.getDatetimePattern());
+        assertEquals(0, properties.getDefaultOffset());
+        assertEquals(20, properties.getDefaultLimit());
     }
 }

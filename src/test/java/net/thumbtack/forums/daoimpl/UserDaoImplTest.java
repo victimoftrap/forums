@@ -662,4 +662,50 @@ class UserDaoImplTest extends DaoTestEnvironment {
         selectedUserSecondly = userDao.getById(user.getId());
         assertTrue(selectedUserSecondly.isDeleted());
     }
+
+    @Test
+    void testDeleteAllUsers_shouldDeleteAllWithoutAdmin() throws ServerException {
+        User admin = new User(
+                1, UserRole.SUPERUSER, "admin",
+                "admin@example.com", "admin_strong_pass",
+                null, false
+        );
+
+        User user1 = new User(
+                UserRole.SUPERUSER, "jolygolf",
+                "jolygolf@gmail.com", "pryadko",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user1);
+
+        User user2 = new User(
+                UserRole.USER, "millenniumeye23",
+                "sokolov@gmail.com", "millenniumeye23",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user2);
+
+        User user3 = new User(
+                UserRole.USER, "link",
+                "tokach@gmail.com", "igorlink",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user3);
+
+        final List<User> usersBeforeDeletion = userDao.getAll();
+
+        userDao.deleteAll();
+        final List<User> usersAfterDeletion = userDao.getAll();
+        assertEquals(4, usersBeforeDeletion.size());
+        assertEquals(1, usersAfterDeletion.size());
+
+        User actualAdmin = usersAfterDeletion.get(0);
+        assertEquals(admin.getRole(), actualAdmin.getRole());
+        assertEquals(admin.getEmail(), actualAdmin.getEmail());
+        assertEquals(admin.getPassword(), actualAdmin.getPassword());
+        assertEquals(admin.isDeleted(), actualAdmin.isDeleted());
+    }
 }

@@ -12,6 +12,7 @@ import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
+import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,7 @@ class ForumServiceTest {
     private ForumDao mockForumDao;
     private SessionDao mockSessionDao;
     private ServerConfigurationProperties mockServerProperties;
+    private ConstantsProperties mockConstantsProperties;
     private ForumService forumService;
 
     @BeforeEach
@@ -38,7 +40,11 @@ class ForumServiceTest {
         mockForumDao = mock(ForumDao.class);
         mockSessionDao = mock(SessionDao.class);
         mockServerProperties = mock(ServerConfigurationProperties.class);
-        forumService = new ForumService(mockForumDao, mockSessionDao, mockServerProperties);
+        mockConstantsProperties = mock(ConstantsProperties.class);
+
+        forumService = new ForumService(
+                mockForumDao, mockSessionDao, mockConstantsProperties, mockServerProperties
+        );
     }
 
     @Test

@@ -18,6 +18,12 @@ public class ConstantsProperties {
     @Value("${session_id_key}")
     private String sessionIdKey;
 
+    @Value("${pagination.default_offset}")
+    private int defaultOffset;
+
+    @Value("${pagination.default_limit}")
+    private int defaultLimit;
+
     public String getDatetimePattern() {
         return datetimePattern;
     }
@@ -28,5 +34,13 @@ public class ConstantsProperties {
 
     public String getSessionIdKey() {
         return sessionIdKey;
+    }
+
+    public int getDefaultOffset() {
+        return defaultOffset;
+    }
+
+    public int getDefaultLimit() {
+        return defaultLimit;
     }
 }

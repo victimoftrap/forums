@@ -20,6 +20,8 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -917,5 +919,17 @@ class UserServiceTest {
         }
         verify(sessionDao).getUserByToken(eq(sessionToken));
         verifyZeroInteractions(userDao);
+    }
+
+    @Test
+    void testUnbanUsers() throws ServerException {
+        doNothing()
+                .when(userDao)
+                .unbanAllByDate(any(LocalDateTime.class));
+
+        userService.unbanUsers();
+
+        verify(userDao)
+                .unbanAllByDate(any(LocalDateTime.class));
     }
 }

@@ -19,6 +19,7 @@ public class DaoTestEnvironment {
     protected final MessageHistoryDao messageHistoryDao = new MessageHistoryDaoImpl(sqlSessionFactory);
     protected final RatingDao ratingDao = new RatingDaoImpl(sqlSessionFactory);
     protected final DebugDao debugDao = new DebugDaoImpl(sqlSessionFactory);
+    protected final StatisticDao statisticDao = new StatisticDaoImpl(sqlSessionFactory);
 
     @BeforeAll
     static void setupDatabase() {

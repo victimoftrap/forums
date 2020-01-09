@@ -173,6 +173,59 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
+    void testChangeTreePriority() throws ServerException {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        messageTree.setPriority(MessagePriority.HIGH);
+        messageTreeDao.changeBranchPriority(messageTree);
+
+        final MessageItem message = messageDao.getMessageById(messageItem.getId());
+        assertAll(
+                () -> assertEquals(messageItem.getId(), message.getId()),
+                () -> assertEquals(messageItem.getOwner(), message.getOwner()),
+                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage()),
+                () -> assertEquals(messageItem.getHistory(), message.getHistory()),
+                () -> assertEquals(messageItem.getUpdatedAt(), message.getUpdatedAt()),
+                () -> assertEquals(messageItem.getCreatedAt(), message.getCreatedAt()),
+                () -> assertEquals(messageItem.getAverageRating(), message.getAverageRating()),
+                () -> assertEquals(messageItem.getChildrenComments(), message.getChildrenComments()),
+                () -> assertEquals(messageItem.getMessageTree().getId(), message.getMessageTree().getId()),
+                () -> assertNull(messageItem.getParentMessage()),
+                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage())
+        );
+    }
+
+    @Test
+    void testDeleteMessageTreeById() throws ServerException {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNotNull(selectedRootBeforeDeletion);
+
+        messageTreeDao.deleteTreeById(messageItem.getMessageTree().getId());
+        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNull(selectedRootAfterDeletion);
+    }
+
+    @Test
+    void testDeleteMessageTreeByRootMessageId() throws ServerException {
+        userDao.save(creator);
+        forumDao.save(forum);
+        messageTreeDao.saveMessageTree(messageTree);
+
+        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNotNull(selectedRootBeforeDeletion);
+
+        messageTreeDao.deleteTreeByRootMessageId(messageItem.getId());
+        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
+        assertNull(selectedRootAfterDeletion);
+    }
+
+    @Test
     void testGetRootMessage_commentOrderAscAndDesc() throws ServerException {
         final User commentMaker = new User(
                 "commentMaker", "user@gmail.com", "passwd"
@@ -253,59 +306,6 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         assertEquals(commentItem2.getId(), selectedCommentsAsc.get(1).getId());
         assertEquals(commentItem2.getOwner(), selectedCommentsAsc.get(1).getOwner());
         assertEquals(commentItem2.getCreatedAt(), selectedCommentsAsc.get(1).getCreatedAt());
-    }
-
-    @Test
-    void testChangeTreePriority() throws ServerException {
-        userDao.save(creator);
-        forumDao.save(forum);
-        messageTreeDao.saveMessageTree(messageTree);
-
-        messageTree.setPriority(MessagePriority.HIGH);
-        messageTreeDao.changeBranchPriority(messageTree);
-
-        final MessageItem message = messageDao.getMessageById(messageItem.getId());
-        assertAll(
-                () -> assertEquals(messageItem.getId(), message.getId()),
-                () -> assertEquals(messageItem.getOwner(), message.getOwner()),
-                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage()),
-                () -> assertEquals(messageItem.getHistory(), message.getHistory()),
-                () -> assertEquals(messageItem.getUpdatedAt(), message.getUpdatedAt()),
-                () -> assertEquals(messageItem.getCreatedAt(), message.getCreatedAt()),
-                () -> assertEquals(messageItem.getAverageRating(), message.getAverageRating()),
-                () -> assertEquals(messageItem.getChildrenComments(), message.getChildrenComments()),
-                () -> assertEquals(messageItem.getMessageTree().getId(), message.getMessageTree().getId()),
-                () -> assertNull(messageItem.getParentMessage()),
-                () -> assertEquals(messageItem.getParentMessage(), message.getParentMessage())
-        );
-    }
-
-    @Test
-    void testDeleteMessageTreeById() throws ServerException {
-        userDao.save(creator);
-        forumDao.save(forum);
-        messageTreeDao.saveMessageTree(messageTree);
-
-        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNotNull(selectedRootBeforeDeletion);
-
-        messageTreeDao.deleteTreeById(messageItem.getMessageTree().getId());
-        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNull(selectedRootAfterDeletion);
-    }
-
-    @Test
-    void testDeleteMessageTreeByRootMessageId() throws ServerException {
-        userDao.save(creator);
-        forumDao.save(forum);
-        messageTreeDao.saveMessageTree(messageTree);
-
-        final MessageItem selectedRootBeforeDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNotNull(selectedRootBeforeDeletion);
-
-        messageTreeDao.deleteTreeByRootMessageId(messageItem.getId());
-        final MessageItem selectedRootAfterDeletion = messageDao.getMessageById(messageItem.getId());
-        assertNull(selectedRootAfterDeletion);
     }
 
     @Test

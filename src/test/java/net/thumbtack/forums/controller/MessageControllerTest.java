@@ -687,9 +687,11 @@ class MessageControllerTest {
                 .thenReturn(response);
 
         MvcResult result = mvc.perform(
-                get("/api/messages/{id}?allversions={av}&nocomments={nc}&unpublished={up}&order={ord}",
-                        123, true, true, false, "ASC"
-                )
+                get("/api/messages/{id}", 123)
+                        .param("allversions", "true")
+                        .param("nocomments", "true")
+                        .param("unpublished", "false")
+                        .param("order", "ASC")
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
@@ -709,7 +711,7 @@ class MessageControllerTest {
     }
 
     @Test
-    void testGetMessage_notExistsSomeQueryParams_shouldReturnExceptionDto() throws Exception {
+    void testGetMessage_notExistsSomeQueryParams_shouldApplyDefaultSettingsInService() throws Exception {
         final MessageInfoDtoResponse response = new MessageInfoDtoResponse(
                 1,
                 "Creator",
@@ -729,9 +731,9 @@ class MessageControllerTest {
                 .thenReturn(response);
 
         MvcResult result = mvc.perform(
-                get("/api/messages/{id}?allversions={av}&unpublished={up}",
-                        123, true, true
-                )
+                get("/api/messages/{id}", 123)
+                        .param("allversions", "true")
+                        .param("unpublished", "true")
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
@@ -751,13 +753,52 @@ class MessageControllerTest {
     }
 
     @Test
+    void testGetMessage_notExistsAllQueryParams_shouldApplyDefaultSettingsInService() throws Exception {
+        final MessageInfoDtoResponse response = new MessageInfoDtoResponse(
+                1,
+                "Creator",
+                "Subject",
+                Arrays.asList("Hello", "Hi", "Privyet"),
+                MessagePriority.HIGH.name(),
+                Arrays.asList("Greetings", "Meet"),
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                4,
+                2,
+                Collections.emptyList()
+        );
+
+        when(mockMessageService
+                .getMessage(anyString(), anyInt(), eq(null), eq(null), eq(null), eq(null))
+        )
+                .thenReturn(response);
+
+        MvcResult result = mvc.perform(
+                get("/api/messages/{id}", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        final MessageInfoDtoResponse actualResponse = mapper.readValue(
+                result.getResponse().getContentAsString(),
+                MessageInfoDtoResponse.class
+        );
+        assertEquals(response, actualResponse);
+
+        verify(mockMessageService)
+                .getMessage(anyString(), anyInt(), eq(null), eq(null), eq(null), eq(null));
+    }
+
+    @Test
     void testGetMessage_invalidMessageOrder_shouldReturnExceptionDto() throws Exception {
         final String invalidOrder = "KAK_NADO";
 
         mvc.perform(
-                get("/api/messages/{id}?order={invalidOrder}",
-                        123, invalidOrder
-                )
+                get("/api/messages/{id}", 123)
+                        .param("order", invalidOrder)
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
@@ -791,9 +832,11 @@ class MessageControllerTest {
                 .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
-                get("/api/messages/{id}?allversions={av}&nocomments={nc}&unpublished={up}&order={ord}",
-                        123, true, true, false, "DESC"
-                )
+                get("/api/messages/{id}", 123)
+                        .param("allversions", "true")
+                        .param("nocomments", "true")
+                        .param("unpublished", "false")
+                        .param("order", "DESC")
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
