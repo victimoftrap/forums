@@ -204,7 +204,7 @@ class StatisticsControllerTest {
                 .thenReturn(expectedResponse);
 
         final MvcResult result = mvc.perform(
-                get("/api/statistics/messages-ratings")
+                get("/api/statistics/messages/ratings")
                         .param("offset", "0")
                         .param("limit", "10")
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
@@ -240,7 +240,7 @@ class StatisticsControllerTest {
                 .thenReturn(expectedResponse);
 
         final MvcResult result = mvc.perform(
-                get("/api/statistics/messages-ratings")
+                get("/api/statistics/messages/ratings")
                         .param("forum-id", String.valueOf(forumId))
                         .param("offset", "0")
                         .param("limit", "10")
@@ -270,7 +270,7 @@ class StatisticsControllerTest {
                 .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
-                get("/api/statistics/messages-ratings")
+                get("/api/statistics/messages/ratings")
                         .param("offset", "0")
                         .param("limit", "10")
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
@@ -302,7 +302,7 @@ class StatisticsControllerTest {
                 .thenReturn(expectedResponse);
 
         final MvcResult result = mvc.perform(
-                get("/api/statistics/users-ratings")
+                get("/api/statistics/users/ratings")
                         .param("offset", "0")
                         .param("limit", "10")
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
@@ -338,7 +338,7 @@ class StatisticsControllerTest {
                 .thenReturn(expectedResponse);
 
         final MvcResult result = mvc.perform(
-                get("/api/statistics/users-ratings")
+                get("/api/statistics/users/ratings")
                         .param("forum-id", "123")
                         .param("offset", "0")
                         .param("limit", "10")
@@ -375,7 +375,7 @@ class StatisticsControllerTest {
                 .thenReturn(expectedResponse);
 
         final MvcResult result = mvc.perform(
-                get("/api/statistics/users-ratings")
+                get("/api/statistics/users/ratings")
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
@@ -402,7 +402,7 @@ class StatisticsControllerTest {
                 .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
-                get("/api/statistics/users-ratings")
+                get("/api/statistics/users/ratings")
                         .param("offset", "0")
                         .param("limit", "10")
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))

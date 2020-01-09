@@ -24,7 +24,7 @@ public class StatisticsController {
     }
 
     @GetMapping(
-            value = "/messages-ratings",
+            value = "/messages/ratings",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
@@ -40,7 +40,7 @@ public class StatisticsController {
     }
 
     @GetMapping(
-            value = "/users-ratings",
+            value = "/users/ratings",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
