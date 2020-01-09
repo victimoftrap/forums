@@ -1,6 +1,8 @@
 package net.thumbtack.forums.controller;
 
 import net.thumbtack.forums.service.StatisticService;
+import net.thumbtack.forums.dto.responses.statistic.MessagesCountDtoResponse;
+import net.thumbtack.forums.dto.responses.statistic.CommentsCountDtoResponse;
 import net.thumbtack.forums.dto.responses.statistic.MessageRatingListDtoResponse;
 import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
 import net.thumbtack.forums.exception.ServerException;
@@ -51,5 +53,33 @@ public class StatisticsController {
         return ResponseEntity.ok(
                 statisticService.getUsersRatings(token, forumId, offset, limit)
         );
+    }
+
+    @GetMapping(
+            value = "/messages/count",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<MessagesCountDtoResponse> getMessagesCount(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @RequestParam(value = "forum-id", required = false) Integer forumId
+    ) throws ServerException {
+        return ResponseEntity
+                .ok()
+                .body(statisticService.getMessagesCount(token, forumId));
+    }
+
+    @GetMapping(
+            value = "/comments/count",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<CommentsCountDtoResponse> getCommentsCount(
+            @CookieValue(value = COOKIE_NAME) String token,
+            @RequestParam(value = "forum-id", required = false) Integer forumId
+    ) throws ServerException {
+        return ResponseEntity
+                .ok()
+                .body(statisticService.getCommentsCount(token, forumId));
     }
 }

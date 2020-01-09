@@ -1,10 +1,7 @@
 package net.thumbtack.forums.controller;
 
+import net.thumbtack.forums.dto.responses.statistic.*;
 import net.thumbtack.forums.service.StatisticService;
-import net.thumbtack.forums.dto.responses.statistic.MessageRatingDtoResponse;
-import net.thumbtack.forums.dto.responses.statistic.MessageRatingListDtoResponse;
-import net.thumbtack.forums.dto.responses.statistic.UserRatingDtoResponse;
-import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
 
@@ -51,11 +48,144 @@ class StatisticsControllerTest {
     private final String COOKIE_NAME = "JAVASESSIONID";
     private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
-    static Stream<Arguments> getRatingsServiceExceptions() {
+    static Stream<Arguments> statisticsServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
                 Arguments.arguments(ErrorCode.FORUM_NOT_FOUND)
         );
+    }
+
+    @Test
+    void testGetMessagesCountOnServer() throws Exception {
+        final MessagesCountDtoResponse response = new MessagesCountDtoResponse(2016);
+        when(mockStatisticService.getMessagesCount(anyString(), eq(null)))
+                .thenReturn(response);
+
+        mvc.perform(
+                get("/api/statistics/messages/count")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.messagesCount").value(response.getMessagesCount()));
+
+        verify(mockStatisticService)
+                .getMessagesCount(anyString(), eq(null));
+    }
+
+    @Test
+    void testGetMessagesCountOnForum() throws Exception {
+        final int forumId = 123;
+        final MessagesCountDtoResponse response = new MessagesCountDtoResponse(48151623);
+        when(mockStatisticService.getMessagesCount(anyString(), eq(forumId)))
+                .thenReturn(response);
+
+        mvc.perform(
+                get("/api/statistics/messages/count")
+                        .param("forum-id", String.valueOf(forumId))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.messagesCount").value(response.getMessagesCount()));
+
+        verify(mockStatisticService)
+                .getMessagesCount(anyString(), eq(forumId));
+    }
+
+    @ParameterizedTest
+    @MethodSource("statisticsServiceExceptions")
+    void testGetMessagesCount_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        when(mockStatisticService.getMessagesCount(anyString(), anyInt()))
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                get("/api/statistics/messages/count")
+                        .param("forum-id", "123")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockStatisticService)
+                .getMessagesCount(anyString(), anyInt());
+    }
+
+    @Test
+    void testGetCommentsCountOnServer() throws Exception {
+        final CommentsCountDtoResponse response = new CommentsCountDtoResponse(202016);
+        when(mockStatisticService.getCommentsCount(anyString(), eq(null)))
+                .thenReturn(response);
+
+        mvc.perform(
+                get("/api/statistics/comments/count")
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.commentsCount").value(response.getCommentsCount()));
+
+        verify(mockStatisticService)
+                .getCommentsCount(anyString(), eq(null));
+    }
+
+    @Test
+    void testGetCommentsCountOnForum() throws Exception {
+        final int forumId = 123;
+        final CommentsCountDtoResponse response = new CommentsCountDtoResponse(1202016);
+        when(mockStatisticService.getCommentsCount(anyString(), eq(forumId)))
+                .thenReturn(response);
+
+        mvc.perform(
+                get("/api/statistics/comments/count")
+                        .param("forum-id", String.valueOf(forumId))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.commentsCount").value(response.getCommentsCount()));
+
+        verify(mockStatisticService)
+                .getCommentsCount(anyString(), eq(forumId));
+    }
+
+    @ParameterizedTest
+    @MethodSource("statisticsServiceExceptions")
+    void testGetCommentsCount_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        final int forumId = 123;
+        when(mockStatisticService.getCommentsCount(anyString(), eq(forumId)))
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                get("/api/statistics/comments/count")
+                        .param("forum-id", String.valueOf(forumId))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockStatisticService)
+                .getCommentsCount(anyString(), eq(forumId));
     }
 
     @Test
@@ -134,7 +264,7 @@ class StatisticsControllerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getRatingsServiceExceptions")
+    @MethodSource("statisticsServiceExceptions")
     void testGetMessagesRatings_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockStatisticService.getMessagesRatings(anyString(), eq(null), anyInt(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
@@ -266,7 +396,7 @@ class StatisticsControllerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getRatingsServiceExceptions")
+    @MethodSource("statisticsServiceExceptions")
     void testGetUsersRatings_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockStatisticService.getUsersRatings(anyString(), eq(null), anyInt(), anyInt()))
                 .thenThrow(new ServerException(errorCode));

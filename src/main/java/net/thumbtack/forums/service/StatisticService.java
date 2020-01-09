@@ -6,6 +6,8 @@ import net.thumbtack.forums.dao.StatisticDao;
 import net.thumbtack.forums.view.MessageRatingView;
 import net.thumbtack.forums.view.UserRatingView;
 import net.thumbtack.forums.converter.StatisticsConverter;
+import net.thumbtack.forums.dto.responses.statistic.MessagesCountDtoResponse;
+import net.thumbtack.forums.dto.responses.statistic.CommentsCountDtoResponse;
 import net.thumbtack.forums.dto.responses.statistic.MessageRatingListDtoResponse;
 import net.thumbtack.forums.dto.responses.statistic.UserRatingListDtoResponse;
 import net.thumbtack.forums.configuration.ConstantsProperties;
@@ -31,6 +33,38 @@ public class StatisticService extends ServiceBase {
             final ConstantsProperties constantsProperties) {
         super(sessionDao, forumDao, serverProperties, constantsProperties);
         this.statisticDao = statisticDao;
+    }
+
+    public MessagesCountDtoResponse getMessagesCount(
+            final String sessionToken,
+            @Nullable final Integer forumId
+    ) throws ServerException {
+        getUserBySession(sessionToken);
+
+        final int count;
+        if (forumId != null) {
+            getForumById(forumId);
+            count = statisticDao.getMessagesCount(forumId);
+        } else {
+            count = statisticDao.getMessagesCount();
+        }
+        return new MessagesCountDtoResponse(count);
+    }
+
+    public CommentsCountDtoResponse getCommentsCount(
+            final String sessionToken,
+            @Nullable final Integer forumId
+    ) throws ServerException {
+        getUserBySession(sessionToken);
+
+        final int count;
+        if (forumId != null) {
+            getForumById(forumId);
+            count = statisticDao.getCommentsCount(forumId);
+        } else {
+            count = statisticDao.getCommentsCount();
+        }
+        return new CommentsCountDtoResponse(count);
     }
 
     public MessageRatingListDtoResponse getMessagesRatings(
