@@ -393,7 +393,7 @@ class UserServiceTest {
                 .thenReturn(user);
         doNothing()
                 .when(userDao)
-                .update(any(User.class));
+                .madeSuperuser(any(User.class));
 
         userService.madeSuperuser(sessionToken, user.getId());
         assertEquals(UserRole.SUPERUSER, user.getRole());
@@ -403,7 +403,7 @@ class UserServiceTest {
         verify(userDao)
                 .getById(anyInt(), anyBoolean());
         verify(userDao)
-                .update(any(User.class));
+                .madeSuperuser(any(User.class));
         assertEquals(UserRole.SUPERUSER, user.getRole());
         assertNull(user.getBannedUntil());
     }
@@ -426,14 +426,9 @@ class UserServiceTest {
                 .thenReturn(superuser);
         when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(user);
-        doAnswer(invocationOnMock -> {
-            User upd = invocationOnMock.getArgument(0);
-            upd.setRole(UserRole.SUPERUSER);
-            upd.setBannedUntil(null);
-            return upd;
-        })
+        doNothing()
                 .when(userDao)
-                .update(any(User.class));
+                .madeSuperuser(any(User.class));
 
         userService.madeSuperuser(sessionToken, user.getId());
         assertEquals(UserRole.SUPERUSER, user.getRole());
@@ -444,7 +439,7 @@ class UserServiceTest {
         verify(userDao)
                 .getById(anyInt(), anyBoolean());
         verify(userDao)
-                .update(any(User.class));
+                .madeSuperuser(any(User.class));
     }
 
     @Test
@@ -464,7 +459,7 @@ class UserServiceTest {
         verify(userDao, never())
                 .getById(anyInt(), anyBoolean());
         verify(userDao, never())
-                .update(any(User.class));
+                .madeSuperuser(any(User.class));
     }
 
     @Test
@@ -488,7 +483,7 @@ class UserServiceTest {
         verify(userDao, never())
                 .getById(anyInt(), anyBoolean());
         verify(userDao, never())
-                .update(any(User.class));
+                .madeSuperuser(any(User.class));
     }
 
     @Test
@@ -515,7 +510,7 @@ class UserServiceTest {
         verify(userDao)
                 .getById(anyInt(), anyBoolean());
         verify(userDao, never())
-                .update(any(User.class));
+                .madeSuperuser(any(User.class));
     }
 
     @Test

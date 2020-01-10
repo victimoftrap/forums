@@ -184,9 +184,26 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 getUserMapper(sqlSession).update(user);
-                getUserMapper(sqlSession).unbanUser(user);
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to update user {} in database", user, ex);
+                sqlSession.rollback();
+                throw new ServerException(ErrorCode.DATABASE_ERROR);
+            }
+            sqlSession.commit();
+        }
+    }
+
+    @Override
+    public void madeSuperuser(User user) throws ServerException {
+        LOGGER.debug("Grant role superuser for {}", user);
+
+        try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try {
+                getUserMapper(sqlSession).update(user);
+                getUserMapper(sqlSession).unbanUser(user);
+                getForumMapper(sqlSession).changeReadonlyFlagModeratedForums(user.getId(), false);
+            } catch (RuntimeException ex) {
+                LOGGER.info("Unable to unban user {}", user, ex);
                 sqlSession.rollback();
                 throw new ServerException(ErrorCode.DATABASE_ERROR);
             }
@@ -202,7 +219,7 @@ public class UserDaoImpl extends MapperCreatorDao implements UserDao {
             try {
                 getUserMapper(sqlSession).banUser(user);
                 if (isPermanent) {
-                    getForumMapper(sqlSession).madeReadonlyModeratedForumsOfUser(user.getId());
+                    getForumMapper(sqlSession).changeReadonlyFlagModeratedForums(user.getId(), true);
                 }
             } catch (RuntimeException ex) {
                 LOGGER.info("Unable to ban user with ID {}", user.getId(), ex);

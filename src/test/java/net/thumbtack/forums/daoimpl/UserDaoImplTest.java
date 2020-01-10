@@ -510,6 +510,78 @@ class UserDaoImplTest extends DaoTestEnvironment {
     }
 
     @Test
+    void testMadeSuperuser() throws ServerException {
+        User user = new User(
+                UserRole.USER,
+                "House", "house@Princeton-Plainsboro.com", "passwd",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+                false
+        );
+        userDao.save(user);
+
+        user.setRole(UserRole.SUPERUSER);
+        userDao.madeSuperuser(user);
+
+        final User selectedUser = userDao.getById(user.getId());
+        assertEquals(user, selectedUser);
+    }
+
+    @Test
+    void testMadeSuperuser_wasBanned_shouldUnbanAndMadeSuperuser() throws ServerException {
+        final User bannedUser1 = new User(
+                "user1", "user@mail.ca", "userpass123"
+        );
+        userDao.save(bannedUser1);
+
+        bannedUser1.setBanCount(1);
+        bannedUser1.setBannedUntil(
+                LocalDateTime
+                        .now()
+                        .plus(7, ChronoUnit.DAYS)
+                        .truncatedTo(ChronoUnit.SECONDS)
+        );
+        userDao.banUser(bannedUser1, false);
+        userDao.madeSuperuser(bannedUser1);
+
+        final User selectedUser = userDao.getById(bannedUser1.getId());
+        assertEquals(bannedUser1.getId(), selectedUser.getId());
+        assertNull(selectedUser.getBannedUntil());
+        assertEquals(bannedUser1.getBanCount(), selectedUser.getBanCount());
+    }
+
+    @Test
+    void testMadeSuperuser_wasPermanentBan_shouldMadeSuperuserANdUnsetReadonlyFlagInForums() throws ServerException {
+        final User bannedUser = new User(456, UserRole.USER,
+                "user", "user@forums.ca", "userpass456",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false,
+                null, 4
+        );
+        userDao.save(bannedUser);
+
+        final Forum bannedUserForum = new Forum(
+                ForumType.MODERATED, bannedUser, "WouldBeReadOnly",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        forumDao.save(bannedUserForum);
+
+        bannedUser.setBanCount(5);
+        bannedUser.setBannedUntil(
+                LocalDateTime.parse("9999-01-01 00:00:00",
+                        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        );
+        userDao.banUser(bannedUser, true);
+        userDao.madeSuperuser(bannedUser);
+
+        final User selectedUser = userDao.getById(bannedUser.getId());
+        assertEquals(bannedUser.getId(), selectedUser.getId());
+        assertNull(selectedUser.getBannedUntil());
+        assertEquals(bannedUser.getBanCount(), selectedUser.getBanCount());
+
+        final Forum selectedForum = forumDao.getById(bannedUserForum.getId());
+        assertFalse(selectedForum.isReadonly());
+    }
+
+    @Test
     void testBanUser() throws ServerException {
         final User bannedUser = new User(456, UserRole.USER,
                 "user", "user@forums.ca", "userpass456",

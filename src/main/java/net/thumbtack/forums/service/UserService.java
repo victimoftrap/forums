@@ -123,7 +123,7 @@ public class UserService extends ServiceBase {
         final User newSuperUser = getUserById(newSuperUserId);
         newSuperUser.setRole(UserRole.SUPERUSER);
         newSuperUser.setBannedUntil(null);
-        userDao.update(newSuperUser);
+        userDao.madeSuperuser(newSuperUser);
         return new EmptyDtoResponse();
     }
 
