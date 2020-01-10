@@ -14,6 +14,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
@@ -23,40 +25,29 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
 
     @Test
     void testLogoutUser() {
-        RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
-        ResponseEntity<UserDtoResponse> responseEntity = restTemplate.postForEntity(
-                SERVER_URL + "/users", request, UserDtoResponse.class
-        );
-        String cookie = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final ResponseEntity<UserDtoResponse> responseEntity = registerUser(request);
+        final String sessionToken = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        httpHeaders.add(HttpHeaders.COOKIE, cookie);
-        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
-
-        ResponseEntity<EmptyDtoResponse> logoutResponse = restTemplate.exchange(
-                SERVER_URL + "/sessions", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class
-        );
+        final ResponseEntity<EmptyDtoResponse> logoutResponse = logoutUser(sessionToken);
         assertEquals(HttpStatus.OK, logoutResponse.getStatusCode());
+        assertNotNull(logoutResponse.getBody());
+        assertEquals("{}", logoutResponse.getBody().toString());
     }
 
     @Test
-    void testLogoutUser_noSessionCookieInHeader_shouldReturnBadRequest() {
-        RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+    void testLogoutUser_noSessionTokenInHeader_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
-        ResponseEntity<UserDtoResponse> responseEntity = restTemplate.postForEntity(
-                SERVER_URL + "/users", request, UserDtoResponse.class
-        );
-        String cookie = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
-
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+        registerUser(request);
 
         try {
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
             restTemplate.exchange(
                     SERVER_URL + "/sessions", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class
             );
@@ -68,15 +59,8 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
 
     @Test
     void testLogoutUser_logoutNotExistedUser_shouldReturnBadRequest() {
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        httpHeaders.add(HttpHeaders.COOKIE, "JAVASESSIONID=bebebe");
-        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
-
         try {
-            restTemplate.exchange(
-                    SERVER_URL + "/sessions", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class
-            );
+            logoutUser("JAVASESSIONID=" + UUID.randomUUID().toString());
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.WRONG_SESSION_TOKEN.name()));
@@ -85,99 +69,83 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
 
     @Test
     void testLoginUser() {
-        RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
+        final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
-        ResponseEntity<UserDtoResponse> responseEntity = restTemplate.postForEntity(
-                SERVER_URL + "/users", registerRequest, UserDtoResponse.class
-        );
-        String cookie = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final ResponseEntity<UserDtoResponse> responseEntity = registerUser(registerRequest);
+        final String sessionToken = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
 
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        httpHeaders.add(HttpHeaders.COOKIE, cookie);
-        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
-        restTemplate.exchange(SERVER_URL + "/sessions", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class);
+        logoutUser(sessionToken);
 
-        LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
                 registerRequest.getName(), registerRequest.getPassword()
         );
 
-        ResponseEntity<UserDtoResponse> loginResponse = restTemplate.postForEntity(
-                SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class
-        );
-        assertEquals(HttpStatus.OK, loginResponse.getStatusCode());
-        assertEquals(loginRequest.getName(), loginResponse.getBody().getName());
-        assertEquals(registerRequest.getEmail(), loginResponse.getBody().getEmail());
-        assertNull(loginResponse.getBody().getSessionToken());
+        final ResponseEntity<UserDtoResponse> loginResponseEntity = loginUser(loginRequest);
+        assertEquals(HttpStatus.OK, loginResponseEntity.getStatusCode());
+        assertNotNull(loginResponseEntity.getBody());
+
+        final UserDtoResponse logoutResponse = loginResponseEntity.getBody();
+        assertEquals(loginRequest.getName(), logoutResponse.getName());
+        assertEquals(registerRequest.getEmail(), logoutResponse.getEmail());
+        assertNull(loginResponseEntity.getBody().getSessionToken());
     }
 
     @Test
     void testLoginUser_userNotExists_shouldReturnBadRequest() {
-        LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
                 "testUsername", "w3ryStr0nGPa55wD"
         );
         try {
-            restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
+            loginUser(loginRequest);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getMessage()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
         }
     }
 
     @Test
     void testLoginUser_userDeleted_shouldReturnBadRequest() {
-        RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+        final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
-        ResponseEntity<UserDtoResponse> responseEntity = restTemplate.postForEntity(
-                SERVER_URL + "/users", request, UserDtoResponse.class
-        );
-        String cookie = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final ResponseEntity<UserDtoResponse> registerResponseEntity = registerUser(registerRequest);
+        final String sessionToken = registerResponseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        deleteUser(sessionToken);
 
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        httpHeaders.add(HttpHeaders.COOKIE, cookie);
-        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
-        restTemplate.exchange(SERVER_URL + "/users", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class);
-
-        LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
                 "testUsername", "w3ryStr0nGPa55wD"
         );
         try {
-            restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
+            loginUser(loginRequest);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getMessage()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
         }
     }
 
     @Test
     void testLoginUser_passwordNotMatches_shouldReturnBadRequest() {
-        RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
-        ResponseEntity<UserDtoResponse> responseEntity = restTemplate.postForEntity(
-                SERVER_URL + "/users", request, UserDtoResponse.class
-        );
-        String cookie = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final ResponseEntity<UserDtoResponse> responseEntity = registerUser(request);
+        final String sessionToken = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        logoutUser(sessionToken);
 
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        httpHeaders.add(HttpHeaders.COOKIE, cookie);
-        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
-        restTemplate.exchange(SERVER_URL + "/sessions", HttpMethod.DELETE, httpEntity, EmptyDtoResponse.class);
-
-        LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
                 "testUsername", "anyOtherPassword"
         );
         try {
-            restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
+            loginUser(loginRequest);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.getMessage()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.getErrorCauseField()));
         }
     }
