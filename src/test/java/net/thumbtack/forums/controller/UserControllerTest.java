@@ -60,10 +60,19 @@ class UserControllerTest {
     private final String COOKIE_NAME = "JAVASESSIONID";
     private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
-    @Test
-    void testRegisterUser() throws Exception {
+    static Stream<Arguments> registerUserValidParams() {
+        return Stream.of(
+                Arguments.arguments("username", "ahoi@safemail.com", "strong_pass_454"),
+                Arguments.arguments("username123", "ahoi@safemail.com", "strong_pass_454"),
+                Arguments.arguments("русский123", "ahoi@safemail.com", "strong_pass_454")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("registerUserValidParams")
+    void testRegisterUser(String username, String email, String password) throws Exception {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "username", "ahoi@savemail.com", "strong_pass_454"
+                username, email, password
         );
         final UserDtoResponse response = new UserDtoResponse(
                 12345, request.getName(), request.getEmail(), UUID.randomUUID().toString()
@@ -96,9 +105,39 @@ class UserControllerTest {
                 ),
                 Arguments.arguments("", "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME),
                 Arguments.arguments(null, "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME),
-                Arguments.arguments("username", "ahoi@savemail.com", "weak", ValidatedRequestFieldName.PASSWORD),
-                Arguments.arguments("username", "ahoi@savemail.com", "", ValidatedRequestFieldName.PASSWORD),
-                Arguments.arguments("username", "ahoi@savemail.com", null, ValidatedRequestFieldName.PASSWORD)
+                Arguments.arguments(
+                        "ÎÏÐÑÒÓÔÕÖØÛÜÝÞßàáâãäåæç", "ahoi@savemail.com", "strong_pass_454",
+                        ValidatedRequestFieldName.USERNAME
+                ),
+                Arguments.arguments("username", "ahoi@email.com", "weak", ValidatedRequestFieldName.PASSWORD
+                ),
+                Arguments.arguments("username", "ahoi@email.com", "", ValidatedRequestFieldName.PASSWORD
+                ),
+                Arguments.arguments("username", "ahoi@email.com", null, ValidatedRequestFieldName.PASSWORD
+                ),
+                Arguments.arguments("username", null, "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoiemailcom", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@.com.cz", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@@email.com", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@cz@email.com", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@email.com.a", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@em%ail.com", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                )
         );
     }
 

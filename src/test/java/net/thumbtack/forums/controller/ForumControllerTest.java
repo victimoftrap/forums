@@ -70,11 +70,17 @@ class ForumControllerTest {
     private final String COOKIE_NAME = "JAVASESSIONID";
     private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
-    @Test
-    void testCreateForum() throws Exception {
-        final CreateForumDtoRequest request = new CreateForumDtoRequest(
-                "testForum", ForumType.UNMODERATED.name()
+    static Stream<Arguments> createForumValidParams() {
+        return Stream.of(
+                Arguments.arguments("ForumName", ForumType.MODERATED),
+                Arguments.arguments("РусскоеНазвание", ForumType.MODERATED)
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("createForumValidParams")
+    void testCreateForum(String name, ForumType forumType) throws Exception {
+        final CreateForumDtoRequest request = new CreateForumDtoRequest(name, forumType.name());
         final ForumDtoResponse expectedResponse = new ForumDtoResponse(
                 123, request.getName(), request.getType()
         );
@@ -107,6 +113,11 @@ class ForumControllerTest {
                 ),
                 Arguments.arguments(
                         "",
+                        ForumType.UNMODERATED.name(),
+                        ValidatedRequestFieldName.FORUM_NAME
+                ),
+                Arguments.arguments(
+                        "ÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæç",
                         ForumType.UNMODERATED.name(),
                         ValidatedRequestFieldName.FORUM_NAME
                 ),
