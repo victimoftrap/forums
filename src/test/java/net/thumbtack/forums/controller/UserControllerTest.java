@@ -9,7 +9,7 @@ import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.exception.ExceptionDtoResponse;
 import net.thumbtack.forums.dto.responses.exception.ExceptionListDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
-import net.thumbtack.forums.exception.RequestFieldName;
+import net.thumbtack.forums.exception.ValidatedRequestFieldName;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -59,10 +60,19 @@ class UserControllerTest {
     private final String COOKIE_NAME = "JAVASESSIONID";
     private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
-    @Test
-    void testRegisterUser() throws Exception {
+    static Stream<Arguments> registerUserValidParams() {
+        return Stream.of(
+                Arguments.arguments("username", "ahoi@safemail.com", "strong_pass_454"),
+                Arguments.arguments("username123", "ahoi@safemail.com", "strong_pass_454"),
+                Arguments.arguments("русский123", "ahoi@safemail.com", "strong_pass_454")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("registerUserValidParams")
+    void testRegisterUser(String username, String email, String password) throws Exception {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "username", "ahoi@savemail.com", "strong_pass_454"
+                username, email, password
         );
         final UserDtoResponse response = new UserDtoResponse(
                 12345, request.getName(), request.getEmail(), UUID.randomUUID().toString()
@@ -91,20 +101,50 @@ class UserControllerTest {
         return Stream.of(
                 Arguments.arguments(
                         "0123456789_0123456789_0123456789_0123456789_0123456789",
-                        "ahoi@savemail.com", "strong_pass_454", RequestFieldName.USERNAME
+                        "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME
                 ),
-                Arguments.arguments("", "ahoi@savemail.com", "strong_pass_454", RequestFieldName.USERNAME),
-                Arguments.arguments(null, "ahoi@savemail.com", "strong_pass_454", RequestFieldName.USERNAME),
-                Arguments.arguments("username", "ahoi@savemail.com", "weak", RequestFieldName.PASSWORD),
-                Arguments.arguments("username", "ahoi@savemail.com", "", RequestFieldName.PASSWORD),
-                Arguments.arguments("username", "ahoi@savemail.com", null, RequestFieldName.PASSWORD)
+                Arguments.arguments("", "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME),
+                Arguments.arguments(null, "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME),
+                Arguments.arguments(
+                        "ÎÏÐÑÒÓÔÕÖØÛÜÝÞßàáâãäåæç", "ahoi@savemail.com", "strong_pass_454",
+                        ValidatedRequestFieldName.USERNAME
+                ),
+                Arguments.arguments("username", "ahoi@email.com", "weak", ValidatedRequestFieldName.PASSWORD
+                ),
+                Arguments.arguments("username", "ahoi@email.com", "", ValidatedRequestFieldName.PASSWORD
+                ),
+                Arguments.arguments("username", "ahoi@email.com", null, ValidatedRequestFieldName.PASSWORD
+                ),
+                Arguments.arguments("username", null, "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoiemailcom", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@.com.cz", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@@email.com", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@cz@email.com", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@email.com.a", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                ),
+                Arguments.arguments(
+                        "username", "ahoi@em%ail.com", "strong_pass_454", ValidatedRequestFieldName.EMAIL
+                )
         );
     }
 
     @ParameterizedTest
     @MethodSource("registerUserInvalidParams")
     void testRegisterUser_invalidParams_shouldReturnExceptionDto(
-            String username, String email, String password, RequestFieldName errorFieldName
+            String username, String email, String password, ValidatedRequestFieldName errorFieldName
     ) throws Exception {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(username, email, password);
 
@@ -147,16 +187,49 @@ class UserControllerTest {
 
         final List<ExceptionDtoResponse> errors = response.getErrors();
         assertEquals(3, errors.size());
-        assertEquals(ErrorCode.INVALID_REQUEST_DATA, errors.get(0).getErrorCode());
-        assertEquals(RequestFieldName.EMAIL.getName(), errors.get(0).getField());
+        assertEquals(ErrorCode.INVALID_REQUEST_DATA.name(), errors.get(0).getErrorCode());
+        assertEquals(ValidatedRequestFieldName.EMAIL.getName(), errors.get(0).getField());
         assertFalse(errors.get(0).getMessage().isEmpty());
-        assertEquals(ErrorCode.INVALID_REQUEST_DATA, errors.get(1).getErrorCode());
-        assertEquals(RequestFieldName.USERNAME.getName(), errors.get(1).getField());
+        assertEquals(ErrorCode.INVALID_REQUEST_DATA.name(), errors.get(1).getErrorCode());
+        assertEquals(ValidatedRequestFieldName.USERNAME.getName(), errors.get(1).getField());
         assertFalse(errors.get(1).getMessage().isEmpty());
-        assertEquals(ErrorCode.INVALID_REQUEST_DATA, errors.get(2).getErrorCode());
-        assertEquals(RequestFieldName.PASSWORD.getName(), errors.get(2).getField());
+        assertEquals(ErrorCode.INVALID_REQUEST_DATA.name(), errors.get(2).getErrorCode());
+        assertEquals(ValidatedRequestFieldName.PASSWORD.getName(), errors.get(2).getField());
         assertFalse(errors.get(2).getMessage().isEmpty());
         verifyZeroInteractions(mockUserService);
+    }
+
+    static Stream<Arguments> registerServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.USER_NAME_ALREADY_USED)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("registerServiceExceptions")
+    void testRegisterUser_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+                "username", "ahoi@savemail.com", "strong_pass_454"
+        );
+        when(mockUserService.registerUser(any(RegisterUserDtoRequest.class)))
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
+
+        verify(mockUserService)
+                .registerUser(any(RegisterUserDtoRequest.class));
     }
 
     @Test
@@ -177,31 +250,18 @@ class UserControllerTest {
         verify(mockUserService).deleteUser(anyString());
     }
 
-    @Test
-    void testDeleteUser_userNotFound_shouldReturnExceptionDto() throws Exception {
-        when(mockUserService.deleteUser(anyString()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
-
-        mvc.perform(
-                delete("/api/users")
-                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
-                        .contentType(MediaType.APPLICATION_JSON)
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verify(mockUserService).deleteUser(anyString());
+    static Stream<Arguments> deleteUserServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+        );
     }
 
-    @Test
-    void testDeleteUser_forumNotFound_shouldReturnExceptionDto() throws Exception {
+    @ParameterizedTest
+    @MethodSource("deleteUserServiceExceptions")
+    void testDeleteUser_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockUserService.deleteUser(anyString()))
-                .thenThrow(new ServerException(ErrorCode.FORUM_NOT_FOUND));
+                .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
                 delete("/api/users")
@@ -212,9 +272,9 @@ class UserControllerTest {
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORUM_NOT_FOUND.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockUserService).deleteUser(anyString());
     }
@@ -253,20 +313,20 @@ class UserControllerTest {
         return Stream.of(
                 Arguments.arguments(
                         "0123456789_0123456789_0123456789_0123456789_0123456789",
-                        "password123", "strong/password/456", RequestFieldName.USERNAME
+                        "password123", "strong/password/456", ValidatedRequestFieldName.USERNAME
                 ),
-                Arguments.arguments("", "password123", "strong/password/456", RequestFieldName.USERNAME),
-                Arguments.arguments(null, "password123", "strong/password/456", RequestFieldName.USERNAME),
-                Arguments.arguments("username", "password123", "weak", RequestFieldName.PASSWORD),
-                Arguments.arguments("username", "password123", "", RequestFieldName.PASSWORD),
-                Arguments.arguments("username", "password123", null, RequestFieldName.PASSWORD)
+                Arguments.arguments("", "password123", "strong/password/456", ValidatedRequestFieldName.USERNAME),
+                Arguments.arguments(null, "password123", "strong/password/456", ValidatedRequestFieldName.USERNAME),
+                Arguments.arguments("username", "password123", "weak", ValidatedRequestFieldName.PASSWORD),
+                Arguments.arguments("username", "password123", "", ValidatedRequestFieldName.PASSWORD),
+                Arguments.arguments("username", "password123", null, ValidatedRequestFieldName.PASSWORD)
         );
     }
 
     @ParameterizedTest
     @MethodSource("updateUserPasswordInvalidParams")
     void testUpdatePassword_invalidParams_shouldReturnExceptionDto(
-            String username, String oldPassword, String newPassword, RequestFieldName errorFieldName
+            String username, String oldPassword, String newPassword, ValidatedRequestFieldName errorFieldName
     ) throws Exception {
         final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
                 username, oldPassword, newPassword
@@ -289,6 +349,41 @@ class UserControllerTest {
         verifyZeroInteractions(mockUserService);
     }
 
+    static Stream<Arguments> updatePasswordServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.INVALID_PASSWORD)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("updatePasswordServiceExceptions")
+    void testUpdatePassword_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+        final UpdatePasswordDtoRequest request = new UpdatePasswordDtoRequest(
+                "GregHouse", "password123", "game_boy_advance"
+        );
+        when(mockUserService.updatePassword(anyString(), any(UpdatePasswordDtoRequest.class)))
+                .thenThrow(new ServerException(errorCode));
+
+        mvc.perform(
+                put("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsBytes(request))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
+
+        verify(mockUserService)
+                .updatePassword(anyString(), any(UpdatePasswordDtoRequest.class));
+    }
+
     @Test
     void testMadeSuperuser() throws Exception {
         when(mockUserService.madeSuperuser(anyString(), anyInt()))
@@ -306,25 +401,38 @@ class UserControllerTest {
         verify(mockUserService).madeSuperuser(anyString(), anyInt());
     }
 
-    @Test
-    void testMadeSuperuser_requestFromRegularUser_shouldReturnExceptionDto() throws Exception {
+    static Stream<Arguments> madeSuperuserServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("madeSuperuserServiceExceptions")
+    void testMadeSuperuser_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockUserService.madeSuperuser(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
+                .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
                 put("/api/users/{user}/super", 123)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
-        verify(mockUserService).madeSuperuser(anyString(), anyInt());
+        verify(mockUserService)
+                .madeSuperuser(anyString(), anyInt());
     }
 
     @Test
@@ -412,10 +520,18 @@ class UserControllerTest {
         assertEquals(expectedUsersResponse, actualUsersResponse);
     }
 
-    @Test
-    void testGetUsers_userNotFound_shouldReturnExceptionDto() throws Exception {
+    static Stream<Arguments> getUsersServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getUsersServiceExceptions")
+    void testGetUsers_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockUserService.getUsers(anyString()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+                .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
                 get("/api/users")
@@ -426,9 +542,9 @@ class UserControllerTest {
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockUserService).getUsers(anyString());
     }
@@ -451,65 +567,35 @@ class UserControllerTest {
         verify(mockUserService).banUser(anyString(), anyInt());
     }
 
-    @Test
-    void testBanUser_userNotFound_shouldReturnExceptionDto() throws Exception {
-        when(mockUserService.banUser(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
-
-        mvc.perform(
-                post("/api/users/{user}/restrict", 123)
-                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
-                        .contentType(MediaType.APPLICATION_JSON)
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verify(mockUserService).banUser(anyString(), anyInt());
+    static Stream<Arguments> banUserServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND)
+        );
     }
 
-    @Test
-    void testBanUser_requestNotFromSuperuser_shouldReturnExceptionDto() throws Exception {
+    @ParameterizedTest
+    @MethodSource("banUserServiceExceptions")
+    void testBanUser_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockUserService.banUser(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
+                .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
                 post("/api/users/{user}/restrict", 123)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verify(mockUserService).banUser(anyString(), anyInt());
-    }
-
-    @Test
-    void testBanUser_tryingToBanSuperuser_shouldReturnExceptionDto() throws Exception {
-        when(mockUserService.banUser(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
-
-        mvc.perform(
-                post("/api/users/{user}/restrict", 123)
-                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
-                        .contentType(MediaType.APPLICATION_JSON)
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockUserService).banUser(anyString(), anyInt());
     }

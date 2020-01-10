@@ -28,6 +28,8 @@ public interface UserDao {
 
     void update(User user) throws ServerException;
 
+    void madeSuperuser(User user) throws ServerException;
+
     void banUser(User user, boolean isPermanent) throws ServerException;
 
     void unbanAllByDate(LocalDateTime date) throws ServerException;

@@ -49,59 +49,33 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
                 "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
         );
-        final ResponseEntity<UserDtoResponse> registerForumOwnerResponse = restTemplate.postForEntity(
-                SERVER_URL + "/users", registerForumOwnerRequest, UserDtoResponse.class
-        );
+        final ResponseEntity<UserDtoResponse> registerForumOwnerResponse = registerUser(registerForumOwnerRequest);
         final String forumOwnerCookie = registerForumOwnerResponse.getHeaders()
                 .getFirst(HttpHeaders.SET_COOKIE);
 
         final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
                 "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
         );
-        final ResponseEntity<UserDtoResponse> registerMessageCreatorResponse = restTemplate.postForEntity(
-                SERVER_URL + "/users", registerMessageCreatorRequest, UserDtoResponse.class
-        );
+        final ResponseEntity<UserDtoResponse> registerMessageCreatorResponse = registerUser(registerMessageCreatorRequest);
         final String messageCreatorCookie = registerMessageCreatorResponse.getHeaders()
                 .getFirst(HttpHeaders.SET_COOKIE);
 
-        final HttpHeaders forumOwnerHttpHeaders = new HttpHeaders();
-        forumOwnerHttpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        forumOwnerHttpHeaders.add(HttpHeaders.COOKIE, forumOwnerCookie);
         final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
                 "ForumName", forumType.name()
         );
-        final HttpEntity<Object> createForumHttpEntity = new HttpEntity<>(
-                createForumRequest, forumOwnerHttpHeaders
-        );
-        final ResponseEntity<ForumDtoResponse> createForumResponse = restTemplate.exchange(
-                SERVER_URL + "/forums",
-                HttpMethod.POST,
-                createForumHttpEntity,
-                ForumDtoResponse.class
-        );
+        final ResponseEntity<ForumDtoResponse> createForumResponse = createForum(createForumRequest, forumOwnerCookie);
 
         final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
                 "Subject", "Message Body",
                 MessagePriority.LOW.name(), Arrays.asList("Greetings", "Hello")
         );
-        final HttpHeaders messageCreatorHttpHeaders = new HttpHeaders();
-        messageCreatorHttpHeaders.setContentType(MediaType.APPLICATION_JSON);
-        messageCreatorHttpHeaders.add(
-                HttpHeaders.COOKIE,
-                isMessageCreatesForumOwner ? forumOwnerCookie : messageCreatorCookie
-        );
-        final HttpEntity<Object> createMessageHttpEntity = new HttpEntity<>(
-                createMessageRequest, messageCreatorHttpHeaders
-        );
-
-        final ResponseEntity<MessageDtoResponse> createMessageResponse = restTemplate.exchange(
-                SERVER_URL + "/forums/{forum}/messages",
-                HttpMethod.POST,
-                createMessageHttpEntity,
-                MessageDtoResponse.class,
-                createForumResponse.getBody().getId()
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                isMessageCreatesForumOwner ? forumOwnerCookie : messageCreatorCookie,
+                createForumResponse.getBody().getId(),
+                createMessageRequest
         );
         assertEquals(HttpStatus.OK, createMessageResponse.getStatusCode());
+        assertNotNull(createMessageResponse.getBody());
         assertEquals(messageState.name(), createMessageResponse.getBody().getState());
     }
 }

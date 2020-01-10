@@ -124,7 +124,8 @@ public class MessageService extends ServiceBase {
             throw new ServerException(ErrorCode.MESSAGE_NOT_PUBLISHED);
         }
 
-        final Forum forum = parentMessage.getMessageTree().getForum();
+        final MessageTree messageTree = parentMessage.getMessageTree();
+        final Forum forum = messageTree.getForum();
         checkIsForumReadOnly(forum);
 
         final MessageState state = getMessageState(forum, creator);
@@ -134,7 +135,8 @@ public class MessageService extends ServiceBase {
                 request.getBody(), state, createdAt
         );
         final MessageItem messageItem = new MessageItem(
-                creator, Collections.singletonList(historyItem), createdAt
+                creator, messageTree, parentMessage,
+                Collections.singletonList(historyItem), createdAt
         );
 
         messageDao.saveMessageItem(messageItem);
@@ -238,8 +240,9 @@ public class MessageService extends ServiceBase {
         checkIsForumReadOnly(forum);
         checkPermission(forum.getOwner(), requesterUser);
 
+        final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageTree newTree = new MessageTree(
-                oldTree.getForum(), request.getSubject(), newRootMessage, request.getPriority(),
+                oldTree.getForum(), request.getSubject(), newRootMessage, priority,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                 TagConverter.tagNamesToTagList(request.getTags())
         );

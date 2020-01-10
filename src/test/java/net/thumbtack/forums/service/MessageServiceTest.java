@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,6 +118,55 @@ class MessageServiceTest {
                 .getById(anyInt());
         verify(mockMessageTreeDao)
                 .saveMessageTree(any(MessageTree.class));
+    }
+
+    @Test
+    void testCreateMessage_noUnnecessaryParams_shouldApplyDefault() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@motown.com", "whatsGoingOn"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner, "ForumName",
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final String token = "token";
+        final int forumId = 1939;
+        final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
+                "Message Subject", "Message Body",
+                null, null
+        );
+        final int messageId = 9391;
+        final MessageDtoResponse expectedResponse = new MessageDtoResponse(
+                messageId, MessageState.PUBLISHED.name()
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockForumDao.getById(anyInt()))
+                .thenReturn(forum);
+        doAnswer(invocationOnMock -> {
+            MessageTree tree = invocationOnMock.getArgument(0);
+            tree.getRootMessage().setId(messageId);
+            return tree;
+        })
+                .when(mockMessageTreeDao)
+                .saveMessageTree(any(MessageTree.class));
+
+        final MessageDtoResponse actualResponse = messageService.addMessage(token, forumId, request);
+        assertEquals(expectedResponse, actualResponse);
+
+        final ArgumentCaptor<MessageTree> captor = ArgumentCaptor.forClass(MessageTree.class);
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(anyInt());
+        verify(mockMessageTreeDao)
+                .saveMessageTree(captor.capture());
+
+        final MessageTree capturedTree = captor.getValue();
+        assertEquals(MessagePriority.NORMAL, capturedTree.getPriority());
+        assertEquals(Collections.emptyList(), capturedTree.getTags());
     }
 
     @Test
@@ -1062,23 +1112,21 @@ class MessageServiceTest {
 
         final String token = "token";
         final int messageId = 123;
+        final MessagePriority priority = MessagePriority.HIGH;
         final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
-                MessagePriority.HIGH.name()
+                priority.name()
         );
 
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(messageOwner);
         when(mockMessageDao.getMessageById(anyInt()))
                 .thenReturn(parentMessage);
-        doAnswer(invocationOnMock -> {
-            MessageTree aTree = invocationOnMock.getArgument(0);
-            aTree.setPriority(MessagePriority.valueOf(request.getPriority()));
-            return aTree;
-        })
+        doNothing()
                 .when(mockMessageTreeDao)
                 .changeBranchPriority(any(MessageTree.class));
 
         messageService.changeMessagePriority(token, messageId, request);
+        assertEquals(priority, tree.getPriority());
 
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
@@ -1330,6 +1378,78 @@ class MessageServiceTest {
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao).newBranch(any(MessageTree.class));
+    }
+
+    @Test
+    void testNewBranchFromComment_noUnnecessaryParams_shouldApplyDefault() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final User commentOwner = new User(
+                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+        );
+        parentMessage.setMessageTree(tree);
+
+        final HistoryItem commentHistory = new HistoryItem(
+                "Comment Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentMessage = new MessageItem(
+                commentOwner, tree, parentMessage,
+                Collections.singletonList(parentHistory),
+                commentHistory.getCreatedAt()
+        );
+
+        final String token = "token";
+        final int messageId = 123;
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "NewTreeSubject", null, null
+        );
+        final int newBranchId = 1984;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(commentMessage);
+        doAnswer(invocationOnMock -> {
+            MessageTree aMessageTree = invocationOnMock.getArgument(0);
+            aMessageTree.setId(newBranchId);
+            return aMessageTree;
+        })
+                .when(mockMessageTreeDao)
+                .newBranch(any(MessageTree.class));
+
+        final MadeBranchFromCommentDtoResponse response =
+                messageService.newBranchFromComment(token, messageId, request);
+        assertEquals(messageId, response.getId());
+
+        final ArgumentCaptor<MessageTree> captor = ArgumentCaptor.forClass(MessageTree.class);
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageTreeDao).newBranch(captor.capture());
+
+        final MessageTree capturedTree = captor.getValue();
+        assertEquals(MessagePriority.NORMAL, capturedTree.getPriority());
+        assertEquals(Collections.emptyList(), capturedTree.getTags());
     }
 
     @Test
@@ -2829,7 +2949,6 @@ class MessageServiceTest {
         );
         assertEquals(2, actualResponse.getMessages().size());
         assertEquals(expectedResponse, actualResponse);
-
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockForumDao)

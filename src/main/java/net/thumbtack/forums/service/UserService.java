@@ -13,7 +13,6 @@ import net.thumbtack.forums.dto.responses.user.*;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.converter.UserConverter;
 import net.thumbtack.forums.exception.ErrorCode;
-import net.thumbtack.forums.exception.RequestFieldName;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ConstantsProperties;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
@@ -59,11 +58,6 @@ public class UserService extends ServiceBase {
     public UserDtoResponse registerUser(
             final RegisterUserDtoRequest request
     ) throws ServerException {
-        // REVU см. комментарий в скайп-чате
-        if (userDao.getByName(request.getName(), true) != null) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.USERNAME);
-        }
-
         final User user = new User(request.getName(), request.getEmail(), request.getPassword());
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
         userDao.save(user, session);
@@ -84,10 +78,10 @@ public class UserService extends ServiceBase {
     ) throws ServerException {
         final User user = userDao.getByName(request.getName(), false);
         if (user == null) {
-            throw new ServerException(ErrorCode.USER_NOT_FOUND, RequestFieldName.USERNAME);
+            throw new ServerException(ErrorCode.USER_NOT_FOUND);
         }
         if (!user.getPassword().equals(request.getPassword())) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.PASSWORD);
+            throw new ServerException(ErrorCode.INVALID_PASSWORD);
         }
 
         final UserSession session = new UserSession(user, UUID.randomUUID().toString());
@@ -109,7 +103,7 @@ public class UserService extends ServiceBase {
     ) throws ServerException {
         final User user = getUserBySession(sessionToken);
         if (!user.getPassword().equals(request.getOldPassword())) {
-            throw new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.OLD_PASSWORD);
+            throw new ServerException(ErrorCode.INVALID_PASSWORD);
         }
 
         user.setPassword(request.getPassword());
@@ -129,7 +123,7 @@ public class UserService extends ServiceBase {
         final User newSuperUser = getUserById(newSuperUserId);
         newSuperUser.setRole(UserRole.SUPERUSER);
         newSuperUser.setBannedUntil(null);
-        userDao.update(newSuperUser);
+        userDao.madeSuperuser(newSuperUser);
         return new EmptyDtoResponse();
     }
 

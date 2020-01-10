@@ -79,6 +79,11 @@ public interface ForumMapper {
     })
     void madeReadonlyModeratedForumsOfUser(@Param("id") int id);
 
+    @Update({"UPDATE forums SET readonly = #{isReadonly}",
+            "WHERE owner_id = #{id} AND forum_type = 'MODERATED'"
+    })
+    void changeReadonlyFlagModeratedForums(@Param("id") int id, @Param("isReadonly") boolean isReadonly);
+
     @Delete("DELETE FROM forums WHERE id = #{id}")
     void deleteById(@Param("id") int id);
 

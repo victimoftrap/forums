@@ -1,8 +1,5 @@
 package net.thumbtack.forums.controller;
 
-import net.thumbtack.forums.dto.responses.message.CommentInfoDtoResponse;
-import net.thumbtack.forums.dto.responses.message.ListMessageInfoDtoResponse;
-import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessagePriority;
 import net.thumbtack.forums.model.enums.MessageState;
@@ -15,8 +12,11 @@ import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
+import net.thumbtack.forums.dto.responses.message.CommentInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.message.ListMessageInfoDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
-import net.thumbtack.forums.exception.RequestFieldName;
+import net.thumbtack.forums.exception.ValidatedRequestFieldName;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -69,11 +70,17 @@ class ForumControllerTest {
     private final String COOKIE_NAME = "JAVASESSIONID";
     private final String COOKIE_VALUE = UUID.randomUUID().toString();
 
-    @Test
-    void testCreateForum() throws Exception {
-        final CreateForumDtoRequest request = new CreateForumDtoRequest(
-                "testForum", ForumType.UNMODERATED.name()
+    static Stream<Arguments> createForumValidParams() {
+        return Stream.of(
+                Arguments.arguments("ForumName", ForumType.MODERATED),
+                Arguments.arguments("РусскоеНазвание", ForumType.MODERATED)
         );
+    }
+
+    @ParameterizedTest
+    @MethodSource("createForumValidParams")
+    void testCreateForum(String name, ForumType forumType) throws Exception {
+        final CreateForumDtoRequest request = new CreateForumDtoRequest(name, forumType.name());
         final ForumDtoResponse expectedResponse = new ForumDtoResponse(
                 123, request.getName(), request.getType()
         );
@@ -102,22 +109,27 @@ class ForumControllerTest {
                 Arguments.arguments(
                         null,
                         ForumType.UNMODERATED.name(),
-                        RequestFieldName.FORUM_NAME
+                        ValidatedRequestFieldName.FORUM_NAME
                 ),
                 Arguments.arguments(
                         "",
                         ForumType.UNMODERATED.name(),
-                        RequestFieldName.FORUM_NAME
+                        ValidatedRequestFieldName.FORUM_NAME
+                ),
+                Arguments.arguments(
+                        "ÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæç",
+                        ForumType.UNMODERATED.name(),
+                        ValidatedRequestFieldName.FORUM_NAME
                 ),
                 Arguments.arguments(
                         "0123456789_0123456789_0123456789_0123456789_0123456789",
                         ForumType.UNMODERATED.name(),
-                        RequestFieldName.FORUM_NAME
+                        ValidatedRequestFieldName.FORUM_NAME
                 ),
                 Arguments.arguments(
                         "Norman Name",
                         null,
-                        RequestFieldName.FORUM_TYPE
+                        ValidatedRequestFieldName.FORUM_TYPE
                 )
         );
     }
@@ -125,7 +137,7 @@ class ForumControllerTest {
     @ParameterizedTest
     @MethodSource("createForumParamsInvalidParams")
     void testCreateForum_wrongForumParams_shouldReturnExceptionDto(
-            String forumName, String forumType, RequestFieldName requestFieldName
+            String forumName, String forumType, ValidatedRequestFieldName requestFieldName
     ) throws Exception {
         final CreateForumDtoRequest request = new CreateForumDtoRequest(
                 forumName, forumType
@@ -156,13 +168,14 @@ class ForumControllerTest {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
                 Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.FORUM_NAME_ALREADY_USED),
                 Arguments.arguments(ErrorCode.USER_BANNED)
         );
     }
 
     @ParameterizedTest
     @MethodSource("createForumServiceExceptions")
-    void testCreateForum_errorOccurred_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testCreateForum_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         final CreateForumDtoRequest request = new CreateForumDtoRequest(
                 "testForum", ForumType.UNMODERATED.name()
         );
@@ -180,8 +193,8 @@ class ForumControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockForumService)
                 .createForum(anyString(), any(CreateForumDtoRequest.class));
@@ -206,64 +219,37 @@ class ForumControllerTest {
         verify(mockForumService).deleteForum(anyString(), anyInt());
     }
 
-    @Test
-    void testDeleteForum_forumNotFound_shouldReturnExceptionDto() throws Exception {
+    static Stream<Arguments> deleteForumServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("deleteForumServiceExceptions")
+    void testDeleteForum_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final int forumId = 132;
         when(mockForumService.deleteForum(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.FORUM_NOT_FOUND));
+                .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
                 delete("/api/forums/{forum_id}", forumId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORUM_NOT_FOUND.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verify(mockForumService).deleteForum(anyString(), anyInt());
-    }
-
-    @Test
-    void testDeleteForum_userPermanentlyBanned_shouldReturnExceptionDto() throws Exception {
-        when(mockForumService.deleteForum(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.USER_PERMANENTLY_BANNED));
-        mvc.perform(
-                delete("/api/forums/{forum_id}", 456)
-                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.USER_PERMANENTLY_BANNED.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verify(mockForumService).deleteForum(anyString(), anyInt());
-    }
-
-    @Test
-    void testDeleteForum_notOwnerTryingToDeleteForum_shouldReturnExceptionDto() throws Exception {
-        when(mockForumService.deleteForum(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.FORBIDDEN_OPERATION));
-        mvc.perform(
-                delete("/api/forums/{forum_id}", 456)
-                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
-                        .contentType(MediaType.APPLICATION_JSON_VALUE)
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORBIDDEN_OPERATION.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockForumService).deleteForum(anyString(), anyInt());
     }
@@ -297,44 +283,34 @@ class ForumControllerTest {
         verify(mockForumService).getForum(anyString(), anyInt());
     }
 
-    @Test
-    void testGetForumById_forumNotFound_shouldReturnExceptionDto() throws Exception {
-        final int forumId = 132;
-        when(mockForumService.getForum(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.FORUM_NOT_FOUND));
-        mvc.perform(
-                get("/api/forums/{forum_id}", forumId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.FORUM_NOT_FOUND.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verify(mockForumService).getForum(anyString(), anyInt());
+    static Stream<Arguments> getForumServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND)
+        );
     }
 
-    @Test
-    void testGetForumById_userNotFound_shouldReturnExceptionDto() throws Exception {
+    @ParameterizedTest
+    @MethodSource("getForumServiceExceptions")
+    void testGetForumById_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final int forumId = 132;
         when(mockForumService.getForum(anyString(), anyInt()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+                .thenThrow(new ServerException(errorCode));
         mvc.perform(
                 get("/api/forums/{forum_id}", forumId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockForumService).getForum(anyString(), anyInt());
     }
@@ -403,10 +379,18 @@ class ForumControllerTest {
         verify(mockForumService).getForums(anyString());
     }
 
-    @Test
-    void testGetAllForums_userNotFound_shouldReturnExceptionDto() throws Exception {
+    static Stream<Arguments> getAllForumsServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getAllForumsServiceExceptions")
+    void testGetAllForums_userNotFoundByToken_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockForumService.getForums(anyString()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+                .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
                 get("/api/forums")
@@ -417,9 +401,9 @@ class ForumControllerTest {
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockForumService).getForums(anyString());
     }
@@ -482,18 +466,28 @@ class ForumControllerTest {
 
     static Stream<Arguments> createMessageInvalidParams() {
         return Stream.of(
-                Arguments.arguments(null, "Body", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
-                Arguments.arguments("", "Body", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
-                Arguments.arguments("Subject", null, MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_BODY),
-                Arguments.arguments("Subject", "", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_BODY),
-                Arguments.arguments("Subject", "Body", "EXTRA-HIGH", RequestFieldName.MESSAGE_PRIORITY)
+                Arguments.arguments(null, "Body", MessagePriority.NORMAL.name(),
+                        ValidatedRequestFieldName.MESSAGE_SUBJECT
+                ),
+                Arguments.arguments("", "Body", MessagePriority.NORMAL.name(),
+                        ValidatedRequestFieldName.MESSAGE_SUBJECT
+                ),
+                Arguments.arguments("Subject", null, MessagePriority.NORMAL.name(),
+                        ValidatedRequestFieldName.MESSAGE_BODY
+                ),
+                Arguments.arguments("Subject", "", MessagePriority.NORMAL.name(),
+                        ValidatedRequestFieldName.MESSAGE_BODY
+                ),
+                Arguments.arguments("Subject", "Body", "EXTRA-HIGH",
+                        ValidatedRequestFieldName.MESSAGE_PRIORITY
+                )
         );
     }
 
     @ParameterizedTest
     @MethodSource("createMessageInvalidParams")
     void testCreateMessage_invalidRequestParams_shouldReturnExceptionDto(
-            String subject, String body, String priority, RequestFieldName errorFieldName
+            String subject, String body, String priority, ValidatedRequestFieldName errorFieldName
     ) throws Exception {
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
                 subject, body, priority, Collections.emptyList()
@@ -517,19 +511,21 @@ class ForumControllerTest {
                 .addMessage(anyString(), anyInt(), any(CreateMessageDtoRequest.class));
     }
 
-    static Stream<Arguments> createMessageErrors() {
+    static Stream<Arguments> createMessageServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_BANNED),
-                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND),
-                Arguments.arguments(ErrorCode.FORUM_READ_ONLY)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
-    @MethodSource("createMessageErrors")
-    void testCreateMessage_errorOccurred_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    @MethodSource("createMessageServiceExceptions")
+    void testCreateMessage_errorOccurred_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
                 "Subject", "Body", MessagePriority.NORMAL.name(), Collections.emptyList()
         );
@@ -542,13 +538,13 @@ class ForumControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .addMessage(anyString(), anyInt(), any(CreateMessageDtoRequest.class));
@@ -804,15 +800,17 @@ class ForumControllerTest {
 
     static Stream<Arguments> getMessagesServiceException() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
 
     @ParameterizedTest
     @MethodSource("getMessagesServiceException")
-    void testGetMessageList_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testGetMessageList_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockMessageService
                 .getForumMessageList(
                         anyString(), anyInt(),
@@ -829,13 +827,13 @@ class ForumControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .getForumMessageList(

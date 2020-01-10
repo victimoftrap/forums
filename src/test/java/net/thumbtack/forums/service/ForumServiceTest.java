@@ -119,6 +119,35 @@ class ForumServiceTest {
     }
 
     @Test
+    void testCreateForum_forumNameExists_shouldThrowException() throws ServerException {
+        final String token = "token";
+        final CreateForumDtoRequest request = new CreateForumDtoRequest(
+                "testForum", ForumType.UNMODERATED.name()
+        );
+        final User user = new User("user", "user@email.com", "password=pass");
+        final Forum forum = new Forum(
+                123, request.getType(), user, request.getName(),
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        );
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(user);
+        doThrow(new ServerException(ErrorCode.FORUM_NAME_ALREADY_USED))
+                .when(mockForumDao)
+                .save(any(Forum.class));
+
+        try {
+            forumService.createForum(token, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.FORUM_NAME_ALREADY_USED, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .save(any(Forum.class));
+    }
+
+    @Test
     void testDeleteForum_userForumOwner_shouldDeleteForum() throws ServerException {
         final int maxBanCount = 5;
         final String token = "token";

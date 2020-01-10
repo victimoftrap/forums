@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -50,8 +51,8 @@ class StatisticsControllerTest {
 
     static Stream<Arguments> statisticsServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND)
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
 
@@ -99,7 +100,9 @@ class StatisticsControllerTest {
 
     @ParameterizedTest
     @MethodSource("statisticsServiceExceptions")
-    void testGetMessagesCount_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testGetMessagesCount_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockStatisticService.getMessagesCount(anyString(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
 
@@ -109,13 +112,13 @@ class StatisticsControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockStatisticService)
                 .getMessagesCount(anyString(), anyInt());
@@ -165,7 +168,9 @@ class StatisticsControllerTest {
 
     @ParameterizedTest
     @MethodSource("statisticsServiceExceptions")
-    void testGetCommentsCount_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testGetCommentsCount_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final int forumId = 123;
         when(mockStatisticService.getCommentsCount(anyString(), eq(forumId)))
                 .thenThrow(new ServerException(errorCode));
@@ -176,13 +181,13 @@ class StatisticsControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockStatisticService)
                 .getCommentsCount(anyString(), eq(forumId));
@@ -265,7 +270,9 @@ class StatisticsControllerTest {
 
     @ParameterizedTest
     @MethodSource("statisticsServiceExceptions")
-    void testGetMessagesRatings_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testGetMessagesRatings_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockStatisticService.getMessagesRatings(anyString(), eq(null), anyInt(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
 
@@ -276,13 +283,13 @@ class StatisticsControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockStatisticService)
                 .getMessagesRatings(anyString(), eq(null), anyInt(), anyInt());
@@ -397,7 +404,9 @@ class StatisticsControllerTest {
 
     @ParameterizedTest
     @MethodSource("statisticsServiceExceptions")
-    void testGetUsersRatings_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testGetUsersRatings_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockStatisticService.getUsersRatings(anyString(), eq(null), anyInt(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
 
@@ -408,13 +417,13 @@ class StatisticsControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockStatisticService)
                 .getUsersRatings(anyString(), eq(null), anyInt(), anyInt());

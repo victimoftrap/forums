@@ -8,4 +8,9 @@ public class EmptyDtoResponse {
     @JsonCreator
     public EmptyDtoResponse() {
     }
+
+    @Override
+    public String toString() {
+        return "{}";
+    }
 }

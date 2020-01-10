@@ -5,22 +5,27 @@ import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.exception.ErrorCode;
-import net.thumbtack.forums.exception.RequestFieldName;
+import net.thumbtack.forums.exception.ValidatedRequestFieldName;
 import net.thumbtack.forums.exception.ServerException;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.UUID;
+import java.util.stream.Stream;
 import javax.servlet.http.Cookie;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -111,152 +116,80 @@ class SessionControllerTest {
         verify(mockUserService).login(request);
     }
 
-    @Test
-    void testLogin_userNotFoundByName_shouldReturnExceptionDto() throws Exception {
+    static Stream<Arguments> loginInvalidParams() {
+        return Stream.of(
+                Arguments.arguments(
+                        "0123456789_0123456789_0123456789_0123456789_0123456789",
+                        "strong_pass_454", ValidatedRequestFieldName.USERNAME
+                ),
+                Arguments.arguments("", "strong_pass_454", ValidatedRequestFieldName.USERNAME),
+                Arguments.arguments(null, "strong_pass_454", ValidatedRequestFieldName.USERNAME),
+                Arguments.arguments("username", "", ValidatedRequestFieldName.PASSWORD),
+                Arguments.arguments("username", null, ValidatedRequestFieldName.PASSWORD)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("loginInvalidParams")
+    void testLogin_invalidParams_shouldReturnExceptionDto(
+            String username, String password, ValidatedRequestFieldName errorFieldName
+    ) throws Exception {
+        final LoginUserDtoRequest request = new LoginUserDtoRequest(username, password);
+        mvc.perform(
+                post("/api/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorFieldName.getName()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verifyZeroInteractions(mockUserService);
+    }
+
+    static Stream<Arguments> loginUserServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NAME_ALREADY_USED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.INVALID_PASSWORD, HttpStatus.BAD_REQUEST)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("loginUserServiceExceptions")
+    void testLogin_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final LoginUserDtoRequest request = new LoginUserDtoRequest(
                 "dumbledore", "strong_password"
         );
         when(mockUserService.login(any(LoginUserDtoRequest.class)))
-                .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.USERNAME));
+                .thenThrow(new ServerException(errorCode));
 
         mvc.perform(
                 post("/api/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.USERNAME.getName()))
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockUserService).login(request);
     }
 
     @Test
-    void testLogin_usernameAreEmpty_shouldReturnExceptionDto() throws Exception {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest("", "strong_password");
-        mvc.perform(
-                post("/api/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(request))
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.USERNAME.getName()))
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verifyZeroInteractions(mockUserService);
-    }
-
-    @Test
-    void testLogin_usernameAreNull_shouldReturnExceptionDto() throws Exception {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest(null, "strong_password");
-        mvc.perform(
-                post("/api/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(request))
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.USERNAME.getName()))
-                .andExpect(jsonPath("$.errors[0].message").exists());
-        verifyZeroInteractions(mockUserService);
-    }
-
-    @Test
-    void testLogin_usernameAreTooLarge_shouldReturnExceptionDto() throws Exception {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest(
-                "0123456789_0123456789_0123456789_0123456789_0123456789",
-                "strong_password"
-        );
-        mvc.perform(
-                post("/api/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(request))
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.USERNAME.getName()))
-                .andExpect(jsonPath("$.errors[0].message").exists());
-        verifyZeroInteractions(mockUserService);
-    }
-
-    @Test
-    void testLogin_passwordNotMatches_shouldReturnExceptionDto() throws Exception {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest(
-                "dumbledore", "not_matches"
-        );
-        when(mockUserService.login(any(LoginUserDtoRequest.class)))
-                .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.PASSWORD));
-
-        mvc.perform(
-                post("/api/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(request))
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.PASSWORD.getName()))
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verify(mockUserService).login(request);
-    }
-
-    @Test
-    void testLogin_passwordAreNull_shouldReturnExceptionDto() throws Exception {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest("dumbledore", null);
-        mvc.perform(
-                post("/api/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(request))
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.PASSWORD.getName()))
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verifyZeroInteractions(mockUserService);
-    }
-
-    @Test
-    void testLogin_passwordAreEmpty_shouldReturnExceptionDto() throws Exception {
-        final LoginUserDtoRequest request = new LoginUserDtoRequest("dumbledore", "");
-        mvc.perform(
-                post("/api/sessions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(request))
-        )
-                .andExpect(status().isBadRequest())
-                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.PASSWORD.getName()))
-                .andExpect(jsonPath("$.errors[0].message").exists());
-
-        verifyZeroInteractions(mockUserService);
-    }
-
-    @Test
-    void testLogout_shouldDeleteSession() throws Exception {
+    void testLogout() throws Exception {
         when(mockUserService.logout(anyString()))
                 .thenReturn(new EmptyDtoResponse());
 
@@ -273,22 +206,30 @@ class SessionControllerTest {
         verify(mockUserService).logout(anyString());
     }
 
-    @Test
-    void testLogout_wrongSessionToken_returnExceptionDto() throws Exception {
+    static Stream<Arguments> logoutServiceExceptions() {
+        return Stream.of(
+                Arguments.arguments(ErrorCode.DATABASE_ERROR),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("logoutServiceExceptions")
+    void testLogout_wrongSessionToken_returnExceptionDto(ErrorCode errorCode) throws Exception {
         when(mockUserService.logout(anyString()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+                .thenThrow(new ServerException(errorCode));
         mvc.perform(
                 delete("/api/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new Cookie(COOKIE_NAME, ""))
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
                 .andExpect(status().isBadRequest())
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.WRONG_SESSION_TOKEN.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockUserService).logout(anyString());
     }
