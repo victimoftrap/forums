@@ -20,8 +20,6 @@ import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -61,27 +59,22 @@ class UserServiceTest {
 
     @Test
     void testRegisterUser() throws ServerException {
+        final int userId = 123;
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "jolybell", "ahoi@jolybell.com", "password123"
-        );
-        final User createdUser = new User(
-                1, UserRole.USER, request.getName(), request.getEmail(), request.getPassword(),
-                LocalDateTime.now(), false
-        );
-        final UserSession session = new UserSession(createdUser, "token");
-        final UserDtoResponse expectedResponse = new UserDtoResponse(
-                createdUser.getId(), createdUser.getUsername(), createdUser.getEmail(),
-                session.getToken()
         );
 
         doAnswer(invocationOnMock -> {
             User user = invocationOnMock.getArgument(0);
-            user.setId(createdUser.getId());
+            user.setId(userId);
             return invocationOnMock.getArgument(1);
         })
                 .when(userDao)
                 .save(any(User.class), any(UserSession.class));
 
+        final UserDtoResponse expectedResponse = new UserDtoResponse(
+                userId, request.getName(), request.getEmail(), "token"
+        );
         final UserDtoResponse actualResponse = userService.registerUser(request);
         assertEquals(expectedResponse.getId(), actualResponse.getId());
         assertEquals(expectedResponse.getName(), actualResponse.getName());
@@ -89,7 +82,6 @@ class UserServiceTest {
 
         verify(userDao)
                 .save(any(User.class), any(UserSession.class));
-        verifyZeroInteractions(sessionDao);
     }
 
     @Test
@@ -149,6 +141,7 @@ class UserServiceTest {
                 .getUserByToken(eq(token));
         verify(userDao)
                 .deactivateById(anyInt());
+        assertTrue(user.isDeleted());
     }
 
     @Test
@@ -327,11 +320,7 @@ class UserServiceTest {
 
         when(sessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
-        doAnswer(invocationOnMock -> {
-            User upd = invocationOnMock.getArgument(0);
-            upd.setPassword(request.getPassword());
-            return upd;
-        })
+        doNothing()
                 .when(userDao)
                 .update(any(User.class));
 
@@ -340,6 +329,7 @@ class UserServiceTest {
                 .getUserByToken(anyString());
         verify(userDao)
                 .update(any(User.class));
+        assertEquals(request.getPassword(), user.getPassword());
         assertEquals(
                 new UserDtoResponse(user.getId(), user.getUsername(), user.getEmail(), sessionToken),
                 response
@@ -389,21 +379,19 @@ class UserServiceTest {
                 "superuser", "super@forums.ca", "superpass123",
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
         );
-        final User user = new User(456, UserRole.USER,
-                "user", "user@forums.ca", "userpass456",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS), false
+        final User user = new User(
+                "user", "user@forums.ca", "userpass456"
+        );
+        user.setBannedUntil(LocalDateTime.now()
+                .plus(1, ChronoUnit.WEEKS)
+                .truncatedTo(ChronoUnit.SECONDS)
         );
 
         when(sessionDao.getUserByToken(eq(sessionToken)))
                 .thenReturn(superuser);
         when(userDao.getById(anyInt(), anyBoolean()))
                 .thenReturn(user);
-        doAnswer(invocationOnMock -> {
-            User upd = invocationOnMock.getArgument(0);
-            upd.setRole(UserRole.SUPERUSER);
-            upd.setBannedUntil(null);
-            return upd;
-        })
+        doNothing()
                 .when(userDao)
                 .update(any(User.class));
 
@@ -416,6 +404,8 @@ class UserServiceTest {
                 .getById(anyInt(), anyBoolean());
         verify(userDao)
                 .update(any(User.class));
+        assertEquals(UserRole.SUPERUSER, user.getRole());
+        assertNull(user.getBannedUntil());
     }
 
     @Test

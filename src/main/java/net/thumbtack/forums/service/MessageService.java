@@ -238,8 +238,9 @@ public class MessageService extends ServiceBase {
         checkIsForumReadOnly(forum);
         checkPermission(forum.getOwner(), requesterUser);
 
+        final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageTree newTree = new MessageTree(
-                oldTree.getForum(), request.getSubject(), newRootMessage, request.getPriority(),
+                oldTree.getForum(), request.getSubject(), newRootMessage, priority,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
                 TagConverter.tagNamesToTagList(request.getTags())
         );
