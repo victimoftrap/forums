@@ -1,7 +1,6 @@
 package net.thumbtack.forums.exception;
 
-public enum RequestFieldName {
-    NONE(null),
+public enum ValidatedRequestFieldName {
     USERNAME("name"),
     PASSWORD("password"),
     OLD_PASSWORD("oldPassword"),
@@ -15,10 +14,10 @@ public enum RequestFieldName {
 
     private String name;
 
-    RequestFieldName() {
+    ValidatedRequestFieldName() {
     }
 
-    RequestFieldName(String name) {
+    ValidatedRequestFieldName(String name) {
         this.name = name;
     }
 

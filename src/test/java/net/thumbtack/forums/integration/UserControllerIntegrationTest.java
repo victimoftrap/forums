@@ -1,5 +1,6 @@
 package net.thumbtack.forums.integration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
@@ -9,8 +10,8 @@ import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.model.enums.UserStatus;
 import net.thumbtack.forums.exception.ErrorCode;
+import net.thumbtack.forums.exception.ValidatedRequestFieldName;
 
-import net.thumbtack.forums.exception.RequestFieldName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,13 +42,14 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         assertTrue(responseEntity.getHeaders().containsKey(HttpHeaders.SET_COOKIE));
 
         UserDtoResponse response = responseEntity.getBody();
+        assertNotNull(response);
         assertEquals(request.getName(), response.getName());
         assertEquals(request.getEmail(), response.getEmail());
         assertNull(response.getSessionToken());
     }
 
     @Test
-    void testRegisterUser_invalidRequestData_shouldReturnBadRequest() {
+    void testRegisterUser_invalidRequestData_shouldReturnBadRequest() throws JsonProcessingException {
         RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
@@ -56,30 +58,31 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
             restTemplate.postForEntity(SERVER_URL + "/users", request, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains("name"));
+            assertTrue(ce.getResponseBodyAsString().contains(ValidatedRequestFieldName.USERNAME.getName()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
         }
     }
 
     @Test
     void testRegisterUser_registerExistingUser_shouldReturnBadRequest() {
-        RegisterUserDtoRequest firstRequest = new RegisterUserDtoRequest(
+        RegisterUserDtoRequest firstRegisterRequest = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
-        restTemplate.postForEntity(SERVER_URL + "/users", firstRequest, UserDtoResponse.class);
+        restTemplate.postForEntity(SERVER_URL + "/users", firstRegisterRequest, UserDtoResponse.class);
 
-        RegisterUserDtoRequest secondRequest = new RegisterUserDtoRequest(
-                "", "test-email@email.com", "w3ryStr0nGPa55wD"
+        RegisterUserDtoRequest secondRegisterRequest = new RegisterUserDtoRequest(
+                "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
 
         try {
             restTemplate.postForEntity(
-                    SERVER_URL + "/users", secondRequest, UserDtoResponse.class
+                    SERVER_URL + "/users", secondRegisterRequest, UserDtoResponse.class
             );
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains("name"));
-            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NAME_ALREADY_USED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NAME_ALREADY_USED.getErrorCauseField()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NAME_ALREADY_USED.getMessage()));
         }
     }
 
@@ -105,6 +108,8 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                 EmptyDtoResponse.class
         );
         assertEquals(HttpStatus.OK, deleteResponseEntity.getStatusCode());
+        assertNotNull(deleteResponseEntity.getBody());
+        assertEquals("{}", deleteResponseEntity.getBody().toString());
     }
 
     @Test
@@ -215,7 +220,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
             );
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains(RequestFieldName.PASSWORD.getName()));
+            assertTrue(ce.getResponseBodyAsString().contains(ValidatedRequestFieldName.PASSWORD.getName()));
         }
     }
 

@@ -60,10 +60,12 @@ public class UserController {
             @CookieValue(value = COOKIE_NAME) String token,
             @RequestBody @Valid UpdatePasswordDtoRequest request,
             HttpServletResponse response) throws ServerException {
+        final UserDtoResponse userResponse = userService.updatePassword(token, request);
+
         final Cookie sessionCookie = new Cookie(COOKIE_NAME, token);
         sessionCookie.setHttpOnly(true);
         response.addCookie(sessionCookie);
-        return ResponseEntity.ok(userService.updatePassword(token, request));
+        return ResponseEntity.ok(userResponse);
     }
 
     @PutMapping(

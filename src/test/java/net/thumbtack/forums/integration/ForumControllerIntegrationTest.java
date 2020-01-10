@@ -9,7 +9,7 @@ import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
-import net.thumbtack.forums.exception.RequestFieldName;
+import net.thumbtack.forums.exception.ValidatedRequestFieldName;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -81,7 +81,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
-            assertTrue(ce.getResponseBodyAsString().contains(RequestFieldName.FORUM_NAME.getName()));
+            assertTrue(ce.getResponseBodyAsString().contains(ValidatedRequestFieldName.FORUM_NAME.getName()));
         }
     }
 
@@ -133,7 +133,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NAME_ALREADY_USED.name()));
-            assertTrue(ce.getResponseBodyAsString().contains(RequestFieldName.FORUM_NAME.getName()));
+            assertTrue(ce.getResponseBodyAsString().contains(ValidatedRequestFieldName.FORUM_NAME.getName()));
         }
     }
 

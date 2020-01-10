@@ -13,7 +13,7 @@ import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.configuration.ServerConfigurationProperties;
 import net.thumbtack.forums.exception.ErrorCode;
 import net.thumbtack.forums.exception.ServerException;
-import net.thumbtack.forums.exception.RequestFieldName;
+import net.thumbtack.forums.exception.ValidatedRequestFieldName;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -111,7 +111,7 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.MESSAGE_BODY.getName()))
+                .andExpect(jsonPath("$.errors[0].field").value(ValidatedRequestFieldName.MESSAGE_BODY.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockMessageService, never())
@@ -146,8 +146,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .addComment(anyString(), anyInt(), any(CreateCommentDtoRequest.class));
@@ -199,8 +199,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService).deleteMessage(anyString(), anyInt());
     }
@@ -250,7 +250,7 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.MESSAGE_BODY.getName()))
+                .andExpect(jsonPath("$.errors[0].field").value(ValidatedRequestFieldName.MESSAGE_BODY.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verifyZeroInteractions(mockMessageService);
@@ -287,8 +287,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .editMessage(anyString(), anyInt(), any(EditMessageOrCommentDtoRequest.class));
@@ -353,7 +353,7 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.MESSAGE_PRIORITY.getName()))
+                .andExpect(jsonPath("$.errors[0].field").value(ValidatedRequestFieldName.MESSAGE_PRIORITY.getName()))
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verifyZeroInteractions(mockMessageService);
@@ -393,8 +393,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .changeMessagePriority(
@@ -432,18 +432,18 @@ class MessageControllerTest {
 
     static Stream<Arguments> newBranchInvalidParams() {
         return Stream.of(
-                Arguments.arguments("", MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
-                Arguments.arguments(null, MessagePriority.NORMAL.name(), RequestFieldName.MESSAGE_SUBJECT),
-                Arguments.arguments("Subject", "", RequestFieldName.MESSAGE_PRIORITY),
-                Arguments.arguments("Subject", null, RequestFieldName.MESSAGE_PRIORITY),
-                Arguments.arguments("Subject", "EXTRA_HIGH", RequestFieldName.MESSAGE_PRIORITY)
+                Arguments.arguments("", MessagePriority.NORMAL.name(), ValidatedRequestFieldName.MESSAGE_SUBJECT),
+                Arguments.arguments(null, MessagePriority.NORMAL.name(), ValidatedRequestFieldName.MESSAGE_SUBJECT),
+                Arguments.arguments("Subject", "", ValidatedRequestFieldName.MESSAGE_PRIORITY),
+                Arguments.arguments("Subject", null, ValidatedRequestFieldName.MESSAGE_PRIORITY),
+                Arguments.arguments("Subject", "EXTRA_HIGH", ValidatedRequestFieldName.MESSAGE_PRIORITY)
         );
     }
 
     @ParameterizedTest
     @MethodSource("newBranchInvalidParams")
     void testMadeNewBranch_invalidParams_shouldReturnExceptionDto(
-            String subject, String priority, RequestFieldName errorFieldName
+            String subject, String priority, ValidatedRequestFieldName errorFieldName
     ) throws Exception {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 subject, priority, Collections.emptyList()
@@ -506,8 +506,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class));
@@ -565,7 +565,7 @@ class MessageControllerTest {
                         .value(ErrorCode.INVALID_REQUEST_DATA.name())
                 )
                 .andExpect(jsonPath("$.errors[0].field")
-                        .value(RequestFieldName.PUBLICATION_DECISION.getName())
+                        .value(ValidatedRequestFieldName.PUBLICATION_DECISION.getName())
                 )
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
@@ -604,8 +604,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .publish(anyString(), anyInt(), any(PublicationDecisionDtoRequest.class));
@@ -659,8 +659,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .rate(anyString(), anyInt(), any(RateMessageDtoRequest.class));
@@ -845,8 +845,8 @@ class MessageControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(errorCode.name()))
-                .andExpect(jsonPath("$.errors[0].field").doesNotExist())
-                .andExpect(jsonPath("$.errors[0].message").exists());
+                .andExpect(jsonPath("$.errors[0].field").value(errorCode.getErrorCauseField()))
+                .andExpect(jsonPath("$.errors[0].message").value(errorCode.getMessage()));
 
         verify(mockMessageService)
                 .getMessage(anyString(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyString());

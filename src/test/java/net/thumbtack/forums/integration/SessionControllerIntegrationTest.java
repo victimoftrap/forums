@@ -5,7 +5,6 @@ import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
-import net.thumbtack.forums.exception.RequestFieldName;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -122,8 +121,8 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
             restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains("name"));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
         }
     }
 
@@ -150,8 +149,8 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
             restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains("name"));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
         }
     }
 
@@ -178,9 +177,8 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
             restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            String res = ce.getResponseBodyAsString();
-            assertTrue(ce.getResponseBodyAsString().contains(RequestFieldName.PASSWORD.getName()));
-            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.getErrorCauseField()));
         }
     }
 }

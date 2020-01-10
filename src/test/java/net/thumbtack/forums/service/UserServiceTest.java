@@ -74,8 +74,6 @@ class UserServiceTest {
                 session.getToken()
         );
 
-        when(userDao.getByName(anyString(), anyBoolean()))
-                .thenReturn(null);
         doAnswer(invocationOnMock -> {
             User user = invocationOnMock.getArgument(0);
             user.setId(createdUser.getId());
@@ -90,8 +88,6 @@ class UserServiceTest {
         assertEquals(expectedResponse.getEmail(), actualResponse.getEmail());
 
         verify(userDao)
-                .getByName(anyString(), anyBoolean());
-        verify(userDao)
                 .save(any(User.class), any(UserSession.class));
         verifyZeroInteractions(sessionDao);
     }
@@ -102,35 +98,15 @@ class UserServiceTest {
                 "jolybell", "ahoi@jolybell.com", "password123"
         );
 
-        when(userDao.getByName(eq(request.getName()), anyBoolean()))
-                .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA));
+        when(userDao.save(any(User.class), any(UserSession.class)))
+                .thenThrow(new ServerException(ErrorCode.USER_NAME_ALREADY_USED));
         try {
             userService.registerUser(request);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
-        }
-        verify(userDao).getByName(eq(request.getName()), anyBoolean());
-        verifyZeroInteractions(sessionDao);
-    }
-
-    @Test
-    void testRegisterUser_onGetUserDatabaseError_shouldThrowException() throws ServerException {
-        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
-                "jolybell", "ahoi@jolybell.com", "password123"
-        );
-        when(userDao.getByName(eq(request.getName()), anyBoolean()))
-                .thenThrow(new ServerException(ErrorCode.DATABASE_ERROR));
-
-        try {
-            userService.registerUser(request);
-        } catch (ServerException e) {
-            assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
+            assertEquals(ErrorCode.USER_NAME_ALREADY_USED, e.getErrorCode());
         }
         verify(userDao)
-                .getByName(anyString(), anyBoolean());
-        verify(userDao, never())
-                .save(any(User.class));
-        verifyZeroInteractions(sessionDao);
+                .save(any(User.class), any(UserSession.class));
     }
 
     @Test
@@ -149,12 +125,8 @@ class UserServiceTest {
         } catch (ServerException e) {
             assertEquals(ErrorCode.DATABASE_ERROR, e.getErrorCode());
         }
-
-        verify(userDao)
-                .getByName(anyString(), anyBoolean());
         verify(userDao)
                 .save(any(User.class), any(UserSession.class));
-        verifyZeroInteractions(sessionDao);
     }
 
     @Test
@@ -177,7 +149,6 @@ class UserServiceTest {
                 .getUserByToken(eq(token));
         verify(userDao)
                 .deactivateById(anyInt());
-        verifyZeroInteractions(sessionDao);
     }
 
     @Test
@@ -193,8 +164,6 @@ class UserServiceTest {
 
         verify(sessionDao)
                 .getUserByToken(eq(token));
-        verify(sessionDao, never())
-                .deleteSession(eq(token));
         verify(userDao, never())
                 .deactivateById(anyInt());
     }
@@ -271,7 +240,7 @@ class UserServiceTest {
         try {
             userService.login(request);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
+            assertEquals(ErrorCode.INVALID_PASSWORD, e.getErrorCode());
         }
         verify(userDao).getByName(anyString(), anyBoolean());
         verifyZeroInteractions(sessionDao);
@@ -407,7 +376,7 @@ class UserServiceTest {
         try {
             userService.updatePassword(sessionToken, request);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.INVALID_REQUEST_DATA, e.getErrorCode());
+            assertEquals(ErrorCode.INVALID_PASSWORD, e.getErrorCode());
         }
         verify(sessionDao).getUserByToken(anyString());
         verifyZeroInteractions(userDao);
