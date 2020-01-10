@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -115,30 +116,6 @@ class SessionControllerTest {
         verify(mockUserService).login(request);
     }
 
-//    @Test
-//    void testLogin_userNotFoundByName_shouldReturnExceptionDto() throws Exception {
-//        final LoginUserDtoRequest request = new LoginUserDtoRequest(
-//                "dumbledore", "strong_password"
-//        );
-//        when(mockUserService.login(any(LoginUserDtoRequest.class)))
-//                .thenThrow(new ServerException(ErrorCode.INVALID_REQUEST_DATA, RequestFieldName.USERNAME));
-//
-//        mvc.perform(
-//                post("/api/sessions")
-//                        .contentType(MediaType.APPLICATION_JSON)
-//                        .content(mapper.writeValueAsString(request))
-//        )
-//                .andExpect(status().isBadRequest())
-//                .andExpect(cookie().doesNotExist(COOKIE_NAME))
-//                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-//                .andExpect(jsonPath("$.errors", hasSize(1)))
-//                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
-//                .andExpect(jsonPath("$.errors[0].field").value(RequestFieldName.USERNAME.getName()))
-//                .andExpect(jsonPath("$.errors[0].message").exists());
-//
-//        verify(mockUserService).login(request);
-//    }
-
     static Stream<Arguments> loginInvalidParams() {
         return Stream.of(
                 Arguments.arguments(
@@ -176,17 +153,19 @@ class SessionControllerTest {
 
     static Stream<Arguments> loginUserServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_NAME_ALREADY_USED),
-                Arguments.arguments(ErrorCode.USER_NOT_FOUND),
-                Arguments.arguments(ErrorCode.INVALID_PASSWORD)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NAME_ALREADY_USED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.INVALID_PASSWORD, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
     @MethodSource("loginUserServiceExceptions")
-    void testLogin_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testLogin_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final LoginUserDtoRequest request = new LoginUserDtoRequest(
                 "dumbledore", "strong_password"
         );
@@ -198,7 +177,7 @@ class SessionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))

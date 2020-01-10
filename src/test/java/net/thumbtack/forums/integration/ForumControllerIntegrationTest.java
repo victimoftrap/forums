@@ -239,7 +239,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
                     httpEntity, ForumInfoDtoResponse.class, 123456
             );
         } catch (HttpClientErrorException ce) {
-            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NOT_FOUND.name()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NOT_FOUND.getMessage()));
         }
@@ -280,7 +280,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
                     httpEntity, ForumInfoDtoResponse.class, createForumResponse.getBody().getId()
             );
         } catch (HttpClientErrorException ce) {
-            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NOT_FOUND.name()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NOT_FOUND.getMessage()));
         }
@@ -307,7 +307,7 @@ public class ForumControllerIntegrationTest extends BaseIntegrationEnvironment {
                     httpEntity, EmptyDtoResponse.class, 123456
             );
         } catch (HttpClientErrorException ce) {
-            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NOT_FOUND.name()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_NOT_FOUND.getMessage()));
         }

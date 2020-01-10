@@ -1,6 +1,5 @@
 package net.thumbtack.forums.integration;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
@@ -49,7 +48,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
     }
 
     @Test
-    void testRegisterUser_invalidRequestData_shouldReturnBadRequest() throws JsonProcessingException {
+    void testRegisterUser_invalidRequestData_shouldReturnBadRequest() {
         RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
@@ -58,8 +57,8 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
             restTemplate.postForEntity(SERVER_URL + "/users", request, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains(ValidatedRequestFieldName.USERNAME.getName()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ValidatedRequestFieldName.USERNAME.getName()));
         }
     }
 

@@ -120,7 +120,7 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
         try {
             restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
-            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
         }
@@ -148,7 +148,7 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
         try {
             restTemplate.postForEntity(SERVER_URL + "/sessions", loginRequest, UserDtoResponse.class);
         } catch (HttpClientErrorException ce) {
-            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
         }

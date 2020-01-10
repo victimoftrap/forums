@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -363,16 +364,18 @@ class UserControllerTest {
 
     static Stream<Arguments> madeSuperuserServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION),
-                Arguments.arguments(ErrorCode.USER_NOT_FOUND)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
 
     @ParameterizedTest
     @MethodSource("madeSuperuserServiceExceptions")
-    void testMadeSuperuser_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testMadeSuperuser_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockUserService.madeSuperuser(anyString(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
 
@@ -381,7 +384,7 @@ class UserControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -527,15 +530,18 @@ class UserControllerTest {
 
     static Stream<Arguments> banUserServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
 
     @ParameterizedTest
     @MethodSource("banUserServiceExceptions")
-    void testBanUser_exceptionInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testBanUser_exceptionInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockUserService.banUser(anyString(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
 
@@ -544,7 +550,7 @@ class UserControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .contentType(MediaType.APPLICATION_JSON)
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))

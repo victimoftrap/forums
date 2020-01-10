@@ -69,13 +69,13 @@ public class UserController {
     }
 
     @PutMapping(
-            value = "/{user}/super",
+            value = "/{id}/super",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<EmptyDtoResponse> madeSuperuser(
             @CookieValue(value = COOKIE_NAME) String token,
-            @PathVariable("user") int userId) throws ServerException {
+            @PathVariable("id") int userId) throws ServerException {
         return ResponseEntity.ok(userService.madeSuperuser(token, userId));
     }
 
@@ -89,13 +89,13 @@ public class UserController {
     }
 
     @PostMapping(
-            value = "/{user}/restrict",
+            value = "/{id}/restrict",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<EmptyDtoResponse> banUser(
             @CookieValue(value = COOKIE_NAME) String token,
-            @PathVariable("user") int userId) throws ServerException {
+            @PathVariable("id") int userId) throws ServerException {
         return ResponseEntity.ok(userService.banUser(token, userId));
     }
 }

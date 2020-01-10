@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -120,17 +121,20 @@ class MessageControllerTest {
 
     static Stream<Arguments> createCommentServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_BANNED),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_PUBLISHED),
-                Arguments.arguments(ErrorCode.FORUM_READ_ONLY)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_PUBLISHED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
     @MethodSource("createCommentServiceExceptions")
-    void testCreateComment_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testCreateComment_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final CreateCommentDtoRequest request = new CreateCommentDtoRequest("I'm a comment!!");
         when(mockMessageService.addComment(anyString(), anyInt(), any(CreateCommentDtoRequest.class)))
                 .thenThrow(new ServerException(errorCode));
@@ -141,7 +145,7 @@ class MessageControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -173,19 +177,21 @@ class MessageControllerTest {
 
     static Stream<Arguments> deleteCommentServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
-                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION),
-                Arguments.arguments(ErrorCode.FORUM_READ_ONLY),
-                Arguments.arguments(ErrorCode.MESSAGE_HAS_COMMENTS)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_HAS_COMMENTS, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
     @MethodSource("deleteCommentServiceExceptions")
-    void testDeleteComment_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testDeleteComment_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockMessageService.deleteMessage(anyString(), anyInt()))
                 .thenThrow(new ServerException(errorCode));
 
@@ -194,7 +200,7 @@ class MessageControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -258,18 +264,20 @@ class MessageControllerTest {
 
     static Stream<Arguments> editCommentServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_BANNED),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
-                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION),
-                Arguments.arguments(ErrorCode.FORUM_READ_ONLY)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
     @MethodSource("editCommentServiceExceptions")
-    void testEditComment_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testEditComment_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final EditMessageOrCommentDtoRequest request = new EditMessageOrCommentDtoRequest(
                 "I'm edited body"
         );
@@ -282,7 +290,7 @@ class MessageControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -361,18 +369,20 @@ class MessageControllerTest {
 
     static Stream<Arguments> changePriorityServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_BANNED),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
-                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION),
-                Arguments.arguments(ErrorCode.FORUM_READ_ONLY)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
     @MethodSource("changePriorityServiceExceptions")
-    void testChangePriority_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testChangePriority_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest("HIGH");
         when(mockMessageService
                 .changeMessagePriority(
@@ -388,7 +398,7 @@ class MessageControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -474,19 +484,21 @@ class MessageControllerTest {
 
     static Stream<Arguments> newBranchServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_BANNED),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
-                Arguments.arguments(ErrorCode.MESSAGE_ALREADY_BRANCH),
-                Arguments.arguments(ErrorCode.FORUM_READ_ONLY),
-                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.MESSAGE_ALREADY_BRANCH, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
     @MethodSource("newBranchServiceExceptions")
-    void testMadeNewBranch_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testMadeNewBranch_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 "Subject", MessagePriority.LOW.name(), Collections.emptyList()
         );
@@ -501,7 +513,7 @@ class MessageControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -574,19 +586,21 @@ class MessageControllerTest {
 
     static Stream<Arguments> publicationServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND),
-                Arguments.arguments(ErrorCode.FORUM_READ_ONLY),
-                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION),
-                Arguments.arguments(ErrorCode.MESSAGE_ALREADY_BRANCH)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
+                Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_ALREADY_BRANCH, HttpStatus.BAD_REQUEST)
         );
     }
 
     @ParameterizedTest
     @MethodSource("publicationServiceExceptions")
-    void testPublishMessage_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testPublishMessage_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
                 PublicationDecision.YES.name()
         );
@@ -599,7 +613,7 @@ class MessageControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -634,16 +648,18 @@ class MessageControllerTest {
 
     static Stream<Arguments> rateMessageServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
 
     @ParameterizedTest
     @MethodSource("rateMessageServiceExceptions")
-    void testRateMessage_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testRateMessage_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
         when(mockMessageService.rate(anyString(), anyInt(), any(RateMessageDtoRequest.class)))
                 .thenThrow(new ServerException(errorCode));
@@ -654,7 +670,7 @@ class MessageControllerTest {
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
                         .content(mapper.writeValueAsString(request))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
@@ -817,15 +833,17 @@ class MessageControllerTest {
 
     static Stream<Arguments> getMessageServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
-                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND)
+                Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
 
     @ParameterizedTest
     @MethodSource("getMessageServiceExceptions")
-    void testGetMessage_exceptionsInService_shouldReturnExceptionDto(ErrorCode errorCode) throws Exception {
+    void testGetMessage_exceptionsInService_shouldReturnExceptionDto(
+            ErrorCode errorCode, HttpStatus httpStatus
+    ) throws Exception {
         when(mockMessageService
                 .getMessage(anyString(), anyInt(), anyBoolean(), anyBoolean(), anyBoolean(), anyString())
         )
@@ -840,7 +858,7 @@ class MessageControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
         )
-                .andExpect(status().isBadRequest())
+                .andExpect(status().is(httpStatus.value()))
                 .andExpect(cookie().doesNotExist(COOKIE_NAME))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
