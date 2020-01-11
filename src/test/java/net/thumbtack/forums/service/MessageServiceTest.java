@@ -2609,6 +2609,60 @@ class MessageServiceTest {
     }
 
     @Test
+    void testRateMessage_creatorRatesHimself_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        try {
+            messageService.rate(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE, se.getErrorCode());
+        }
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockServerProperties)
+                .getMaxBanCount();
+        verify(mockRatingDao, never())
+                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
+        verify(mockRatingDao, never())
+                .deleteRate(any(MessageItem.class), any(User.class));
+    }
+
+    @Test
     void testGetMessage() throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"

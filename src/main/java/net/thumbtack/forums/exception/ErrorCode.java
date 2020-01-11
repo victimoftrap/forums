@@ -3,8 +3,6 @@ package net.thumbtack.forums.exception;
 public enum ErrorCode {
     DATABASE_ERROR("Error in database occurred", "database"),
     INVALID_REQUEST_DATA("Request data was invalid", "request"),
-    INVALID_PASSWORD("Invalid password", "password"),
-    FORBIDDEN_OPERATION("Operation allowed only for superuser", "role"),
     WRONG_SESSION_TOKEN("Wrong session token", "token"),
     FORUM_NOT_FOUND("Forum not found", "forumId"),
     FORUM_READ_ONLY("Forum closed, it's only read-only now", "forum"),
@@ -15,8 +13,11 @@ public enum ErrorCode {
     MESSAGE_REJECTED("Message rejected for publication", "message"),
     MESSAGE_ALREADY_PUBLISHED("Message already published", "message"),
     MESSAGE_ALREADY_BRANCH("Message already branch in forum", "message"),
+    MESSAGE_CREATOR_RATES_HIS_MESSAGE("Author haven't permission to rate his messages", "user"),
     USER_NAME_ALREADY_USED("Username already used in server", "username"),
+    INVALID_PASSWORD("Invalid password", "password"),
     USER_NOT_FOUND("User not found", "user"),
+    FORBIDDEN_OPERATION("Operation not allowed for this user", "role"),
     USER_BANNED("Not available operation while user banned", "user"),
     USER_PERMANENTLY_BANNED("User got a permanent ban", "user");
 

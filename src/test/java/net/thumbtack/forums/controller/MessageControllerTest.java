@@ -651,6 +651,7 @@ class MessageControllerTest {
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }

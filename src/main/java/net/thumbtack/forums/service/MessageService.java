@@ -299,6 +299,11 @@ public class MessageService extends ServiceBase {
         checkUserBannedPermanently(requesterUser);
 
         final MessageItem ratedMessage = getMessageById(messageId);
+        final User messageOwner = ratedMessage.getOwner();
+        if (messageOwner.equals(requesterUser)) {
+            throw new ServerException(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE);
+        }
+
         if (request.getValue() == null) {
             ratingDao.deleteRate(ratedMessage, requesterUser);
         } else {
