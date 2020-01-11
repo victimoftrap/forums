@@ -167,7 +167,7 @@ class ForumControllerTest {
     static Stream<Arguments> createForumServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION),
                 Arguments.arguments(ErrorCode.FORUM_NAME_ALREADY_USED),
                 Arguments.arguments(ErrorCode.USER_BANNED)
         );
@@ -222,7 +222,7 @@ class ForumControllerTest {
     static Stream<Arguments> deleteForumServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST)
@@ -286,7 +286,7 @@ class ForumControllerTest {
     static Stream<Arguments> getForumServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
@@ -382,7 +382,7 @@ class ForumControllerTest {
     static Stream<Arguments> getAllForumsServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+                Arguments.arguments(ErrorCode.NO_USER_SESSION)
         );
     }
 
@@ -514,7 +514,7 @@ class ForumControllerTest {
     static Stream<Arguments> createMessageServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST)
@@ -801,7 +801,7 @@ class ForumControllerTest {
     static Stream<Arguments> getMessagesServiceException() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }

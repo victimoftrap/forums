@@ -60,7 +60,7 @@ public class SessionControllerIntegrationTest extends BaseIntegrationEnvironment
             logoutUser("JAVASESSIONID=" + UUID.randomUUID().toString());
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.WRONG_SESSION_TOKEN.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.name()));
         }
     }
 

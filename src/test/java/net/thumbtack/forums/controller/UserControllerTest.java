@@ -253,7 +253,7 @@ class UserControllerTest {
     static Stream<Arguments> deleteUserServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+                Arguments.arguments(ErrorCode.NO_USER_SESSION)
         );
     }
 
@@ -352,7 +352,7 @@ class UserControllerTest {
     static Stream<Arguments> updatePasswordServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION),
                 Arguments.arguments(ErrorCode.INVALID_PASSWORD)
         );
     }
@@ -404,7 +404,7 @@ class UserControllerTest {
     static Stream<Arguments> madeSuperuserServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
@@ -523,7 +523,7 @@ class UserControllerTest {
     static Stream<Arguments> getUsersServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+                Arguments.arguments(ErrorCode.NO_USER_SESSION)
         );
     }
 
@@ -570,7 +570,7 @@ class UserControllerTest {
     static Stream<Arguments> banUserServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND)
         );

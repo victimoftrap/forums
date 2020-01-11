@@ -85,12 +85,12 @@ class ForumServiceTest {
                 "testForum", ForumType.UNMODERATED.name()
         );
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+                .thenThrow(new ServerException(ErrorCode.NO_USER_SESSION));
 
         try {
             forumService.createForum(token, request);
         } catch (ServerException ex) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, ex.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, ex.getErrorCode());
         }
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockForumDao, never()).save(any(Forum.class));
@@ -216,7 +216,7 @@ class ForumServiceTest {
         try {
             forumService.deleteForum(token, 1234);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao).getUserByToken(anyString());
         verifyZeroInteractions(mockServerProperties);
@@ -322,7 +322,7 @@ class ForumServiceTest {
         try {
             forumService.getForum(token, forumId);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -442,7 +442,7 @@ class ForumServiceTest {
         try {
             forumService.getForums(token);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());

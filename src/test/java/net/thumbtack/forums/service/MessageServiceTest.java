@@ -184,7 +184,7 @@ class MessageServiceTest {
         try {
             messageService.addMessage(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -321,7 +321,7 @@ class MessageServiceTest {
         try {
             messageService.addComment(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -660,7 +660,7 @@ class MessageServiceTest {
         try {
             messageService.deleteMessage(token, messageId);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao).getUserByToken(anyString());
         verifyZeroInteractions(mockServerProperties);
@@ -1021,7 +1021,7 @@ class MessageServiceTest {
         try {
             messageService.editMessage(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -1217,7 +1217,7 @@ class MessageServiceTest {
         try {
             messageService.changeMessagePriority(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -1536,7 +1536,7 @@ class MessageServiceTest {
         try {
             messageService.newBranchFromComment(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -2054,7 +2054,7 @@ class MessageServiceTest {
         try {
             messageService.publish(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -2528,7 +2528,7 @@ class MessageServiceTest {
         try {
             messageService.rate(token, messageId, request);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -2795,7 +2795,7 @@ class MessageServiceTest {
     @Test
     void testGetMessage_userNotFound_shouldThrowException() throws ServerException {
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenThrow(new ServerException(ErrorCode.WRONG_SESSION_TOKEN));
+                .thenThrow(new ServerException(ErrorCode.NO_USER_SESSION));
 
         final String token = "token";
         try {
@@ -2803,7 +2803,7 @@ class MessageServiceTest {
                     token, 123, true, true, false, MessageOrder.ASC.name()
             );
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
 
         verify(mockSessionDao)
@@ -3251,7 +3251,7 @@ class MessageServiceTest {
                     Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
             );
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());

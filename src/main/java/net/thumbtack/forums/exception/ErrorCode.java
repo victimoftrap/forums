@@ -3,7 +3,7 @@ package net.thumbtack.forums.exception;
 public enum ErrorCode {
     DATABASE_ERROR("Error in database occurred", "database"),
     INVALID_REQUEST_DATA("Request data was invalid", "request"),
-    WRONG_SESSION_TOKEN("Wrong session token", "token"),
+    NO_USER_SESSION("User has no session on server", "session"),
     FORUM_NOT_FOUND("Forum not found", "forumId"),
     FORUM_READ_ONLY("Forum closed, it's only read-only now", "forum"),
     FORUM_NAME_ALREADY_USED("Forum name already used", "name"),

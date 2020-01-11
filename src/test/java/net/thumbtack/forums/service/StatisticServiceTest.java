@@ -115,7 +115,7 @@ class StatisticServiceTest {
         try {
             statisticService.getMessagesCount("token", null);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -211,7 +211,7 @@ class StatisticServiceTest {
         try {
             statisticService.getCommentsCount("token", null);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -426,7 +426,7 @@ class StatisticServiceTest {
                     "token", null, 0, 300
             );
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
@@ -624,7 +624,7 @@ class StatisticServiceTest {
         try {
             statisticService.getUsersRatings("token", null, 0, 300);
         } catch (ServerException se) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, se.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());

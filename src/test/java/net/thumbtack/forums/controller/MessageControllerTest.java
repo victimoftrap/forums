@@ -122,7 +122,7 @@ class MessageControllerTest {
     static Stream<Arguments> createCommentServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_PUBLISHED, HttpStatus.BAD_REQUEST),
@@ -178,7 +178,7 @@ class MessageControllerTest {
     static Stream<Arguments> deleteCommentServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
@@ -265,7 +265,7 @@ class MessageControllerTest {
     static Stream<Arguments> editCommentServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
@@ -370,7 +370,7 @@ class MessageControllerTest {
     static Stream<Arguments> changePriorityServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.FORBIDDEN_OPERATION, HttpStatus.BAD_REQUEST),
@@ -485,7 +485,7 @@ class MessageControllerTest {
     static Stream<Arguments> newBranchServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.MESSAGE_ALREADY_BRANCH, HttpStatus.BAD_REQUEST),
@@ -587,7 +587,7 @@ class MessageControllerTest {
     static Stream<Arguments> publicationServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.FORUM_READ_ONLY, HttpStatus.BAD_REQUEST),
@@ -649,7 +649,7 @@ class MessageControllerTest {
     static Stream<Arguments> rateMessageServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_PERMANENTLY_BANNED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -835,7 +835,7 @@ class MessageControllerTest {
     static Stream<Arguments> getMessageServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.MESSAGE_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }

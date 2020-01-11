@@ -51,7 +51,7 @@ class StatisticsControllerTest {
 
     static Stream<Arguments> statisticsServiceExceptions() {
         return Stream.of(
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.FORUM_NOT_FOUND, HttpStatus.NOT_FOUND)
         );
     }
