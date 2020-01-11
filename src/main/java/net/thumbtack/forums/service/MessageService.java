@@ -156,8 +156,11 @@ public class MessageService extends ServiceBase {
         final Forum forum = deletingMessage.getMessageTree().getForum();
         checkIsForumReadOnly(forum);
 
-        if (!deletingMessage.getChildrenComments().isEmpty()) {
-            throw new ServerException(ErrorCode.MESSAGE_HAS_COMMENTS);
+        final List<MessageItem> comments = deletingMessage.getChildrenComments();
+        for (final MessageItem comment : comments) {
+            if (comment.getHistory().get(0).getState() == MessageState.PUBLISHED) {
+                throw new ServerException(ErrorCode.MESSAGE_HAS_COMMENTS);
+            }
         }
 
         if (deletingMessage.getParentMessage() == null) {

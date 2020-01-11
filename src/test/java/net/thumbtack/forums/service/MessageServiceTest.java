@@ -584,6 +584,72 @@ class MessageServiceTest {
     }
 
     @Test
+    void testDeleteRootMessage_messageHasUnpublishedComments_shouldSuccessfullyDelete() throws ServerException {
+        final int maxBanCount = 5;
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(ForumType.MODERATED, messageOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", null, MessagePriority.NORMAL
+        );
+
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "Comment 1", MessageState.UNPUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment1 = new MessageItem(
+                messageOwner, tree, null, Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt()
+        );
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "Comment 2", MessageState.UNPUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment2 = new MessageItem(
+                messageOwner, tree, null, Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt()
+        );
+        final List<MessageItem> comments = Arrays.asList(comment1, comment2);
+
+        final HistoryItem parentHistory = new HistoryItem(
+                "Parent Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, tree, null,
+                comments, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt()
+        );
+        comment1.setParentMessage(parentMessage);
+        tree.setRootMessage(parentMessage);
+        tree.setCreatedAt(parentHistory.getCreatedAt());
+
+        final String token = "token";
+        final int messageId = 951;
+
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(messageOwner);
+        when(mockServerProperties.getMaxBanCount())
+                .thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(parentMessage);
+
+        messageService.deleteMessage(token, messageId);
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockServerProperties)
+                .getMaxBanCount();
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao)
+                .deleteTreeById(anyInt());
+
+        verify(mockMessageDao, never())
+                .deleteMessageById(anyInt());
+    }
+
+    @Test
     void testDeleteMessage_userNotFoundByToken_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
@@ -763,7 +829,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testDeleteRootMessage_messageHasComments_shouldThrowException() throws ServerException {
+    void testDeleteRootMessage_messageHasPublishedComments_shouldThrowException() throws ServerException {
         final int maxBanCount = 5;
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
@@ -775,16 +841,21 @@ class MessageServiceTest {
                 forum, "TreeSubject", null, MessagePriority.NORMAL
         );
 
-        final HistoryItem comment1History = new HistoryItem(
-                "Comment 1 Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        final HistoryItem commentHistory1 = new HistoryItem(
+                "Comment 1 Body", MessageState.UNPUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem comment1 = new MessageItem(
-                messageOwner, tree, null,
-                Collections.singletonList(comment1History),
-                comment1History.getCreatedAt()
+                messageOwner, tree, null, Collections.singletonList(commentHistory1),
+                commentHistory1.getCreatedAt()
         );
-        final List<MessageItem> comments = Arrays.asList(comment1);
+        final HistoryItem commentHistory2 = new HistoryItem(
+                "Comment 2", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem comment2 = new MessageItem(
+                messageOwner, tree, null, Collections.singletonList(commentHistory2),
+                commentHistory2.getCreatedAt()
+        );
+        final List<MessageItem> comments = Arrays.asList(comment1, comment2);
 
         final HistoryItem parentHistory = new HistoryItem(
                 "Parent Body", MessageState.PUBLISHED,
