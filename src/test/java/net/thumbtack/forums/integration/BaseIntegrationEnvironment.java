@@ -1,16 +1,20 @@
 package net.thumbtack.forums.integration;
 
-import net.thumbtack.forums.dto.requests.message.CreateCommentDtoRequest;
-import net.thumbtack.forums.dto.requests.message.CreateMessageDtoRequest;
-import net.thumbtack.forums.dto.requests.message.RateMessageDtoRequest;
 import net.thumbtack.forums.dto.requests.user.LoginUserDtoRequest;
 import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
-import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
+import net.thumbtack.forums.dto.requests.message.CreateMessageDtoRequest;
+import net.thumbtack.forums.dto.requests.message.CreateCommentDtoRequest;
+import net.thumbtack.forums.dto.requests.message.RateMessageDtoRequest;
+import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
+import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
+import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
+import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
-import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
-import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
+import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.http.*;
@@ -48,6 +52,10 @@ public class BaseIntegrationEnvironment {
         return restTemplate.exchange(url, method, httpEntity, response);
     }
 
+    protected String getSessionTokenFromHeaders(ResponseEntity<?> responseEntity) {
+        return responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+    }
+
     protected ResponseEntity<UserDtoResponse> registerUser(RegisterUserDtoRequest request) {
         return executeRequest(
                 SERVER_URL + "/users", HttpMethod.POST,
@@ -79,6 +87,20 @@ public class BaseIntegrationEnvironment {
                 token,
                 null,
                 EmptyDtoResponse.class
+        );
+    }
+
+    protected ResponseEntity<UserDetailsListDtoResponse> getUsers(String token) {
+        return executeRequest(
+                SERVER_URL + "/users", HttpMethod.GET,
+                token, null, UserDetailsListDtoResponse.class
+        );
+    }
+
+    protected ResponseEntity<UserDtoResponse> updatePassword(String token, UpdatePasswordDtoRequest request) {
+        return executeRequest(
+                SERVER_URL + "/users", HttpMethod.PUT, token,
+                request, UserDtoResponse.class
         );
     }
 
@@ -121,6 +143,14 @@ public class BaseIntegrationEnvironment {
         );
     }
 
+    protected ResponseEntity<ForumInfoListDtoResponse> getForums(String token) {
+        return executeRequest(
+                SERVER_URL + "/forums",
+                HttpMethod.GET, token,
+                null, ForumInfoListDtoResponse.class
+        );
+    }
+
     protected ResponseEntity<MessageDtoResponse> createMessage(String token,
                                                                int forumId, CreateMessageDtoRequest request) {
         return executeRequest(
@@ -153,6 +183,14 @@ public class BaseIntegrationEnvironment {
                 String.format(SERVER_URL + "/messages/%d/rating", messageId),
                 HttpMethod.POST, token,
                 null, EmptyDtoResponse.class
+        );
+    }
+
+    protected ResponseEntity<MessageInfoDtoResponse> getMessage(String token, int messageId) {
+        return executeRequest(
+                String.format(SERVER_URL + "/messages/%d", messageId),
+                HttpMethod.GET, token,
+                null, MessageInfoDtoResponse.class
         );
     }
 }
