@@ -24,7 +24,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.*;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -34,17 +33,15 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
-    private RestTemplate restTemplate = new RestTemplate();
-
     @Test
     void testRegisterUser() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
         final ResponseEntity<UserDtoResponse> responseEntity = registerUser(request);
-
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         assertTrue(responseEntity.getHeaders().containsKey(HttpHeaders.SET_COOKIE));
+        assertNotNull(getSessionTokenFromHeaders(responseEntity));
 
         final UserDtoResponse response = responseEntity.getBody();
         assertNotNull(response);
@@ -55,22 +52,32 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
 
     static Stream<Arguments> registerParams() {
         return Stream.of(
-                Arguments.arguments(
-                        "0123456789_0123456789_0123456789_0123456789_0123456789",
-                        "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME
+                Arguments.arguments("0123456789_0123456789_0123456789_0123456789_0123456789",
+                        "ahoi@savemail.com", "strong_pass_454",
+                        ValidatedRequestFieldName.USERNAME.getName()
                 ),
-                Arguments.arguments("", "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME),
-                Arguments.arguments(null, "ahoi@savemail.com", "strong_pass_454", ValidatedRequestFieldName.USERNAME),
-                Arguments.arguments("username", "ahoi@savemail.com", "weak", ValidatedRequestFieldName.PASSWORD),
-                Arguments.arguments("username", "ahoi@savemail.com", "", ValidatedRequestFieldName.PASSWORD),
-                Arguments.arguments("username", "ahoi@savemail.com", null, ValidatedRequestFieldName.PASSWORD)
+                Arguments.arguments("", "ahoi@savemail.com", "strong_pass_454",
+                        ValidatedRequestFieldName.USERNAME.getName()
+                ),
+                Arguments.arguments(null, "ahoi@savemail.com", "strong_pass_454",
+                        ValidatedRequestFieldName.USERNAME.getName()
+                ),
+                Arguments.arguments("username", "ahoi@savemail.com", "weak",
+                        ValidatedRequestFieldName.PASSWORD.getName()
+                ),
+                Arguments.arguments("username", "ahoi@savemail.com", "",
+                        ValidatedRequestFieldName.PASSWORD.getName()
+                ),
+                Arguments.arguments("username", "ahoi@savemail.com", null,
+                        ValidatedRequestFieldName.PASSWORD.getName()
+                )
         );
     }
 
     @ParameterizedTest
     @MethodSource("registerParams")
     void testRegisterUser_invalidRequestData_shouldReturnBadRequest(
-            String username, String email, String password, ValidatedRequestFieldName errorField) {
+            String username, String email, String password, String errorField) {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 username, email, password
         );
@@ -79,19 +86,41 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
-            assertTrue(ce.getResponseBodyAsString().contains(errorField.getName()));
+            assertTrue(ce.getResponseBodyAsString().contains(errorField));
         }
     }
 
     @Test
-    void testRegisterUser_registerExistingUser_shouldReturnBadRequest() {
-        RegisterUserDtoRequest firstRegisterRequest = new RegisterUserDtoRequest(
+    void testRegisterUser_registerUserWithExistedName_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest firstRegisterRequest = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
         registerUser(firstRegisterRequest);
 
-        RegisterUserDtoRequest secondRegisterRequest = new RegisterUserDtoRequest(
+        final RegisterUserDtoRequest secondRegisterRequest = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
+        );
+        try {
+            registerUser(secondRegisterRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NAME_ALREADY_USED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NAME_ALREADY_USED.getErrorCauseField()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NAME_ALREADY_USED.getMessage()));
+        }
+    }
+
+    @Test
+    void testRegisterUser_registerWithNameOfDeletedUser_shouldReturnBadRequestExceptionDto() {
+        final RegisterUserDtoRequest firstRegisterRequest = new RegisterUserDtoRequest(
+                "DeleteMe", "someemail@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> responseEntity = registerUser(firstRegisterRequest);
+        final String sessionToken = getSessionTokenFromHeaders(responseEntity);
+        deleteUser(sessionToken);
+
+        final RegisterUserDtoRequest secondRegisterRequest = new RegisterUserDtoRequest(
+                firstRegisterRequest.getName(), "cool-guy@email.com", "agbCB78jjkAd4ij4"
         );
         try {
             registerUser(secondRegisterRequest);
@@ -109,7 +138,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
         final ResponseEntity<UserDtoResponse> responseEntity = registerUser(request);
-        final String sessionToken = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final String sessionToken = getSessionTokenFromHeaders(responseEntity);
 
         final ResponseEntity<EmptyDtoResponse> deleteResponseEntity = deleteUser(sessionToken);
         assertEquals(HttpStatus.OK, deleteResponseEntity.getStatusCode());
@@ -141,7 +170,26 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
     }
 
     @Test
-    void testDeleteUser_deletingAlreadyDeletedUser_shouldReturnBadRequest() {
+    void testDeleteUser_userHaventSession_shouldReturnBadRequestExceptionDto() {
+        final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
+                "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> responseEntity = registerUser(request);
+        final String sessionToken = getSessionTokenFromHeaders(responseEntity);
+        logoutUser(sessionToken);
+
+        try {
+            deleteUser(sessionToken);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testDeleteUser_deletingHimselfTwice_shouldReturnBadRequest() {
         final RegisterUserDtoRequest request = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
@@ -153,7 +201,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
             deleteUser(sessionToken);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.WRONG_SESSION_TOKEN.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.name()));
         }
     }
 
@@ -207,15 +255,15 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
         final ResponseEntity<UserDtoResponse> responseEntity = registerUser(registerRequest);
-        final String token = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final String token = getSessionTokenFromHeaders(responseEntity);
 
         final UpdatePasswordDtoRequest updateRequest = new UpdatePasswordDtoRequest(
                 registerRequest.getName(), registerRequest.getPassword(), "an0th3rStr0ngPa55w0r|)"
         );
-        final ResponseEntity<UserDtoResponse> updateResponse = executeRequest(
-                SERVER_URL + "/users", HttpMethod.PUT, token,
-                updateRequest, UserDtoResponse.class
-        );
+        final ResponseEntity<UserDtoResponse> updateResponse = updatePassword(token, updateRequest);
+        final String newToken = getSessionTokenFromHeaders(updateResponse);
+        assertEquals(token, newToken);
+
         assertEquals(HttpStatus.OK, updateResponse.getStatusCode());
         assertNotNull(updateResponse.getBody());
         assertEquals(updateRequest.getName(), updateResponse.getBody().getName());
@@ -224,24 +272,91 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
     }
 
     @Test
-    void testUpdateUserPassword_invalidRequestData_shouldReturnBadRequest() {
+    void testUpdateUserPassword_previousPasswordNotMatches_shouldReturnBadRequestExceptionDto() {
         final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
                 "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
         );
         final ResponseEntity<UserDtoResponse> responseEntity = registerUser(registerRequest);
-        final String cookie = responseEntity.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final String token = getSessionTokenFromHeaders(responseEntity);
 
         final UpdatePasswordDtoRequest updateRequest = new UpdatePasswordDtoRequest(
-                registerRequest.getName(), registerRequest.getPassword(), ""
+                registerRequest.getName(), "wowMaybeIMadeMistake", "an0th3rStr0ngPa55w0r|)"
         );
+
         try {
-            executeRequest(
-                    SERVER_URL + "/users", HttpMethod.PUT, cookie,
-                    updateRequest, UserDtoResponse.class
-            );
+            updatePassword(token, updateRequest);
         } catch (HttpClientErrorException ce) {
             assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
-            assertTrue(ce.getResponseBodyAsString().contains(ValidatedRequestFieldName.PASSWORD.getName()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_PASSWORD.getErrorCauseField()));
+        }
+    }
+
+    static Stream<Arguments> updatePasswordParams() {
+        return Stream.of(
+                Arguments.arguments(null, "new_strong_password_23",
+                        ValidatedRequestFieldName.OLD_PASSWORD.getName()
+                ),
+                Arguments.arguments("", "new_strong_password_23",
+                        ValidatedRequestFieldName.OLD_PASSWORD.getName()
+                ),
+                Arguments.arguments("old_strong_password", null,
+                        ValidatedRequestFieldName.PASSWORD.getName()
+                ),
+                Arguments.arguments("old_strong_password", "",
+                        ValidatedRequestFieldName.PASSWORD.getName()
+                ),
+                Arguments.arguments(null, null,
+                        ValidatedRequestFieldName.OLD_PASSWORD.getName()
+                ),
+                Arguments.arguments(null, null,
+                        ValidatedRequestFieldName.PASSWORD.getName()
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("updatePasswordParams")
+    void testUpdateUserPassword_invalidRequestData_shouldReturnBadRequest(
+            String oldPassword, String password, String errorField) {
+        final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
+                "testUsername", "test-email@email.com", "old_strong_password"
+        );
+        final ResponseEntity<UserDtoResponse> responseEntity = registerUser(registerRequest);
+        final String sessionToken = getSessionTokenFromHeaders(responseEntity);
+
+        final UpdatePasswordDtoRequest updateRequest = new UpdatePasswordDtoRequest(
+                registerRequest.getName(), oldPassword, password
+        );
+        try {
+            updatePassword(sessionToken, updateRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.INVALID_REQUEST_DATA.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(errorField));
+        }
+    }
+
+    @Test
+    void testUpdateUserPassword_userHaventSession_shouldReturnBadRequestExceptionDto() {
+        final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
+                "testUsername", "test-email@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> responseEntity = registerUser(registerRequest);
+        final String token = getSessionTokenFromHeaders(responseEntity);
+        logoutUser(token);
+
+        final UpdatePasswordDtoRequest updateRequest = new UpdatePasswordDtoRequest(
+                registerRequest.getName(), registerRequest.getPassword(), "an0th3rStr0ngPa55w0r|)"
+        );
+        try {
+            updatePassword(token, updateRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getErrorCauseField()));
         }
     }
 
@@ -252,7 +367,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         );
         final ResponseEntity<UserDtoResponse> registerResponse1 = registerUser(registerRequest1);
         final int userId1 = registerResponse1.getBody().getId();
-        String userCookie1 = registerResponse1.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        String userToken1 = getSessionTokenFromHeaders(registerResponse1);
 
         final RegisterUserDtoRequest registerRequest2 = new RegisterUserDtoRequest(
                 "user2", "user2@email.com", "w3ryStr0nGPa55wD"
@@ -260,10 +375,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
         final ResponseEntity<UserDtoResponse> registerResponse = registerUser(registerRequest2);
         final int userId2 = registerResponse.getBody().getId();
 
-        final ResponseEntity<UserDetailsListDtoResponse> usersResponse = executeRequest(
-                SERVER_URL + "/users", HttpMethod.GET, userCookie1,
-                null, UserDetailsListDtoResponse.class
-        );
+        final ResponseEntity<UserDetailsListDtoResponse> usersResponse = getUsers(userToken1);
         assertEquals(HttpStatus.OK, usersResponse.getStatusCode());
         assertNotNull(usersResponse.getBody());
 
@@ -297,35 +409,29 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
 
     @Test
     void testGetUsers_requestFromSuperuser_sensitiveFieldsAreExists() {
-        LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
                 "admin", "admin_strong_pass"
         );
-        ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
-        String superUserCookie = loginResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
 
-        RegisterUserDtoRequest registerRequest1 = new RegisterUserDtoRequest(
+        final RegisterUserDtoRequest registerRequest1 = new RegisterUserDtoRequest(
                 "user1", "user1@email.com", "w3ryStr0nGPa55wD"
         );
-        ResponseEntity<UserDtoResponse> registerResponse = registerUser(registerRequest1);
-        int userId1 = registerResponse.getBody().getId();
+        final ResponseEntity<UserDtoResponse> registerResponse1 = registerUser(registerRequest1);
+        final int userId1 = registerResponse1.getBody().getId();
 
-        RegisterUserDtoRequest registerRequest2 = new RegisterUserDtoRequest(
+        final RegisterUserDtoRequest registerRequest2 = new RegisterUserDtoRequest(
                 "user2", "user2@email.com", "w3ryStr0nGPa55wD"
         );
-        registerResponse = registerUser(registerRequest2);
-        int userId2 = registerResponse.getBody().getId();
+        final ResponseEntity<UserDtoResponse> registerResponse2 = registerUser(registerRequest2);
+        final int userId2 = registerResponse2.getBody().getId();
 
-        ResponseEntity<UserDetailsListDtoResponse> usersResponse = executeRequest(
-                SERVER_URL + "/users",
-                HttpMethod.GET,
-                superUserCookie,
-                null,
-                UserDetailsListDtoResponse.class
-        );
+        final ResponseEntity<UserDetailsListDtoResponse> usersResponse = getUsers(superUserToken);
         assertEquals(HttpStatus.OK, usersResponse.getStatusCode());
         assertNotNull(usersResponse.getBody());
 
-        List<UserDetailsDtoResponse> userDetails = usersResponse.getBody().getUsers();
+        final List<UserDetailsDtoResponse> userDetails = usersResponse.getBody().getUsers();
         assertEquals(3, userDetails.size());
         assertEquals("admin", userDetails.get(0).getName());
         assertEquals(UserStatus.FULL.name(), userDetails.get(0).getStatus());
@@ -355,6 +461,25 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
     }
 
     @Test
+    void testGetUsers_userHaventSession_shouldReturnBadRequestExceptionDto() {
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        logoutUser(superUserToken);
+
+        try {
+            getUsers(superUserToken);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getErrorCauseField()));
+        }
+    }
+
+    @Test
     void testMadeSuperuser() {
         final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
                 "regular", "regular@email.com", "w3ryStr0nGPa55wD"
@@ -366,22 +491,99 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                 "admin", "admin_strong_pass"
         );
         final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
-        final String superUserCookie = loginResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
 
-        final ResponseEntity<EmptyDtoResponse> madeSuperuserResponse = madeSuperuser(superUserCookie, regularUserId);
+        final ResponseEntity<EmptyDtoResponse> madeSuperuserResponse = madeSuperuser(superUserToken, regularUserId);
         assertEquals(HttpStatus.OK, madeSuperuserResponse.getStatusCode());
         assertNotNull(madeSuperuserResponse.getBody());
         assertEquals("{}", madeSuperuserResponse.getBody().toString());
 
-        final ResponseEntity<UserDetailsListDtoResponse> usersResponse = executeRequest(
-                SERVER_URL + "/users",
-                HttpMethod.GET,
-                superUserCookie,
-                null,
-                UserDetailsListDtoResponse.class
-        );
+        final ResponseEntity<UserDetailsListDtoResponse> usersResponse = getUsers(superUserToken);
         final UserDetailsDtoResponse regularUser = usersResponse.getBody().getUsers().get(1);
         assertTrue(regularUser.isSuper());
+    }
+
+    @Test
+    void testMadeSuperuser_newSuperuserWasBanned_shouldUnbanAndMadeSuperuser() {
+        final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
+                "regular", "regular@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> registerResponse = registerUser(registerRequest);
+        final int regularUserId = registerResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+
+        final ResponseEntity<EmptyDtoResponse> banResponse = banUser(superUserToken, regularUserId);
+        assertEquals(HttpStatus.OK, banResponse.getStatusCode());
+        assertNotNull(banResponse.getBody());
+        assertEquals("{}", banResponse.getBody().toString());
+
+        final ResponseEntity<EmptyDtoResponse> madeSuperuserResponse = madeSuperuser(superUserToken, regularUserId);
+        assertEquals(HttpStatus.OK, madeSuperuserResponse.getStatusCode());
+        assertNotNull(madeSuperuserResponse.getBody());
+        assertEquals("{}", madeSuperuserResponse.getBody().toString());
+
+        final ResponseEntity<UserDetailsListDtoResponse> usersListResponse = getUsers(superUserToken);
+        assertNotNull(usersListResponse.getBody());
+
+        final UserDetailsDtoResponse newSuperuser = usersListResponse.getBody().getUsers().get(1);
+        assertEquals(regularUserId, newSuperuser.getId());
+        assertTrue(newSuperuser.isSuper());
+        assertNull(newSuperuser.getTimeBanExit());
+        assertEquals(UserStatus.FULL.name(), newSuperuser.getStatus());
+    }
+
+    @Test
+    void testMadeSuperuser_newSuperuserWasBannedPermanently_shouldUnbanAndMadeSuperuser() {
+        final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
+                "regular", "regular@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> registerResponse = registerUser(registerRequest);
+        final String regularUserToken = getSessionTokenFromHeaders(registerResponse);
+        final int regularUserId = registerResponse.getBody().getId();
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "Acme", ForumType.MODERATED.name()
+        );
+        final ResponseEntity<ForumDtoResponse> moderatedForumResponse = createForum(
+                createForumRequest, regularUserToken
+        );
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+
+        banUser(superUserToken, regularUserId);
+        banUser(superUserToken, regularUserId);
+        banUser(superUserToken, regularUserId);
+        banUser(superUserToken, regularUserId);
+        banUser(superUserToken, regularUserId);
+
+        final ResponseEntity<EmptyDtoResponse> madeSuperuserResponse = madeSuperuser(superUserToken, regularUserId);
+        assertEquals(HttpStatus.OK, madeSuperuserResponse.getStatusCode());
+        assertNotNull(madeSuperuserResponse.getBody());
+        assertEquals("{}", madeSuperuserResponse.getBody().toString());
+
+        final ResponseEntity<UserDetailsListDtoResponse> usersListResponse = getUsers(superUserToken);
+        assertNotNull(usersListResponse.getBody());
+
+        final UserDetailsDtoResponse newSuperuser = usersListResponse.getBody().getUsers().get(1);
+        assertEquals(regularUserId, newSuperuser.getId());
+        assertTrue(newSuperuser.isSuper());
+        assertNull(newSuperuser.getTimeBanExit());
+        assertEquals(UserStatus.FULL.name(), newSuperuser.getStatus());
+
+        final ResponseEntity<ForumInfoDtoResponse> forumInfoResponse = getForum(
+                regularUserToken, moderatedForumResponse.getBody().getId()
+        );
+        assertNotNull(forumInfoResponse.getBody());
+        assertFalse(forumInfoResponse.getBody().isReadonly());
     }
 
     @Test
@@ -390,7 +592,7 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                 "regular", "regular@email.com", "w3ryStr0nGPa55wD"
         );
         final ResponseEntity<UserDtoResponse> registerFirstUserResponse = registerUser(registerFirstUserRequest);
-        final String firstUserCookie = registerFirstUserResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final String firstUserCookie = getSessionTokenFromHeaders(registerFirstUserResponse);
 
         final RegisterUserDtoRequest registerSecondUserRequest = new RegisterUserDtoRequest(
                 "regular2", "regular2@email.com", "w3ryStr0nGPa55wD"
@@ -409,6 +611,49 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
     }
 
     @Test
+    void testMadeSuperuser_userNotFound_shouldReturnNotFoundExceptionDto() {
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+
+        try {
+            madeSuperuser(superUserToken, 48151623);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testMadeSuperuser_userHaventSession_shouldReturnBadRequestExceptionDto() {
+        final RegisterUserDtoRequest registerRequest = new RegisterUserDtoRequest(
+            "regular", "regular@email.com", "w3ryStr0nGPa55wD"
+    );
+        final ResponseEntity<UserDtoResponse> registerResponse = registerUser(registerRequest);
+        final int regularUserId = registerResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        logoutUser(superUserToken);
+
+        try {
+            madeSuperuser(superUserToken, regularUserId);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getErrorCauseField()));
+        }
+    }
+
+    @Test
     void testBanUser() {
         final RegisterUserDtoRequest registerRequest1 = new RegisterUserDtoRequest(
                 "user1", "user1@email.com", "w3ryStr0nGPa55wD"
@@ -420,20 +665,67 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
                 "admin", "admin_strong_pass"
         );
         final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
-        final String superUserCookie = loginResponse.getHeaders().getFirst(HttpHeaders.SET_COOKIE);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
 
-        final ResponseEntity<EmptyDtoResponse> banResponse = banUser(superUserCookie, userId);
+        final ResponseEntity<EmptyDtoResponse> banResponse = banUser(superUserToken, userId);
         assertEquals(HttpStatus.OK, banResponse.getStatusCode());
         assertNotNull(banResponse.getBody());
         assertEquals("{}", banResponse.getBody().toString());
 
-        final ResponseEntity<UserDetailsListDtoResponse> usersResponse = executeRequest(
-                SERVER_URL + "/users", HttpMethod.GET, superUserCookie,
-                null, UserDetailsListDtoResponse.class
-        );
+        final ResponseEntity<UserDetailsListDtoResponse> usersResponse = getUsers(superUserToken);
+        assertNotNull(usersResponse.getBody());
         final List<UserDetailsDtoResponse> userDetails = usersResponse.getBody().getUsers();
-        assertEquals(userId, userDetails.get(1).getId());
-        assertEquals(UserStatus.LIMITED.name(), userDetails.get(1).getStatus());
+
+        final UserDetailsDtoResponse bannedUser = userDetails.get(1);
+        assertEquals(userId, bannedUser.getId());
+        assertNotNull(bannedUser.getTimeBanExit());
+        assertEquals(UserStatus.LIMITED.name(), bannedUser.getStatus());
+    }
+
+    @Test
+    void testBanUser_receivedPermanentBan_shouldMadeReadonlyHisModeratedForums() {
+        final RegisterUserDtoRequest forumOwnerRegisterRequest = new RegisterUserDtoRequest(
+                "user1", "user1@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> registerResponse = registerUser(forumOwnerRegisterRequest);
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerResponse);
+        final int forumOwnerId = registerResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+
+        final CreateForumDtoRequest createForumRequest1 = new CreateForumDtoRequest(
+                "Acme", ForumType.MODERATED.name()
+        );
+        final ResponseEntity<ForumDtoResponse> moderatedForumResponse = createForum(
+                createForumRequest1, forumOwnerToken
+        );
+
+        final CreateForumDtoRequest createForumRequest2 = new CreateForumDtoRequest(
+                "Brooklyn", ForumType.UNMODERATED.name()
+        );
+        final ResponseEntity<ForumDtoResponse> unmoderatedForumResponse = createForum(
+                createForumRequest2, forumOwnerToken
+        );
+
+        banUser(superUserToken, forumOwnerId);
+        banUser(superUserToken, forumOwnerId);
+        banUser(superUserToken, forumOwnerId);
+        banUser(superUserToken, forumOwnerId);
+        banUser(superUserToken, forumOwnerId);
+
+        final ResponseEntity<ForumInfoDtoResponse> moderatedForum = getForum(
+                superUserToken, moderatedForumResponse.getBody().getId()
+        );
+        assertTrue(moderatedForum.getBody().isReadonly());
+
+        final ResponseEntity<ForumInfoDtoResponse> unmoderatedForum = getForum(
+                superUserToken, unmoderatedForumResponse.getBody().getId()
+        );
+        assertFalse(unmoderatedForum.getBody().isReadonly());
     }
 
     @Test
@@ -481,6 +773,49 @@ public class UserControllerIntegrationTest extends BaseIntegrationEnvironment {
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.name()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getErrorCauseField()));
             assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getMessage()));
+        }
+    }
+
+    @Test
+    void testBanUser_bannedUserNotFound_shouldReturnNotFoundExceptionDto() {
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+
+        try {
+            banUser(superUserToken, 48151623);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_NOT_FOUND.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testBanUser_userHaventSession_shouldReturnBadRequestExceptionDto() {
+        final RegisterUserDtoRequest registerRequest1 = new RegisterUserDtoRequest(
+                "user1", "user1@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> registerResponse = registerUser(registerRequest1);
+        final int userId = registerResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        logoutUser(superUserToken);
+
+        try {
+            banUser(superUserToken, userId);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.NO_USER_SESSION.getErrorCauseField()));
         }
     }
 }

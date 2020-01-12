@@ -152,7 +152,7 @@ class UserServiceTest {
         try {
             userService.deleteUser(token);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, e.getErrorCode());
         }
 
         verify(sessionDao)
@@ -265,7 +265,7 @@ class UserServiceTest {
         try {
             userService.logout(sessionToken);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, e.getErrorCode());
         }
         verify(sessionDao)
                 .getUserByToken(anyString());
@@ -344,7 +344,7 @@ class UserServiceTest {
         try {
             userService.logout(sessionToken);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, e.getErrorCode());
         }
         verify(sessionDao)
                 .getUserByToken(anyString());
@@ -451,7 +451,7 @@ class UserServiceTest {
         try {
             userService.madeSuperuser(sessionToken, 456);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, e.getErrorCode());
         }
 
         verify(sessionDao)
@@ -646,7 +646,7 @@ class UserServiceTest {
         try {
             userService.banUser(sessionToken, 456);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, e.getErrorCode());
         }
 
         verify(sessionDao)
@@ -869,7 +869,7 @@ class UserServiceTest {
         try {
             userService.getUsers(sessionToken);
         } catch (ServerException e) {
-            assertEquals(ErrorCode.WRONG_SESSION_TOKEN, e.getErrorCode());
+            assertEquals(ErrorCode.NO_USER_SESSION, e.getErrorCode());
         }
         verify(sessionDao).getUserByToken(eq(sessionToken));
         verifyZeroInteractions(userDao);

@@ -154,7 +154,7 @@ class SessionControllerTest {
     static Stream<Arguments> loginUserServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR, HttpStatus.BAD_REQUEST),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN, HttpStatus.BAD_REQUEST),
+                Arguments.arguments(ErrorCode.NO_USER_SESSION, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_NAME_ALREADY_USED, HttpStatus.BAD_REQUEST),
                 Arguments.arguments(ErrorCode.USER_NOT_FOUND, HttpStatus.NOT_FOUND),
                 Arguments.arguments(ErrorCode.INVALID_PASSWORD, HttpStatus.BAD_REQUEST)
@@ -209,7 +209,7 @@ class SessionControllerTest {
     static Stream<Arguments> logoutServiceExceptions() {
         return Stream.of(
                 Arguments.arguments(ErrorCode.DATABASE_ERROR),
-                Arguments.arguments(ErrorCode.WRONG_SESSION_TOKEN)
+                Arguments.arguments(ErrorCode.NO_USER_SESSION)
         );
     }
 

@@ -28,7 +28,7 @@ public abstract class ServiceBase {
     protected User getUserBySession(final String token) throws ServerException {
         final User user = sessionDao.getUserByToken(token);
         if (user == null) {
-            throw new ServerException(ErrorCode.WRONG_SESSION_TOKEN);
+            throw new ServerException(ErrorCode.NO_USER_SESSION);
         }
         return user;
     }

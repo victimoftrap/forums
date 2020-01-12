@@ -80,6 +80,18 @@ public class MessageService extends ServiceBase {
         }
     }
 
+    private void checkIsMessagesPublished(final MessageItem message) throws ServerException {
+        if (message.getHistory().get(0).getState() == MessageState.UNPUBLISHED) {
+            throw new ServerException(ErrorCode.MESSAGE_NOT_PUBLISHED);
+        }
+    }
+
+    private void checkMessageIsComment(final MessageItem message) throws ServerException {
+        if (message.getParentMessage() != null) {
+            throw new ServerException(ErrorCode.UNABLE_OPERATION_FOR_COMMENT);
+        }
+    }
+
     public MessageDtoResponse addMessage(
             final String token,
             final int forumId,
@@ -120,9 +132,7 @@ public class MessageService extends ServiceBase {
         checkUserBanned(creator);
 
         final MessageItem parentMessage = getMessageById(parentId);
-        if (parentMessage.getHistory().get(0).getState() == MessageState.UNPUBLISHED) {
-            throw new ServerException(ErrorCode.MESSAGE_NOT_PUBLISHED);
-        }
+        checkIsMessagesPublished(parentMessage);
 
         final MessageTree messageTree = parentMessage.getMessageTree();
         final Forum forum = messageTree.getForum();
@@ -156,8 +166,11 @@ public class MessageService extends ServiceBase {
         final Forum forum = deletingMessage.getMessageTree().getForum();
         checkIsForumReadOnly(forum);
 
-        if (!deletingMessage.getChildrenComments().isEmpty()) {
-            throw new ServerException(ErrorCode.MESSAGE_HAS_COMMENTS);
+        final List<MessageItem> comments = deletingMessage.getChildrenComments();
+        for (final MessageItem comment : comments) {
+            if (comment.getHistory().get(0).getState() == MessageState.PUBLISHED) {
+                throw new ServerException(ErrorCode.MESSAGE_HAS_COMMENTS);
+            }
         }
 
         if (deletingMessage.getParentMessage() == null) {
@@ -210,13 +223,14 @@ public class MessageService extends ServiceBase {
         final User requesterUser = getUserBySession(token);
         checkUserBanned(requesterUser);
 
-        final MessageItem editingMessage = getMessageById(messageId);
-        checkPermission(editingMessage.getOwner(), requesterUser);
+        final MessageItem otherPriorityMessage = getMessageById(messageId);
+        checkMessageIsComment(otherPriorityMessage);
+        checkPermission(otherPriorityMessage.getOwner(), requesterUser);
 
-        final Forum forum = editingMessage.getMessageTree().getForum();
+        final Forum forum = otherPriorityMessage.getMessageTree().getForum();
         checkIsForumReadOnly(forum);
 
-        final MessageTree tree = editingMessage.getMessageTree();
+        final MessageTree tree = otherPriorityMessage.getMessageTree();
         tree.setPriority(getMessagePriority(request.getPriority()));
         messageTreeDao.changeBranchPriority(tree);
         return new EmptyDtoResponse();
@@ -296,6 +310,13 @@ public class MessageService extends ServiceBase {
         checkUserBannedPermanently(requesterUser);
 
         final MessageItem ratedMessage = getMessageById(messageId);
+        checkIsMessagesPublished(ratedMessage);
+
+        final User messageOwner = ratedMessage.getOwner();
+        if (messageOwner.equals(requesterUser)) {
+            throw new ServerException(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE);
+        }
+
         if (request.getValue() == null) {
             ratingDao.deleteRate(ratedMessage, requesterUser);
         } else {
@@ -318,11 +339,16 @@ public class MessageService extends ServiceBase {
         return receivedNoComments;
     }
 
-    private boolean getUnpublishedSetting(@Nullable final Boolean receivedUnpublished) {
-        if (receivedUnpublished == null) {
+    private boolean getUnpublishedSetting(
+            final Forum forum, final User requesterUser, @Nullable final Boolean receivedUnpublished) {
+        if (receivedUnpublished == null || !receivedUnpublished) {
             return false;
         }
-        return receivedUnpublished;
+        if (forum.getType() == ForumType.UNMODERATED) {
+             return false;
+        }
+        final User forumOwner = forum.getOwner();
+        return forumOwner.equals(requesterUser);
     }
 
     private MessageOrder getMessageOrder(@Nullable final String receivedOrder) {
@@ -335,21 +361,27 @@ public class MessageService extends ServiceBase {
     public MessageInfoDtoResponse getMessage(
             final String token,
             final int messageId,
-            @Nullable final Boolean allVersions,
-            @Nullable final Boolean noComments,
-            @Nullable final Boolean unpublished,
-            @Nullable final String order
+            @Nullable final Boolean receivedAllVersions,
+            @Nullable final Boolean receivedNoComments,
+            @Nullable final Boolean receivedUnpublished,
+            @Nullable final String receivedOrder
     ) throws ServerException {
-        getUserBySession(token);
+        final User requesterUser = getUserBySession(token);
 
-        final boolean realAllVersions = getAllVersionsSetting(allVersions);
-        final boolean realNoComments = getNoCommentsSetting(noComments);
-        final boolean realUnpublished = getUnpublishedSetting(unpublished);
-        final MessageOrder realOrder = getMessageOrder(order);
+        final MessageItem rawMessage = getMessageById(messageId);
+        if (rawMessage.getParentMessage() != null) {
+            throw new ServerException(ErrorCode.UNABLE_OPERATION_FOR_COMMENT);
+        }
+
+        final Forum forum = rawMessage.getMessageTree().getForum();
+        final boolean unpublished = getUnpublishedSetting(forum, requesterUser, receivedUnpublished);
+
+        final boolean allVersions = getAllVersionsSetting(receivedAllVersions);
+        final boolean noComments = getNoCommentsSetting(receivedNoComments);
+        final MessageOrder order = getMessageOrder(receivedOrder);
 
         final MessageItem rootMessage = messageTreeDao.getTreeRootMessage(
-                messageId, realOrder,
-                realNoComments, realAllVersions, realUnpublished
+                messageId, order, noComments, allVersions, unpublished
         );
         if (rootMessage == null) {
             throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
@@ -360,28 +392,26 @@ public class MessageService extends ServiceBase {
     public ListMessageInfoDtoResponse getForumMessageList(
             final String token,
             final int forumId,
-            @Nullable final Boolean allVersions,
-            @Nullable final Boolean noComments,
-            @Nullable final Boolean unpublished,
+            @Nullable final Boolean receivedAllVersions,
+            @Nullable final Boolean receivedNoComments,
+            @Nullable final Boolean receivedUnpublished,
             @Nullable final List<String> tags,
-            @Nullable final String order,
-            @Nullable final Integer offset,
-            @Nullable final Integer limit
+            @Nullable final String receivedOrder,
+            @Nullable final Integer receivedOffset,
+            @Nullable final Integer receivedLimit
     ) throws ServerException {
-        getUserBySession(token);
-        getForumById(forumId);
+        final User requesterUser = getUserBySession(token);
+        final Forum forum = getForumById(forumId);
+        final boolean unpublished = getUnpublishedSetting(forum, requesterUser, receivedUnpublished);
 
-        final boolean realAllVersions = getAllVersionsSetting(allVersions);
-        final boolean realNoComments = getNoCommentsSetting(noComments);
-        final boolean realUnpublished = getUnpublishedSetting(unpublished);
-        final MessageOrder realOrder = getMessageOrder(order);
-        final int realOffset = getPaginationOffset(offset);
-        final int realLimit = getPaginationLimit(limit);
+        final boolean allVersions = getAllVersionsSetting(receivedAllVersions);
+        final boolean noComments = getNoCommentsSetting(receivedNoComments);
+        final MessageOrder order = getMessageOrder(receivedOrder);
+        final int offset = getPaginationOffset(receivedOffset);
+        final int limit = getPaginationLimit(receivedLimit);
 
         final List<MessageTree> messageTrees = messageTreeDao.getForumTrees(
-                forumId,
-                realAllVersions, realNoComments, realUnpublished,
-                tags, realOrder, realOffset, realLimit
+                forumId, allVersions, noComments, unpublished, tags, order, offset, limit
         );
         return new ListMessageInfoDtoResponse(
                 MessageConverter.messageListToResponse(messageTrees)
