@@ -10,7 +10,8 @@ public enum ValidatedRequestFieldName {
     MESSAGE_SUBJECT("subject"),
     MESSAGE_BODY("body"),
     MESSAGE_PRIORITY("priority"),
-    PUBLICATION_DECISION("decision");
+    PUBLICATION_DECISION("decision"),
+    RATE_VALUE("value");
 
     private String name;
 
