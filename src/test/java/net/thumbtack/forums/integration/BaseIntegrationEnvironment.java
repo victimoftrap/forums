@@ -7,6 +7,7 @@ import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
 import net.thumbtack.forums.dto.responses.message.*;
+import net.thumbtack.forums.dto.responses.statistic.*;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
@@ -259,6 +260,62 @@ public class BaseIntegrationEnvironment {
                 ListMessageInfoDtoResponse.class,
                 forumId, allVersions, noComments, unpublished, order,
                 limit, offset, tags == null ? null : tags.toArray()
+        );
+    }
+
+    protected ResponseEntity<MessageRatingListDtoResponse> getMessagesRatings(
+            String token, Integer forumId, Integer limit, Integer offset) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/messages/ratings?forum-id={forum}&limit={lim}&offset={off}",
+                HttpMethod.GET,
+                httpEntity, MessageRatingListDtoResponse.class,
+                forumId, limit, offset
+        );
+    }
+
+    protected ResponseEntity<UserRatingListDtoResponse> getUsersRatings(
+            String token, Integer forumId, Integer limit, Integer offset) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/users/ratings?forum-id={forum}&limit={lim}&offset={off}",
+                HttpMethod.GET,
+                httpEntity, UserRatingListDtoResponse.class,
+                forumId, limit, offset
+        );
+    }
+
+    protected ResponseEntity<MessagesCountDtoResponse> getMessagesCount(String token, Integer forumId) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/messages/count?forum-id={forum}",
+                HttpMethod.GET, httpEntity,
+                MessagesCountDtoResponse.class, forumId
+        );
+    }
+
+    protected ResponseEntity<CommentsCountDtoResponse> getCommentsCount(String token, Integer forumId) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/comments/count?forum-id={forum}",
+                HttpMethod.GET, httpEntity,
+                CommentsCountDtoResponse.class, forumId
         );
     }
 }
