@@ -5,10 +5,10 @@ import net.thumbtack.forums.validator.message.AvailableMessagePriority;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 
 public class ChangeMessagePriorityDtoRequest {
-    @NotBlank
+    @NotNull
     @AvailableMessagePriority
     private String priority;
 

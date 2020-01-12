@@ -25,7 +25,7 @@ public class AvailableMessagePriorityValidator implements ConstraintValidator<Av
                 .buildConstraintViolationWithTemplate(message)
                 .addConstraintViolation();
 
-        if (priority == null || "".equalsIgnoreCase(priority)) {
+        if (priority == null) {
             return true;
         }
 

@@ -1,6 +1,5 @@
 package net.thumbtack.forums.integration;
 
-import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoResponse;
 import net.thumbtack.forums.model.enums.ForumType;
 import net.thumbtack.forums.model.enums.MessageState;
 import net.thumbtack.forums.model.enums.MessagePriority;
@@ -14,6 +13,7 @@ import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
 import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 import net.thumbtack.forums.exception.ErrorCode;
 
@@ -28,6 +28,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -678,6 +679,139 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
     }
 
     @Test
+    void testEditMessage_userBanned_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final ResponseEntity<UserDtoResponse> messageCreatorResponse = registerUser(registerMessageCreatorRequest);
+        final String messageCreatorToken = getSessionTokenFromHeaders(messageCreatorResponse);
+        final int messageCreatorId = messageCreatorResponse.getBody().getId();
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        banUser(superUserToken, messageCreatorId);
+
+        try {
+            final EditMessageOrCommentDtoRequest editMessageRequest = new EditMessageOrCommentDtoRequest(
+                    "Don't be so quick to walk away"
+            );
+            editMessage(messageCreatorToken, messageId, editMessageRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testEditMessage_notMessageCreatorEditingMessage_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final RegisterUserDtoRequest registerGoofyUser = new RegisterUserDtoRequest(
+                "Goofy", "goofy@fool.com", "hjhvjwhbehvbbv"
+        );
+        final ResponseEntity<UserDtoResponse> registerGoofyUserResponse = registerUser(registerGoofyUser);
+        final String goofyUserToken = getSessionTokenFromHeaders(registerGoofyUserResponse);
+
+        try {
+            final EditMessageOrCommentDtoRequest editMessageRequest = new EditMessageOrCommentDtoRequest(
+                    "Don't be so quick to walk away"
+            );
+            editMessage(goofyUserToken, messageId, editMessageRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testEditMessage_forumReadOnly_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        publishMessage(forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+        getMessage(messageCreatorToken, messageId);
+
+        deleteUser(forumOwnerToken);
+        try {
+            final EditMessageOrCommentDtoRequest editMessageRequest = new EditMessageOrCommentDtoRequest(
+                    "Don't be so quick to walk away"
+            );
+            editMessage(messageCreatorToken, messageId, editMessageRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_READ_ONLY.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_READ_ONLY.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_READ_ONLY.getErrorCauseField()));
+        }
+    }
+
+    @Test
     void testChangeMessagePriority() {
         final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
                 "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
@@ -726,6 +860,209 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
     }
 
     @Test
+    void testChangeMessagePriority_userBanned_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "DOM", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Sam", "sam@bridges.com", "brhbwerDAreb4"
+        );
+        final ResponseEntity<UserDtoResponse> messageCreatorResponse = registerUser(registerMessageCreatorRequest);
+        final String messageCreatorToken = getSessionTokenFromHeaders(messageCreatorResponse);
+        final int messageCreatorId = messageCreatorResponse.getBody().getId();
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        publishMessage(forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        banUser(superUserToken, messageCreatorId);
+
+        try {
+            changePriority(
+                    messageCreatorToken, messageId,
+                    new ChangeMessagePriorityDtoRequest(MessagePriority.HIGH.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testChangeMessagePriority_messageNotFound_shouldReturnNotFound() {
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        try {
+            changePriority(
+                    messageCreatorToken, 48151623,
+                    new ChangeMessagePriorityDtoRequest(MessagePriority.HIGH.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testCreateComment_tryingToChangePriorityOfComment_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final ResponseEntity<ForumDtoResponse> createForumResponse = createForum(
+                createForumRequest, forumOwnerToken
+        );
+        final int forumId = createForumResponse.getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body",
+                MessagePriority.LOW.name(), Arrays.asList("Greetings", "Hello")
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final CreateCommentDtoRequest createCommentRequest = new CreateCommentDtoRequest("Comment #1");
+        final ResponseEntity<MessageDtoResponse> createCommentResponse = createComment(
+                forumOwnerToken, messageId, createCommentRequest
+        );
+        assertEquals(HttpStatus.OK, createCommentResponse.getStatusCode());
+        assertNotNull(createCommentResponse.getBody());
+        assertEquals(MessageState.PUBLISHED.name(), createCommentResponse.getBody().getState());
+        final int commentId = createCommentResponse.getBody().getId();
+
+        try {
+            changePriority(forumOwnerToken, commentId,
+                    new ChangeMessagePriorityDtoRequest(MessagePriority.HIGH.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.UNABLE_OPERATION_FOR_COMMENT.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.UNABLE_OPERATION_FOR_COMMENT.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.UNABLE_OPERATION_FOR_COMMENT.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testChangeMessagePriority_notMessageCreatorChangingMessagePriority_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final RegisterUserDtoRequest registerGoofyUser = new RegisterUserDtoRequest(
+                "Goofy", "goofy@fool.com", "hjhvjwhbehvbbv"
+        );
+        final ResponseEntity<UserDtoResponse> registerGoofyUserResponse = registerUser(registerGoofyUser);
+        final String goofyUserToken = getSessionTokenFromHeaders(registerGoofyUserResponse);
+
+        try {
+            changePriority(goofyUserToken, messageId,
+                    new ChangeMessagePriorityDtoRequest(MessagePriority.HIGH.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testChangeMessagePriority_forumReadOnly_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        publishMessage(forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+        getMessage(messageCreatorToken, messageId);
+
+        deleteUser(forumOwnerToken);
+        try {
+            changePriority(messageCreatorToken, messageId,
+                    new ChangeMessagePriorityDtoRequest(MessagePriority.HIGH.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_READ_ONLY.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_READ_ONLY.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORUM_READ_ONLY.getErrorCauseField()));
+        }
+    }
+
+    @Test
     void testMadeNewBranch() {
         final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
                 "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
@@ -764,7 +1101,7 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         final int commentId = createCommentResponse.getBody().getId();
 
         final MadeBranchFromCommentDtoRequest madeBranchRequest = new MadeBranchFromCommentDtoRequest(
-                "Dreams", MessagePriority.HIGH.name(), null
+                "Dreams", MessagePriority.HIGH.name(), Collections.emptyList()
         );
         final ResponseEntity<MadeBranchFromCommentDtoResponse> madeBranchResponse = newBranchFromComment(
                 forumOwnerToken, commentId, madeBranchRequest
@@ -782,6 +1119,206 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertEquals(madeBranchRequest.getSubject(), response.getSubject());
         assertEquals(madeBranchRequest.getPriority(), response.getPriority());
         assertEquals(createCommentRequest.getBody(), response.getBody().get(0));
+    }
+
+    @Test
+    void testMadeNewBranch_messageNotFound_shouldReturnNotFound() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final ResponseEntity<ForumDtoResponse> createForumResponse = createForum(
+                createForumRequest, forumOwnerToken
+        );
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+
+        try {
+            final MadeBranchFromCommentDtoRequest madeBranchRequest = new MadeBranchFromCommentDtoRequest(
+                    "Dreams", null, Arrays.asList("Music", "70s", "Pop")
+            );
+            newBranchFromComment(
+                    forumOwnerToken, 48151623, madeBranchRequest
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testMadeNewBranch_userBanned_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> registerForumOwner = registerUser(registerForumOwnerRequest);
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerForumOwner);
+        final int forumCreatorId = registerForumOwner.getBody().getId();
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        publishMessage(forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+        getMessage(messageCreatorToken, messageId);
+
+        final RegisterUserDtoRequest registerCommentCreatorRequest = new RegisterUserDtoRequest(
+                "CommentCreator", "CommentCreator@email.com", "bbwcEWwn45jw"
+        );
+        final String commentCreatorToken = getSessionTokenFromHeaders(registerUser(registerCommentCreatorRequest));
+
+        final CreateCommentDtoRequest createCommentRequest = new CreateCommentDtoRequest("I'm a comment");
+        final ResponseEntity<MessageDtoResponse> createCommentResponse = createComment(
+                commentCreatorToken, messageId, createCommentRequest
+        );
+        assertEquals(HttpStatus.OK, createCommentResponse.getStatusCode());
+        assertNotNull(createCommentResponse.getBody());
+        assertEquals(MessageState.UNPUBLISHED.name(), createCommentResponse.getBody().getState());
+        final int commentId = createCommentResponse.getBody().getId();
+
+        publishMessage(forumOwnerToken, commentId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        banUser(superUserToken, forumCreatorId);
+
+        try {
+            final MadeBranchFromCommentDtoRequest madeBranchRequest = new MadeBranchFromCommentDtoRequest(
+                    "NewBranch", MessagePriority.HIGH.name(), null
+            );
+            newBranchFromComment(forumOwnerToken, commentId, madeBranchRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_BANNED.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testMadeNewBranch_tryingToMadeBranchFromBranch_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final ResponseEntity<ForumDtoResponse> createForumResponse = createForum(
+                createForumRequest, forumOwnerToken
+        );
+        final int forumId = createForumResponse.getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body",
+                MessagePriority.LOW.name(), Arrays.asList("Tag1", "Tag2")
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final CreateCommentDtoRequest createCommentRequest = new CreateCommentDtoRequest("Lennon");
+        final ResponseEntity<MessageDtoResponse> createCommentResponse = createComment(
+                forumOwnerToken, messageId, createCommentRequest
+        );
+        assertEquals(HttpStatus.OK, createCommentResponse.getStatusCode());
+        assertNotNull(createCommentResponse.getBody());
+        assertEquals(MessageState.PUBLISHED.name(), createCommentResponse.getBody().getState());
+
+        try {
+            final MadeBranchFromCommentDtoRequest madeBranchRequest = new MadeBranchFromCommentDtoRequest(
+                    "Imagine", MessagePriority.NORMAL.name(), Arrays.asList("Tag3", "Tag2")
+            );
+            newBranchFromComment(forumOwnerToken, messageId, madeBranchRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_ALREADY_BRANCH.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_ALREADY_BRANCH.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_ALREADY_BRANCH.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testMadeNewBranch_notForumOwnerSendRequest_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final ResponseEntity<ForumDtoResponse> createForumResponse = createForum(
+                createForumRequest, forumOwnerToken
+        );
+        final int forumId = createForumResponse.getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body",
+                MessagePriority.LOW.name(), Arrays.asList("Greetings", "Hello")
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final CreateCommentDtoRequest createCommentRequest = new CreateCommentDtoRequest("Comment #1");
+        final ResponseEntity<MessageDtoResponse> createCommentResponse = createComment(
+                forumOwnerToken, messageId, createCommentRequest
+        );
+        assertEquals(HttpStatus.OK, createCommentResponse.getStatusCode());
+        assertNotNull(createCommentResponse.getBody());
+        assertEquals(MessageState.PUBLISHED.name(), createCommentResponse.getBody().getState());
+        final int commentId = createCommentResponse.getBody().getId();
+
+        try {
+            final MadeBranchFromCommentDtoRequest madeBranchRequest = new MadeBranchFromCommentDtoRequest(
+                    "Dreams", MessagePriority.HIGH.name(), Collections.emptyList()
+            );
+            newBranchFromComment(messageCreatorToken, commentId, madeBranchRequest);
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getErrorCauseField()));
+        }
     }
 
     @Test
@@ -866,6 +1403,215 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
     }
 
     @Test
+    void testPublishMessage_forumOwnerBanned_stillAvailableToPublishMessages() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> registerForumOwner = registerUser(registerForumOwnerRequest);
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerForumOwner);
+        final int forumCreatorId = registerForumOwner.getBody().getId();
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        publishMessage(forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+        getMessage(messageCreatorToken, messageId);
+
+        final RegisterUserDtoRequest registerCommentCreatorRequest = new RegisterUserDtoRequest(
+                "CommentCreator", "CommentCreator@email.com", "bbwcEWwn45jw"
+        );
+        final String commentCreatorToken = getSessionTokenFromHeaders(registerUser(registerCommentCreatorRequest));
+
+        final CreateCommentDtoRequest createCommentRequest = new CreateCommentDtoRequest("I'm a comment");
+        final ResponseEntity<MessageDtoResponse> createCommentResponse = createComment(
+                commentCreatorToken, messageId, createCommentRequest
+        );
+        assertEquals(HttpStatus.OK, createCommentResponse.getStatusCode());
+        assertNotNull(createCommentResponse.getBody());
+        assertEquals(MessageState.UNPUBLISHED.name(), createCommentResponse.getBody().getState());
+        final int commentId = createCommentResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        banUser(superUserToken, forumCreatorId);
+
+        final ResponseEntity<EmptyDtoResponse > publicationAfterBanResponse = publishMessage(
+                forumOwnerToken, commentId, new PublicationDecisionDtoRequest(PublicationDecision.NO.name())
+        );
+        assertEquals(HttpStatus.OK, publicationAfterBanResponse.getStatusCode());
+        assertNotNull(publicationAfterBanResponse.getBody());
+        assertEquals("{}", publicationAfterBanResponse.getBody().toString());
+    }
+
+    @Test
+    void testPublishMessage_forumOwnerBannedPermanently_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final ResponseEntity<UserDtoResponse> registerForumOwner = registerUser(registerForumOwnerRequest);
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerForumOwner);
+        final int forumCreatorId = registerForumOwner.getBody().getId();
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "Fragile", "fragile@email.com", "hgfxh9ckjlDF5e"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Fragile", "I'm Fragile, but not that fragile", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        final int messageId = createMessageResponse.getBody().getId();
+
+        publishMessage(forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+        getMessage(messageCreatorToken, messageId);
+
+        final RegisterUserDtoRequest registerCommentCreatorRequest = new RegisterUserDtoRequest(
+                "CommentCreator", "CommentCreator@email.com", "bbwcEWwn45jw"
+        );
+        final String commentCreatorToken = getSessionTokenFromHeaders(registerUser(registerCommentCreatorRequest));
+
+        final CreateCommentDtoRequest createCommentRequest = new CreateCommentDtoRequest("I'm a comment");
+        final ResponseEntity<MessageDtoResponse> createCommentResponse = createComment(
+                commentCreatorToken, messageId, createCommentRequest
+        );
+        assertEquals(HttpStatus.OK, createCommentResponse.getStatusCode());
+        assertNotNull(createCommentResponse.getBody());
+        assertEquals(MessageState.UNPUBLISHED.name(), createCommentResponse.getBody().getState());
+        final int commentId = createCommentResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final ResponseEntity<UserDtoResponse> loginResponse = loginUser(loginRequest);
+        final String superUserToken = getSessionTokenFromHeaders(loginResponse);
+        banUser(superUserToken, forumCreatorId);
+        banUser(superUserToken, forumCreatorId);
+        banUser(superUserToken, forumCreatorId);
+        banUser(superUserToken, forumCreatorId);
+        banUser(superUserToken, forumCreatorId);
+
+        try {
+            publishMessage(forumOwnerToken, commentId,
+                    new PublicationDecisionDtoRequest(PublicationDecision.NO.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_PERMANENTLY_BANNED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_PERMANENTLY_BANNED.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_PERMANENTLY_BANNED.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testPublishMessage_messagePublished_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        assertEquals(MessageState.UNPUBLISHED.name(), createMessageResponse.getBody().getState());
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final ResponseEntity<EmptyDtoResponse> publishMessageResponse = publishMessage(
+                forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name())
+        );
+        assertEquals(HttpStatus.OK, publishMessageResponse.getStatusCode());
+        assertNotNull(publishMessageResponse.getBody());
+        assertEquals("{}", publishMessageResponse.getBody().toString());
+
+        try {
+            publishMessage(
+                    forumOwnerToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.NO.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_ALREADY_PUBLISHED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_ALREADY_PUBLISHED.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_ALREADY_PUBLISHED.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testPublishMessage_notForumOwnerSendRequest_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        assertEquals(MessageState.UNPUBLISHED.name(), createMessageResponse.getBody().getState());
+        final int messageId = createMessageResponse.getBody().getId();
+
+        try {
+            publishMessage(
+                    messageCreatorToken, messageId, new PublicationDecisionDtoRequest(PublicationDecision.NO.name())
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.FORBIDDEN_OPERATION.getErrorCauseField()));
+        }
+    }
+
+    @Test
     void testRateMessage() {
         final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
                 "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
@@ -903,6 +1649,59 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertNotNull(getMessageResponse.getBody());
         assertEquals(5, getMessageResponse.getBody().getRating());
         assertEquals(1, getMessageResponse.getBody().getRated());
+    }
+
+    @Test
+    void testUnrateMessage() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        assertEquals(MessageState.PUBLISHED.name(), createMessageResponse.getBody().getState());
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final ResponseEntity<EmptyDtoResponse> rateResponse1 = rateMessage(
+                forumOwnerToken, messageId, new RateMessageDtoRequest(5)
+        );
+        assertEquals(HttpStatus.OK, rateResponse1.getStatusCode());
+        assertNotNull(rateResponse1.getBody());
+        assertEquals("{}", rateResponse1.getBody().toString());
+
+        final ResponseEntity<MessageInfoDtoResponse> getMessageResponse = getMessage(forumOwnerToken, messageId);
+        assertEquals(HttpStatus.OK, getMessageResponse.getStatusCode());
+        assertNotNull(getMessageResponse.getBody());
+        assertEquals(5, getMessageResponse.getBody().getRating());
+        assertEquals(1, getMessageResponse.getBody().getRated());
+
+        final ResponseEntity<EmptyDtoResponse> rateResponse2 = rateMessage(
+                forumOwnerToken, messageId, new RateMessageDtoRequest(null)
+        );
+        assertEquals(HttpStatus.OK, rateResponse2.getStatusCode());
+        assertNotNull(rateResponse2.getBody());
+        assertEquals("{}", rateResponse2.getBody().toString());
+
+        final ResponseEntity<MessageInfoDtoResponse> getMessageResponse2 = getMessage(forumOwnerToken, messageId);
+        assertEquals(HttpStatus.OK, getMessageResponse.getStatusCode());
+        assertNotNull(getMessageResponse.getBody());
+        assertEquals(0, getMessageResponse2.getBody().getRating());
+        assertEquals(0, getMessageResponse2.getBody().getRated());
     }
 
     @Test
@@ -960,5 +1759,159 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertNotNull(getMessageResponse.getBody());
         assertEquals(4, getMessageResponse.getBody().getRating());
         assertEquals(3, getMessageResponse.getBody().getRated());
+    }
+
+    @Test
+    void testRateMessage_ratesHimself_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        assertEquals(MessageState.PUBLISHED.name(), createMessageResponse.getBody().getState());
+        final int messageId = createMessageResponse.getBody().getId();
+
+        try {
+            rateMessage(
+                    messageCreatorToken, messageId, new RateMessageDtoRequest(5)
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString()
+                    .contains(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE.name()));
+            assertTrue(ce.getResponseBodyAsString()
+                    .contains(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE.getMessage()));
+            assertTrue(ce.getResponseBodyAsString()
+                    .contains(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testRateMessage_ratesUnpublishedMessage_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.MODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        assertEquals(MessageState.UNPUBLISHED.name(), createMessageResponse.getBody().getState());
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final RegisterUserDtoRequest registerGoofyUser = new RegisterUserDtoRequest(
+                "Goofy", "goofy@fool.com", "hjhvjwhbehvbbv"
+        );
+        final ResponseEntity<UserDtoResponse> registerGoofyUserResponse = registerUser(registerGoofyUser);
+        final String goofyUserToken = getSessionTokenFromHeaders(registerGoofyUserResponse);
+        try {
+            rateMessage(
+                    goofyUserToken, messageId, new RateMessageDtoRequest(4)
+            );
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_PUBLISHED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_PUBLISHED.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_PUBLISHED.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testRateMessage_userBannedPermanently_shouldReturnBadRequest() {
+        final RegisterUserDtoRequest registerForumOwnerRequest = new RegisterUserDtoRequest(
+                "ForumOwner", "ForumOwner@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken = getSessionTokenFromHeaders(registerUser(registerForumOwnerRequest));
+
+        final CreateForumDtoRequest createForumRequest = new CreateForumDtoRequest(
+                "ForumName", ForumType.UNMODERATED.name()
+        );
+        final int forumId = createForum(createForumRequest, forumOwnerToken).getBody().getId();
+
+        final RegisterUserDtoRequest registerMessageCreatorRequest = new RegisterUserDtoRequest(
+                "MessageCreator", "MessageCreator@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String messageCreatorToken = getSessionTokenFromHeaders(registerUser(registerMessageCreatorRequest));
+
+        final CreateMessageDtoRequest createMessageRequest = new CreateMessageDtoRequest(
+                "Subject", "Message Body", null, null
+        );
+        final ResponseEntity<MessageDtoResponse> createMessageResponse = createMessage(
+                messageCreatorToken, forumId, createMessageRequest
+        );
+        assertEquals(MessageState.PUBLISHED.name(), createMessageResponse.getBody().getState());
+        final int messageId = createMessageResponse.getBody().getId();
+
+        final RegisterUserDtoRequest registerGoofyUser = new RegisterUserDtoRequest(
+                "Goofy", "goofy@fool.com", "hjhvjwhbehvbbv"
+        );
+        final ResponseEntity<UserDtoResponse> registerGoofyUserResponse = registerUser(registerGoofyUser);
+        final String goofyUserToken = getSessionTokenFromHeaders(registerGoofyUserResponse);
+        final int goofyUserId = registerGoofyUserResponse.getBody().getId();
+
+        final LoginUserDtoRequest loginRequest = new LoginUserDtoRequest(
+                "admin", "admin_strong_pass"
+        );
+        final String superUserToken = getSessionTokenFromHeaders(loginUser(loginRequest));
+        banUser(superUserToken, goofyUserId);
+        banUser(superUserToken, goofyUserId);
+        banUser(superUserToken, goofyUserId);
+        banUser(superUserToken, goofyUserId);
+        banUser(superUserToken, goofyUserId);
+
+        try {
+            rateMessage(goofyUserToken, messageId, new RateMessageDtoRequest(5));
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.BAD_REQUEST, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_PERMANENTLY_BANNED.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_PERMANENTLY_BANNED.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.USER_PERMANENTLY_BANNED.getErrorCauseField()));
+        }
+    }
+
+    @Test
+    void testRateMessage_messageNotFound_shouldReturnNotFound() {
+        final RegisterUserDtoRequest registerUser = new RegisterUserDtoRequest(
+                "user", "user@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String userToken = getSessionTokenFromHeaders(registerUser(registerUser));
+
+        try {
+            rateMessage(userToken, 481516, new RateMessageDtoRequest(3));
+        } catch (HttpClientErrorException ce) {
+            assertEquals(HttpStatus.NOT_FOUND, ce.getStatusCode());
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.name()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.getMessage()));
+            assertTrue(ce.getResponseBodyAsString().contains(ErrorCode.MESSAGE_NOT_FOUND.getErrorCauseField()));
+        }
     }
 }

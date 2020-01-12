@@ -446,7 +446,6 @@ class MessageControllerTest {
                 Arguments.arguments("", MessagePriority.NORMAL.name(), ValidatedRequestFieldName.MESSAGE_SUBJECT),
                 Arguments.arguments(null, MessagePriority.NORMAL.name(), ValidatedRequestFieldName.MESSAGE_SUBJECT),
                 Arguments.arguments("Subject", "", ValidatedRequestFieldName.MESSAGE_PRIORITY),
-                Arguments.arguments("Subject", null, ValidatedRequestFieldName.MESSAGE_PRIORITY),
                 Arguments.arguments("Subject", "EXTRA_HIGH", ValidatedRequestFieldName.MESSAGE_PRIORITY)
         );
     }
@@ -481,6 +480,36 @@ class MessageControllerTest {
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verifyZeroInteractions(mockMessageService);
+    }
+
+    @Test
+    void testMadeNewBranch_emptyTagNames_shouldReturnExceptionDto() throws Exception {
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "Subject", MessagePriority.LOW.name(), Arrays.asList("", "normal")
+        );
+        final MadeBranchFromCommentDtoResponse response = new MadeBranchFromCommentDtoResponse(123);
+
+        when(mockMessageService
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class))
+        )
+                .thenReturn(response);
+
+        mvc.perform(
+                put("/api/messages/{id}/up", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value("tags[0]"))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService, never())
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class));
     }
 
     static Stream<Arguments> newBranchServiceExceptions() {
