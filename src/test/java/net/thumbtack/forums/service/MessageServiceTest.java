@@ -170,7 +170,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testCreateMessage_userNotFoundByToken_shouldThrowException() throws ServerException {
+    void testCreateMessage_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
@@ -310,25 +310,19 @@ class MessageServiceTest {
     }
 
     @Test
-    void testCreateComment_userNotFoundByToken_shouldThrowException() throws ServerException {
+    void testCreateComment_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
         final CreateCommentDtoRequest request = new CreateCommentDtoRequest("Comment Body");
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(null);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(null);
 
         try {
             messageService.addComment(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageDao, never())
-                .saveMessageItem(any(MessageItem.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao);
     }
 
     @Test
@@ -341,9 +335,7 @@ class MessageServiceTest {
         final String token = "token";
         final int parentMessageId = 1939;
         final CreateCommentDtoRequest request = new CreateCommentDtoRequest("Comment Body");
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(bannedUser);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(bannedUser);
 
         try {
             messageService.addComment(token, parentMessageId, request);
@@ -352,10 +344,7 @@ class MessageServiceTest {
         }
         verify(mockSessionDao)
                 .getUserByToken(anyString());
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageDao, never())
-                .saveMessageItem(any(MessageItem.class));
+        verifyZeroInteractions(mockMessageDao);
     }
 
     @Test
@@ -388,26 +377,28 @@ class MessageServiceTest {
 
     @Test
     void testCreateComment_parentMessageNotPublished_shouldThrowException() throws ServerException {
-        final User user = new User("MarvinGaye", "gaye@motown.com", "whatsGoingOn");
-        final Forum forum = new Forum(ForumType.UNMODERATED, user,
-                "Soul Music", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        final User user = new User("creator", "creator@motown.com", "whatsGoingOn");
+
+        final User forumOwner = new User("forumowner", "forumowner@email.com", "nnecnwnc31wc");
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "TestForum", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final HistoryItem parentHistory = new HistoryItem(
-                "I made new album", MessageState.UNPUBLISHED,
+                "Main Message", MessageState.UNPUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
                 user, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "My new album", parentMessage,
-                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+                forum, "Subject", parentMessage, MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
         final String token = "token";
         final int parentMessageId = 527;
-        final CreateCommentDtoRequest request = new CreateCommentDtoRequest("I prefer Fleetwood Mac");
+        final CreateCommentDtoRequest request = new CreateCommentDtoRequest("Comment");
 
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(user);
@@ -433,10 +424,11 @@ class MessageServiceTest {
                 "ForumOwner", "ForumOwner@testmail.ca", "whatsGoingOn"
         );
         final Forum readOnlyForum = new Forum(
-                ForumType.UNMODERATED, forumOwner,
+                ForumType.MODERATED, forumOwner,
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         readOnlyForum.setReadonly(true);
+
         final HistoryItem parentHistory = new HistoryItem(
                 "Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
@@ -650,7 +642,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testDeleteMessage_userNotFoundByToken_shouldThrowException() throws ServerException {
+    void testDeleteMessage_userHaventSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
 
@@ -678,7 +670,6 @@ class MessageServiceTest {
 
         final String token = "token";
         final int messageId = 951;
-
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(messageOwner);
         when(mockServerProperties.getMaxBanCount())
@@ -689,16 +680,9 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao);
     }
 
     @Test
@@ -784,7 +768,7 @@ class MessageServiceTest {
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
-        final Forum readOnlyForum = new Forum(ForumType.UNMODERATED, messageOwner,
+        final Forum readOnlyForum = new Forum(ForumType.MODERATED, messageOwner,
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         readOnlyForum.setReadonly(true);
@@ -834,7 +818,11 @@ class MessageServiceTest {
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
-        final Forum forum = new Forum(ForumType.UNMODERATED, messageOwner,
+        final User forumOwner = new User(
+                "forumowner", "forumowner@email.com", "v3ryStr0ngPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageTree tree = new MessageTree(
@@ -852,21 +840,20 @@ class MessageServiceTest {
                 "Comment 2", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem comment2 = new MessageItem(
-                messageOwner, tree, null, Collections.singletonList(commentHistory2),
+                forumOwner, tree, null, Collections.singletonList(commentHistory2),
                 commentHistory2.getCreatedAt()
         );
         final List<MessageItem> comments = Arrays.asList(comment1, comment2);
 
         final HistoryItem parentHistory = new HistoryItem(
-                "Parent Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "Parent Body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, tree, null,
-                comments, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                forumOwner, tree, null, comments,
+                Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         comment1.setParentMessage(parentMessage);
+        comment2.setParentMessage(parentMessage);
         tree.setRootMessage(parentMessage);
         tree.setCreatedAt(parentHistory.getCreatedAt());
 
@@ -874,7 +861,7 @@ class MessageServiceTest {
         final int messageId = 951;
 
         when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(messageOwner);
+                .thenReturn(forumOwner);
         when(mockServerProperties.getMaxBanCount())
                 .thenReturn(maxBanCount);
         when(mockMessageDao.getMessageById(anyInt()))
@@ -885,16 +872,10 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.MESSAGE_HAS_COMMENTS, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyNoMoreInteractions(mockMessageDao, mockMessageTreeDao);
     }
 
     @ParameterizedTest
@@ -1009,24 +990,21 @@ class MessageServiceTest {
     }
 
     @Test
-    void testEditMessage_userNotFoundByToken_shouldThrowException() throws ServerException {
+    void testEditMessage_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
         final EditMessageOrCommentDtoRequest request = new EditMessageOrCommentDtoRequest(
                 "New Root Message Body"
         );
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(null);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(null);
 
         try {
             messageService.editMessage(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verifyZeroInteractions(mockMessageDao);
-        verifyZeroInteractions(mockMessageHistoryDao);
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -1038,22 +1016,15 @@ class MessageServiceTest {
 
         final String token = "token";
         final int forumId = 1939;
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(bannedUser);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(bannedUser);
 
         try {
             messageService.editMessage(token, forumId, null);
         } catch (ServerException se) {
             assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .saveNewVersion(any(MessageItem.class));
-        verify(mockMessageHistoryDao, never())
-                .editLatestVersion(any(MessageItem.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -1099,8 +1070,7 @@ class MessageServiceTest {
         }
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
-        verify(mockMessageHistoryDao, never()).saveNewVersion(any(MessageItem.class));
-        verify(mockMessageHistoryDao, never()).editLatestVersion(any(MessageItem.class));
+        verifyZeroInteractions(mockMessageHistoryDao);
     }
 
     @Test
@@ -1205,7 +1175,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testChangePriority_userNotFoundByToken_shouldThrowException() throws ServerException {
+    void testChangePriority_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
         final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
@@ -1219,10 +1189,8 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verifyZeroInteractions(mockMessageDao);
-        verifyZeroInteractions(mockMessageTreeDao);
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao);
     }
 
     @Test
@@ -1245,12 +1213,8 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .changeBranchPriority(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao);
     }
 
     @Test
@@ -1279,6 +1243,69 @@ class MessageServiceTest {
         verify(mockMessageDao)
                 .getMessageById(anyInt());
         verifyZeroInteractions(mockMessageTreeDao);
+    }
+
+    @Test
+    void testChangePriority_tryingToChangePriorityOfComment_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.UNMODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory),
+                parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+        );
+        parentMessage.setMessageTree(tree);
+
+        final User commentOwner = new User(
+                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
+        );
+        final HistoryItem commentHistory = new HistoryItem(
+                "Comment Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentMessage = new MessageItem(
+                commentOwner, tree, parentMessage,
+                Collections.singletonList(parentHistory),
+                commentHistory.getCreatedAt()
+        );
+
+        final String token = "token";
+        final int messageId = 123;
+        final ChangeMessagePriorityDtoRequest request = new ChangeMessagePriorityDtoRequest(
+                MessagePriority.HIGH.name()
+        );
+        when(mockSessionDao.getUserByToken(anyString()))
+                .thenReturn(commentOwner);
+        when(mockMessageDao.getMessageById(anyInt()))
+                .thenReturn(commentMessage);
+
+        try {
+            messageService.changeMessagePriority(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.UNABLE_OPERATION_FOR_COMMENT, se.getErrorCode());
+        }
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockMessageDao)
+                .getMessageById(anyInt());
+        verify(mockMessageTreeDao, never())
+                .changeBranchPriority(any(MessageTree.class));
     }
 
     @Test
@@ -1524,26 +1551,21 @@ class MessageServiceTest {
     }
 
     @Test
-    void testNewBranchFromComment_userNotFound_shouldThrowException() throws ServerException {
+    void testNewBranchFromComment_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(null);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(null);
 
         try {
             messageService.newBranchFromComment(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao);
     }
 
     @Test
@@ -1558,20 +1580,15 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(forumOwner);
 
         try {
             messageService.newBranchFromComment(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.USER_BANNED, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao);
     }
 
     @Test
@@ -1585,7 +1602,6 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
-
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(forumOwner);
         when(mockMessageDao.getMessageById(anyInt()))
@@ -1596,12 +1612,9 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
     }
 
     @Test
@@ -1621,12 +1634,10 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage,
-                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -1635,7 +1646,6 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
-
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(forumOwner);
         when(mockMessageDao.getMessageById(anyInt()))
@@ -1646,12 +1656,9 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.MESSAGE_ALREADY_BRANCH, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
     }
 
     @Test
@@ -1659,39 +1666,37 @@ class MessageServiceTest {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
-        final User commentOwner = new User(
-                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
-        );
         final Forum readOnlyForum = new Forum(
                 ForumType.MODERATED, forumOwner,
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         readOnlyForum.setReadonly(true);
+
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
         final HistoryItem parentHistory = new HistoryItem(
                 "Root Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner,
-                Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
                 readOnlyForum, "TreeSubject", parentMessage, MessagePriority.NORMAL
         );
         parentMessage.setMessageTree(tree);
 
+        final User commentOwner = new User(
+                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
+        );
         final HistoryItem commentHistory = new HistoryItem(
                 "Comment Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem commentMessage = new MessageItem(
                 commentOwner, tree, parentMessage,
-                Collections.singletonList(parentHistory),
-                commentHistory.getCreatedAt()
+                Collections.singletonList(parentHistory), commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1699,7 +1704,6 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
-
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(forumOwner);
         when(mockMessageDao.getMessageById(anyInt()))
@@ -1710,12 +1714,9 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.FORUM_READ_ONLY, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
     }
 
     @Test
@@ -1723,23 +1724,20 @@ class MessageServiceTest {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
-        final User commentOwner = new User(
-                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
-        );
         final Forum forum = new Forum(
                 ForumType.UNMODERATED, forumOwner,
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
         final HistoryItem parentHistory = new HistoryItem(
                 "Root Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
                 forum, "TreeSubject", parentMessage,
@@ -1747,14 +1745,16 @@ class MessageServiceTest {
         );
         parentMessage.setMessageTree(tree);
 
+        final User commentOwner = new User(
+                "CommentOwner", "CommentOwner@email.com", "c0Mm3nTatrPa55"
+        );
         final HistoryItem commentHistory = new HistoryItem(
                 "Comment Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem commentMessage = new MessageItem(
                 commentOwner, tree, parentMessage,
-                Collections.singletonList(parentHistory),
-                commentHistory.getCreatedAt()
+                Collections.singletonList(parentHistory), commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1762,7 +1762,6 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
                 "NewTreeSubject", MessagePriority.NORMAL.name(), null
         );
-
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(commentOwner);
         when(mockMessageDao.getMessageById(anyInt()))
@@ -1773,12 +1772,9 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.FORBIDDEN_OPERATION, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .newBranch(any(MessageTree.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
     }
 
     @Test
@@ -1820,30 +1816,18 @@ class MessageServiceTest {
                 .thenReturn(maxBanCount);
         when(mockMessageDao.getMessageById(anyInt()))
                 .thenReturn(parentMessage);
-        doAnswer(invocationOnMock -> {
-            MessageItem aItem = invocationOnMock.getArgument(0);
-            aItem.getHistory().get(0).setState(MessageState.PUBLISHED);
-            return aItem;
-        })
+        doNothing()
                 .when(mockMessageDao)
                 .publish(any(MessageItem.class));
 
         messageService.publish(token, messageId, request);
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageDao)
-                .publish(any(MessageItem.class));
+        assertEquals(MessageState.PUBLISHED, parentHistory.getState());
 
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageDao).publish(any(MessageItem.class));
+        verifyNoMoreInteractions(mockMessageDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -1864,8 +1848,7 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
                 forum, "TreeSubject", parentMessage,
@@ -1887,22 +1870,13 @@ class MessageServiceTest {
                 .thenReturn(parentMessage);
 
         messageService.publish(token, messageId, request);
+        assertEquals(MessageState.UNPUBLISHED, parentHistory.getState());
 
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageTreeDao)
-                .deleteTreeById(anyInt());
-
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageTreeDao).deleteTreeById(anyInt());
+        verifyNoMoreInteractions(mockMessageDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -1923,8 +1897,7 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
                 forum, "TreeSubject", parentMessage,
@@ -1938,8 +1911,7 @@ class MessageServiceTest {
         );
         final MessageItem commentMessage = new MessageItem(
                 messageOwner, tree, parentMessage,
-                Collections.singletonList(commentHistory),
-                commentHistory.getCreatedAt()
+                Collections.singletonList(commentHistory), commentHistory.getCreatedAt()
         );
 
         final String token = "token";
@@ -1956,21 +1928,13 @@ class MessageServiceTest {
                 .thenReturn(commentMessage);
 
         messageService.publish(token, messageId, request);
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageDao)
-                .deleteMessageById(anyInt());
+        assertEquals(MessageState.UNPUBLISHED, commentHistory.getState());
 
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageDao).deleteMessageById(anyInt());
+        verifyNoMoreInteractions(mockMessageDao, mockMessageTreeDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -2024,25 +1988,17 @@ class MessageServiceTest {
                 .thenReturn(parentMessage);
 
         messageService.publish(token, messageId, request);
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockMessageHistoryDao)
-                .unpublishNewVersionBy(anyInt());
+        assertEquals(MessageState.UNPUBLISHED, multiHistory3.getState());
 
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockMessageDao).getMessageById(anyInt());
+        verify(mockMessageHistoryDao).unpublishNewVersionBy(anyInt());
+        verifyNoMoreInteractions(mockMessageDao, mockMessageTreeDao);
     }
 
     @Test
-    void testPublishMessage_userNotFound_shouldThrowException() throws ServerException {
+    void testPublishMessage_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
         final PublicationDecisionDtoRequest request = new PublicationDecisionDtoRequest(
@@ -2056,21 +2012,8 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-
-        verify(mockServerProperties, never())
-                .getMaxBanCount();
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockServerProperties, mockMessageDao, mockMessageTreeDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -2097,21 +2040,9 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -2144,15 +2075,7 @@ class MessageServiceTest {
                 .getMaxBanCount();
         verify(mockMessageDao)
                 .getMessageById(anyInt());
-
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verifyNoMoreInteractions(mockMessageDao, mockMessageTreeDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -2209,13 +2132,7 @@ class MessageServiceTest {
                 .getMaxBanCount();
         verify(mockMessageDao)
                 .getMessageById(anyInt());
-
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verifyZeroInteractions(mockMessageTreeDao);
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verifyZeroInteractions(mockMessageHistoryDao);
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -2269,15 +2186,7 @@ class MessageServiceTest {
                 .getMaxBanCount();
         verify(mockMessageDao)
                 .getMessageById(anyInt());
-
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -2331,15 +2240,7 @@ class MessageServiceTest {
                 .getMaxBanCount();
         verify(mockMessageDao)
                 .getMessageById(anyInt());
-
-        verify(mockMessageDao, never())
-                .publish(any(MessageItem.class));
-        verify(mockMessageTreeDao, never())
-                .deleteTreeById(anyInt());
-        verify(mockMessageDao, never())
-                .deleteMessageById(anyInt());
-        verify(mockMessageHistoryDao, never())
-                .unpublishNewVersionBy(anyInt());
+        verifyZeroInteractions(mockMessageDao, mockMessageTreeDao, mockMessageHistoryDao);
     }
 
     @Test
@@ -2356,12 +2257,11 @@ class MessageServiceTest {
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.UNPUBLISHED,
+                "Root Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
                 forum, "TreeSubject", parentMessage,
@@ -2373,85 +2273,17 @@ class MessageServiceTest {
         final int messageId = 123;
         final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
 
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-        when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(parentMessage);
-        doAnswer(invocationOnMock -> {
-            MessageItem aMessage = invocationOnMock.getArgument(0);
-            aMessage.setAverageRating(request.getValue());
-            return invocationOnMock;
-        })
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(forumOwner);
+        when(mockServerProperties.getMaxBanCount()).thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(parentMessage);
+        doNothing()
                 .when(mockRatingDao)
                 .upsertRating(any(MessageItem.class), any(User.class), anyInt());
 
         messageService.rate(token, messageId, request);
 
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockRatingDao)
-                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
-        verify(mockRatingDao, never())
-                .deleteRate(any(MessageItem.class), any(User.class));
-    }
-
-    @Test
-    void testUpdateRating() throws ServerException {
-        final int maxBanCount = 5;
-        final User forumOwner = new User(
-                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
-        );
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
-        final Forum forum = new Forum(
-                ForumType.MODERATED, forumOwner,
-                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
-        );
-        final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.UNPUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
-        );
-        final int oldRate = 5;
-        final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
-        );
-        parentMessage.setAverageRating(oldRate);
-        final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage,
-                MessagePriority.NORMAL, parentHistory.getCreatedAt()
-        );
-        parentMessage.setMessageTree(tree);
-
-        final String token = "token";
-        final int messageId = 123;
-        final RateMessageDtoRequest request = new RateMessageDtoRequest(3);
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-        when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(parentMessage);
-        doAnswer(invocationOnMock -> {
-            MessageItem aMessage = invocationOnMock.getArgument(0);
-            aMessage.setAverageRating(request.getValue());
-            return invocationOnMock;
-        })
-                .when(mockRatingDao)
-                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
-
-        messageService.rate(token, messageId, request);
-
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
         verify(mockRatingDao)
                 .upsertRating(any(MessageItem.class), any(User.class), anyInt());
         verify(mockRatingDao, never())
@@ -2472,18 +2304,16 @@ class MessageServiceTest {
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.UNPUBLISHED,
+                "Root Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final int oldRate = 5;
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         parentMessage.setAverageRating(oldRate);
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage,
-                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2491,10 +2321,8 @@ class MessageServiceTest {
         final int messageId = 123;
         final RateMessageDtoRequest request = new RateMessageDtoRequest(null);
 
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(forumOwner);
+        when(mockServerProperties.getMaxBanCount()).thenReturn(maxBanCount);
         when(mockMessageDao.getMessageById(anyInt()))
                 .thenReturn(parentMessage);
         doAnswer(invocationOnMock -> {
@@ -2507,10 +2335,8 @@ class MessageServiceTest {
 
         messageService.rate(token, messageId, request);
 
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
         verify(mockRatingDao)
                 .deleteRate(any(MessageItem.class), any(User.class));
         verify(mockRatingDao, never())
@@ -2518,7 +2344,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testRateMessage_userNotFound_shouldThrowException() throws ServerException {
+    void testRateMessage_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         final int messageId = 123;
         final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
@@ -2530,16 +2356,8 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties, never())
-                .getMaxBanCount();
-        verify(mockMessageDao, never())
-                .getMessageById(anyInt());
-        verify(mockRatingDao, never())
-                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
-        verify(mockRatingDao, never())
-                .deleteRate(any(MessageItem.class), any(User.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verifyZeroInteractions(mockServerProperties, mockMessageDao, mockRatingDao);
     }
 
     @Test
@@ -2564,14 +2382,9 @@ class MessageServiceTest {
         } catch (ServerException se) {
             assertEquals(ErrorCode.USER_PERMANENTLY_BANNED, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockRatingDao, never())
-                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
-        verify(mockRatingDao, never())
-                .deleteRate(any(MessageItem.class), any(User.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verifyZeroInteractions(mockMessageDao, mockRatingDao);
     }
 
     @Test
@@ -2584,28 +2397,63 @@ class MessageServiceTest {
         final String token = "token";
         final int messageId = 123;
         final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-        when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(null);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(forumOwner);
+        when(mockServerProperties.getMaxBanCount()).thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(null);
 
         try {
             messageService.rate(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
         }
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockMessageDao)
-                .getMessageById(anyInt());
-        verify(mockRatingDao, never())
-                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
-        verify(mockRatingDao, never())
-                .deleteRate(any(MessageItem.class), any(User.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockRatingDao);
+    }
+
+    @Test
+    void testRateMessage_tryingToRateUnpublishedMessage_shouldThrowException() throws ServerException {
+        final int maxBanCount = 5;
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.UNPUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL, parentHistory.getCreatedAt()
+        );
+        parentMessage.setMessageTree(tree);
+
+        final String token = "token";
+        final int messageId = 123;
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
+
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(messageOwner);
+        when(mockServerProperties.getMaxBanCount()).thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(parentMessage);
+
+        try {
+            messageService.rate(token, messageId, request);
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.MESSAGE_NOT_PUBLISHED, se.getErrorCode());
+        }
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verifyZeroInteractions(mockRatingDao);
     }
 
     @Test
@@ -2614,24 +2462,23 @@ class MessageServiceTest {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
-        final User messageOwner = new User(
-                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
-        );
         final Forum forum = new Forum(
                 ForumType.MODERATED, forumOwner,
                 "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
+
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
         final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.UNPUBLISHED,
+                "Root Message Body", MessageState.PUBLISHED,
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage,
-                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL, parentHistory.getCreatedAt()
         );
         parentMessage.setMessageTree(tree);
 
@@ -2639,66 +2486,82 @@ class MessageServiceTest {
         final int messageId = 123;
         final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
 
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(messageOwner);
-        when(mockServerProperties.getMaxBanCount())
-                .thenReturn(maxBanCount);
-        when(mockMessageDao.getMessageById(anyInt()))
-                .thenReturn(parentMessage);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(messageOwner);
+        when(mockServerProperties.getMaxBanCount()).thenReturn(maxBanCount);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(parentMessage);
 
         try {
             messageService.rate(token, messageId, request);
         } catch (ServerException se) {
             assertEquals(ErrorCode.MESSAGE_CREATOR_RATES_HIS_MESSAGE, se.getErrorCode());
         }
-
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockServerProperties)
-                .getMaxBanCount();
-        verify(mockRatingDao, never())
-                .upsertRating(any(MessageItem.class), any(User.class), anyInt());
-        verify(mockRatingDao, never())
-                .deleteRate(any(MessageItem.class), any(User.class));
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockServerProperties).getMaxBanCount();
+        verifyZeroInteractions(mockRatingDao);
     }
 
-    @Test
-    void testGetMessage() throws ServerException {
+    static Stream<Arguments> getMessageRequestParams() {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
         final User messageOwner = new User(
                 "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
         );
+        final User requester = new User(
+                "Requester", "Requester@email.com", "v3ryStr0ngPa55"
+        );
+
+        return Stream.of(
+                Arguments.arguments(forumOwner, messageOwner, requester, ForumType.UNMODERATED, true, false),
+                Arguments.arguments(forumOwner, messageOwner, messageOwner, ForumType.UNMODERATED, true, false),
+                Arguments.arguments(forumOwner, messageOwner, forumOwner, ForumType.UNMODERATED, true, false),
+
+                Arguments.arguments(forumOwner, messageOwner, requester, ForumType.MODERATED, true, false),
+                Arguments.arguments(forumOwner, messageOwner, requester, ForumType.MODERATED, false, false),
+                Arguments.arguments(forumOwner, messageOwner, requester, ForumType.MODERATED, null, false),
+
+                Arguments.arguments(forumOwner, messageOwner, messageOwner, ForumType.MODERATED, true, false),
+                Arguments.arguments(forumOwner, messageOwner, messageOwner, ForumType.MODERATED, false, false),
+                Arguments.arguments(forumOwner, messageOwner, messageOwner, ForumType.MODERATED, null, false),
+
+                Arguments.arguments(forumOwner, messageOwner, forumOwner, ForumType.MODERATED, true, true),
+                Arguments.arguments(forumOwner, messageOwner, forumOwner, ForumType.MODERATED, false, false),
+                Arguments.arguments(forumOwner, messageOwner, forumOwner, ForumType.MODERATED, null, false)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMessageRequestParams")
+    void testGetMessageWithDifferentUnpublishedParam(
+            User forumOwner, User messageOwner, User requesterUser,
+            ForumType forumType, Boolean receivedUnpublished, boolean actualUnpublished
+    ) throws ServerException {
         final Forum forum = new Forum(
-                ForumType.UNMODERATED, forumOwner, "ForumName",
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                forumType, forumOwner, "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "Root Message Body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage,
-                MessagePriority.NORMAL, parentMessage.getCreatedAt(),
-                Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL,
+                parentMessage.getCreatedAt(), Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
         );
         parentMessage.setMessageTree(tree);
 
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(requesterUser);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(parentMessage);
         when(mockMessageTreeDao
-                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean())
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), eq(actualUnpublished))
         )
                 .thenReturn(parentMessage);
 
         final String token = "token";
         final MessageInfoDtoResponse response = messageService.getMessage(
-                token, 123, true, true, false, MessageOrder.ASC.name()
+                token, 123, true,
+                true, receivedUnpublished, MessageOrder.ASC.name()
         );
         assertEquals(parentMessage.getId(), response.getId());
         assertEquals(messageOwner.getUsername(), response.getCreator());
@@ -2712,14 +2575,14 @@ class MessageServiceTest {
         assertEquals(tree.getTags().get(1).getName(), response.getTags().get(1));
         assertTrue(response.getComments().isEmpty());
 
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao)
-                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean());
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), eq(actualUnpublished));
     }
 
     @Test
-    void testGetMessage_queryParamsNotReceived_shouldApplyDefaultSettings() throws ServerException {
+    void testGetMessage_orderAllVersionsAndNoCommentsNotReceived_shouldApplyDefaultSettings() throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
@@ -2731,32 +2594,27 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final HistoryItem parentHistory = new HistoryItem(
-                "Root Message Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "Root Message Body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage = new MessageItem(
-                messageOwner, Collections.singletonList(parentHistory),
-                parentHistory.getCreatedAt()
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
         );
         final MessageTree tree = new MessageTree(
-                forum, "TreeSubject", parentMessage,
-                MessagePriority.NORMAL, parentMessage.getCreatedAt(),
+                forum, "TreeSubject", parentMessage, MessagePriority.NORMAL, parentMessage.getCreatedAt(),
                 Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
         );
         parentMessage.setMessageTree(tree);
 
         final HistoryItem commentHistory = new HistoryItem(
-                "Comment Body", MessageState.PUBLISHED,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                "Comment Body", MessageState.PUBLISHED, LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem commentMessage = new MessageItem(
-                forumOwner, Collections.singletonList(commentHistory),
-                commentHistory.getCreatedAt()
+                forumOwner, Collections.singletonList(commentHistory), commentHistory.getCreatedAt()
         );
         parentMessage.setChildrenComments(Collections.singletonList(commentMessage));
 
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(parentMessage);
         when(mockMessageTreeDao
                 .getTreeRootMessage(
                         anyInt(), eq(MessageOrder.DESC), eq(false), eq(false), eq(false)
@@ -2766,7 +2624,7 @@ class MessageServiceTest {
 
         final String token = "token";
         final MessageInfoDtoResponse response = messageService.getMessage(
-                token, 123, null, null, null, null
+                token, 123, false, null, null, null
         );
         assertEquals(parentMessage.getId(), response.getId());
         assertEquals(messageOwner.getUsername(), response.getCreator());
@@ -2784,8 +2642,8 @@ class MessageServiceTest {
         assertEquals(commentHistory.getBody(), response.getComments().get(0).getBody().get(0));
         assertEquals(commentMessage.getOwner().getUsername(), response.getComments().get(0).getCreator());
 
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao)
                 .getTreeRootMessage(
                         anyInt(), eq(MessageOrder.DESC), eq(false), eq(false), eq(false)
@@ -2793,50 +2651,97 @@ class MessageServiceTest {
     }
 
     @Test
-    void testGetMessage_userNotFound_shouldThrowException() throws ServerException {
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenThrow(new ServerException(ErrorCode.NO_USER_SESSION));
+    void testGetMessage_noUserSession_shouldThrowException() throws ServerException {
+        when(mockSessionDao.getUserByToken(anyString())).thenThrow(new ServerException(ErrorCode.NO_USER_SESSION));
 
         final String token = "token";
         try {
             messageService.getMessage(
-                    token, 123, true, true, false, MessageOrder.ASC.name()
+                    token, 123,
+                    true, true, false, MessageOrder.ASC.name()
             );
         } catch (ServerException se) {
             assertEquals(ErrorCode.NO_USER_SESSION, se.getErrorCode());
         }
-
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
+        verify(mockSessionDao).getUserByToken(anyString());
         verifyZeroInteractions(mockMessageTreeDao);
     }
 
     @Test
-    void testGetMessage_messageNotFound_shouldThrowException() throws ServerException {
+    void testGetMessage_rawMessageNotFound_shouldThrowException() throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
         );
-
-        when(mockSessionDao.getUserByToken(anyString()))
-                .thenReturn(forumOwner);
-        when(mockMessageTreeDao
-                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean())
-        )
-                .thenReturn(null);
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(forumOwner);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(null);
 
         final String token = "token";
         try {
             messageService.getMessage(
-                    token, 123, true, true, false, MessageOrder.ASC.name()
+                    token, 123,
+                    true, true, false, MessageOrder.ASC.name()
             );
         } catch (ServerException se) {
             assertEquals(ErrorCode.MESSAGE_NOT_FOUND, se.getErrorCode());
         }
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyZeroInteractions(mockMessageTreeDao);
+    }
 
-        verify(mockSessionDao)
-                .getUserByToken(anyString());
-        verify(mockMessageTreeDao)
-                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), anyBoolean());
+    @Test
+    void testGetMessage_tryingToGetCommentAssMessage_shouldThrowException() throws ServerException {
+        final User forumOwner = new User(
+                "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
+        );
+        final Forum forum = new Forum(
+                ForumType.MODERATED, forumOwner,
+                "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final HistoryItem parentHistory = new HistoryItem(
+                "Root Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final User messageOwner = new User(
+                "MessageOwner", "MessageOwner@email.com", "v3ryStr0ngPa55"
+        );
+        final MessageItem parentMessage = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory), parentHistory.getCreatedAt()
+        );
+        final MessageTree tree = new MessageTree(
+                forum, "TreeSubject", parentMessage,
+                MessagePriority.NORMAL, parentHistory.getCreatedAt()
+        );
+        parentMessage.setMessageTree(tree);
+
+        final HistoryItem commentHistory = new HistoryItem(
+                "Comment Message Body", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem commentMessage = new MessageItem(
+                messageOwner, tree, parentMessage,
+                Collections.singletonList(commentHistory), commentHistory.getCreatedAt()
+        );
+        parentMessage.setChildrenComments(Collections.singletonList(commentMessage));
+
+        final User requester = new User(
+                "Requester", "Requester@email.com", "v3ryStr0ngPa55"
+        );
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(requester);
+        when(mockMessageDao.getMessageById(anyInt())).thenReturn(commentMessage);
+
+        final String token = "token";
+        try {
+            messageService.getMessage(token, 123,
+                    true, true, false, MessageOrder.ASC.name()
+            );
+        } catch (ServerException se) {
+            assertEquals(ErrorCode.UNABLE_OPERATION_FOR_COMMENT, se.getErrorCode());
+        }
+        verify(mockSessionDao).getUserByToken(anyString());
+        verify(mockMessageDao).getMessageById(anyInt());
+        verifyNoMoreInteractions(mockMessageTreeDao);
     }
 
     @Test
@@ -2844,10 +2749,6 @@ class MessageServiceTest {
         final String token = "token";
         final User requesterUser = new User(
                 "RequesterUser", "RequesterUser@email.com", "v3ryStr0ngPa55"
-        );
-
-        final User commentCreator = new User(
-                "CommentCreator", "creator@mail.com", "COOLpassw0rd"
         );
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
@@ -2862,8 +2763,7 @@ class MessageServiceTest {
                 LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem parentMessage1 = new MessageItem(
-                forumOwner, Collections.singletonList(parentHistory1),
-                parentHistory1.getCreatedAt()
+                forumOwner, Collections.singletonList(parentHistory1), parentHistory1.getCreatedAt()
         );
         final MessageTree tree1 = new MessageTree(
                 forum, "TreeSubject-1", parentMessage1,
@@ -2872,6 +2772,9 @@ class MessageServiceTest {
         );
         parentMessage1.setMessageTree(tree1);
 
+        final User commentCreator = new User(
+                "CommentCreator", "creator@mail.com", "COOLpassw0rd"
+        );
         final HistoryItem commentHistory1 = new HistoryItem(
                 "Comment #1", MessageState.PUBLISHED,
                 LocalDateTime.now()
@@ -2879,8 +2782,7 @@ class MessageServiceTest {
                         .truncatedTo(ChronoUnit.SECONDS)
         );
         final MessageItem comment1 = new MessageItem(
-                commentCreator, Collections.singletonList(commentHistory1),
-                commentHistory1.getCreatedAt()
+                commentCreator, Collections.singletonList(commentHistory1), commentHistory1.getCreatedAt()
         );
         parentMessage1.setChildrenComments(Collections.singletonList(comment1));
 
@@ -2971,6 +2873,72 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                );
+    }
+
+    @ParameterizedTest
+    @MethodSource("getMessageRequestParams")
+    void testGetMessageListWithDifferentUnpublishedParam(
+            User forumOwner, User messageOwner, User requesterUser,
+            ForumType forumType, Boolean receivedUnpublished, boolean actualUnpublished
+    ) throws ServerException {
+        final Forum forum = new Forum(
+                forumType, forumOwner, "ForumName", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+
+        final HistoryItem parentHistory1 = new HistoryItem(
+                "Root Body #1", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage1 = new MessageItem(
+                forumOwner, Collections.singletonList(parentHistory1), parentHistory1.getCreatedAt()
+        );
+        final MessageTree tree1 = new MessageTree(
+                forum, "TreeSubject-1", parentMessage1,
+                MessagePriority.NORMAL, parentMessage1.getCreatedAt(),
+                Arrays.asList(new Tag("Tag1"), new Tag("Tag2"))
+        );
+        parentMessage1.setMessageTree(tree1);
+
+        final HistoryItem parentHistory2 = new HistoryItem(
+                "Root Body #2", MessageState.PUBLISHED,
+                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        );
+        final MessageItem parentMessage2 = new MessageItem(
+                messageOwner, Collections.singletonList(parentHistory2),
+                parentHistory2.getCreatedAt()
+        );
+        final MessageTree tree2 = new MessageTree(
+                forum, "TreeSubject-2", parentMessage2,
+                MessagePriority.NORMAL, parentMessage2.getCreatedAt(),
+                Arrays.asList(new Tag("Tag3"), new Tag("Tag2"))
+        );
+        parentMessage2.setMessageTree(tree2);
+
+        when(mockSessionDao.getUserByToken(anyString())).thenReturn(requesterUser);
+        when(mockForumDao.getById(anyInt())).thenReturn(forum);
+        when(mockMessageTreeDao
+                .getForumTrees(
+                        anyInt(), anyBoolean(), anyBoolean(), eq(actualUnpublished),
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                )
+        )
+                .thenReturn(Arrays.asList(tree2, tree1));
+
+        final String token = "token";
+        messageService.getForumMessageList(
+                token, 123, true, true, receivedUnpublished,
+                Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
+        );
+
+        verify(mockSessionDao)
+                .getUserByToken(anyString());
+        verify(mockForumDao)
+                .getById(anyInt());
+        verify(mockMessageTreeDao)
+                .getForumTrees(
+                        anyInt(), anyBoolean(), anyBoolean(), eq(actualUnpublished),
                         anyList(), any(MessageOrder.class), anyInt(), anyInt()
                 );
     }
@@ -3241,7 +3209,7 @@ class MessageServiceTest {
     }
 
     @Test
-    void testGetMessageList_userNotFoundByToken_shouldThrowException() throws ServerException {
+    void testGetMessageList_noUserSession_shouldThrowException() throws ServerException {
         final String token = "token";
         when(mockSessionDao.getUserByToken(anyString()))
                 .thenReturn(null);
