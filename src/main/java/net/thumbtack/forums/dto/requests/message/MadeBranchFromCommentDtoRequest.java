@@ -12,11 +12,10 @@ public class MadeBranchFromCommentDtoRequest {
     @NotBlank
     private String subject;
 
-    @NotBlank
     @AvailableMessagePriority
     private String priority;
 
-    private List<String> tags;
+    private List<@NotBlank String> tags;
 
     @JsonCreator
     public MadeBranchFromCommentDtoRequest(@JsonProperty("subject") String subject,

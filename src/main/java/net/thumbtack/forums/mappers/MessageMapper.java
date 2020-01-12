@@ -64,9 +64,9 @@ public interface MessageMapper {
                                     fetchType = FetchType.LAZY
                             )
                     ),
-                    @Result(property = "ratings", column = "id", javaType = List.class,
-                            many = @Many(
-                                    select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRatingsList",
+                    @Result(property = "rated", column = "id", javaType = int.class,
+                            one = @One(
+                                    select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRatedCount",
                                     fetchType = FetchType.LAZY
                             )
                     )

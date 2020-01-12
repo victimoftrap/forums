@@ -446,7 +446,6 @@ class MessageControllerTest {
                 Arguments.arguments("", MessagePriority.NORMAL.name(), ValidatedRequestFieldName.MESSAGE_SUBJECT),
                 Arguments.arguments(null, MessagePriority.NORMAL.name(), ValidatedRequestFieldName.MESSAGE_SUBJECT),
                 Arguments.arguments("Subject", "", ValidatedRequestFieldName.MESSAGE_PRIORITY),
-                Arguments.arguments("Subject", null, ValidatedRequestFieldName.MESSAGE_PRIORITY),
                 Arguments.arguments("Subject", "EXTRA_HIGH", ValidatedRequestFieldName.MESSAGE_PRIORITY)
         );
     }
@@ -481,6 +480,36 @@ class MessageControllerTest {
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verifyZeroInteractions(mockMessageService);
+    }
+
+    @Test
+    void testMadeNewBranch_emptyTagNames_shouldReturnExceptionDto() throws Exception {
+        final MadeBranchFromCommentDtoRequest request = new MadeBranchFromCommentDtoRequest(
+                "Subject", MessagePriority.LOW.name(), Arrays.asList("", "normal")
+        );
+        final MadeBranchFromCommentDtoResponse response = new MadeBranchFromCommentDtoResponse(123);
+
+        when(mockMessageService
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class))
+        )
+                .thenReturn(response);
+
+        mvc.perform(
+                put("/api/messages/{id}/up", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value("tags[0]"))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService, never())
+                .newBranchFromComment(anyString(), anyInt(), any(MadeBranchFromCommentDtoRequest.class));
     }
 
     static Stream<Arguments> newBranchServiceExceptions() {
@@ -626,9 +655,18 @@ class MessageControllerTest {
                 .publish(anyString(), anyInt(), any(PublicationDecisionDtoRequest.class));
     }
 
-    @Test
-    void testRateMessage() throws Exception {
-        final RateMessageDtoRequest request = new RateMessageDtoRequest(5);
+    static Stream<Arguments> rateMessageValidParams() {
+        return Stream.of(
+                null,
+                Arguments.arguments(1),
+                Arguments.arguments(5)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("rateMessageValidParams")
+    void testRateMessage(Integer validRate) throws Exception {
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(validRate);
         when(mockMessageService.rate(anyString(), anyInt(), any(RateMessageDtoRequest.class)))
                 .thenReturn(new EmptyDtoResponse());
 
@@ -644,6 +682,38 @@ class MessageControllerTest {
                 .andExpect(content().string("{}"));
 
         verify(mockMessageService)
+                .rate(anyString(), anyInt(), any(RateMessageDtoRequest.class));
+    }
+
+    static Stream<Arguments> rateMessageInvalidParams() {
+        return Stream.of(
+                Arguments.arguments(-1),
+                Arguments.arguments(86)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("rateMessageInvalidParams")
+    void testRateMessage_invalidParams_shouldReturnExceptionDto(int invalidRating) throws Exception {
+        final RateMessageDtoRequest request = new RateMessageDtoRequest(invalidRating);
+        when(mockMessageService.rate(anyString(), anyInt(), any(RateMessageDtoRequest.class)))
+                .thenReturn(new EmptyDtoResponse());
+
+        mvc.perform(
+                post("/api/messages/{id}/rating", 123)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value(ValidatedRequestFieldName.RATE_VALUE.getName()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService, never())
                 .rate(anyString(), anyInt(), any(RateMessageDtoRequest.class));
     }
 

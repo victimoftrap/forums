@@ -15,7 +15,7 @@ public class MessageItem {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private double averageRating;
-    private List<Rating> ratings;
+    private int rated;
 
     public MessageItem() {
     }
@@ -23,7 +23,7 @@ public class MessageItem {
     public MessageItem(int id, User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
                        LocalDateTime createdAt, LocalDateTime updatedAt,
-                       double averageRating, List<Rating> ratings) {
+                       double averageRating, int rated) {
         this.id = id;
         this.owner = owner;
         this.messageTree = messageTree;
@@ -33,25 +33,23 @@ public class MessageItem {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.averageRating = averageRating;
-        this.ratings = ratings;
+        this.rated = rated;
     }
 
     public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
                        LocalDateTime createdAt, LocalDateTime updatedAt,
-                       double averageRating, List<Rating> ratings) {
-        this(0, owner, messageTree, parentMessage,
-                childrenComments, history, createdAt, updatedAt,
-                averageRating, ratings
+                       double averageRating, int rated) {
+        this(0, owner, messageTree, parentMessage, childrenComments,
+                history, createdAt, updatedAt, averageRating, rated
         );
     }
 
     public MessageItem(int id, User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
                        LocalDateTime createdAt, LocalDateTime updatedAt, double averageRating) {
-        this(id, owner, messageTree, parentMessage,
-                childrenComments, history, createdAt, updatedAt,
-                averageRating, new ArrayList<>()
+        this(id, owner, messageTree, parentMessage, childrenComments,
+                history, createdAt, updatedAt, averageRating, 0
         );
     }
 
@@ -60,26 +58,24 @@ public class MessageItem {
                        LocalDateTime createdAt, LocalDateTime updatedAt, double averageRating) {
         this(0, owner, messageTree, parentMessage,
                 childrenComments, history, createdAt, updatedAt,
-                averageRating, new ArrayList<>()
+                averageRating, 0
         );
     }
 
     public MessageItem(int id, User owner, MessageTree messageTree,
                        List<MessageItem> childrenComments, List<HistoryItem> history,
                        LocalDateTime createdAt, LocalDateTime updatedAt,
-                       double averageRating, List<Rating> ratings) {
-        this(id, owner, messageTree, null,
-                childrenComments, history, createdAt, updatedAt,
-                averageRating, ratings
+                       double averageRating, int  rated) {
+        this(id, owner, messageTree, null, childrenComments,
+                history, createdAt, updatedAt, averageRating, rated
         );
     }
 
     public MessageItem(User owner, MessageTree messageTree, MessageItem parentMessage,
                        List<MessageItem> childrenComments,
                        List<HistoryItem> history, LocalDateTime initialDate) {
-        this(0, owner, messageTree, parentMessage,
-                childrenComments, history, initialDate, initialDate,
-                0., new ArrayList<>()
+        this(0, owner, messageTree, parentMessage, childrenComments,
+                history, initialDate, initialDate, 0., 0
         );
     }
 
@@ -87,14 +83,14 @@ public class MessageItem {
                        List<HistoryItem> history, LocalDateTime initialDate) {
         this(0, owner, messageTree, parentMessage,
                 new ArrayList<>(), history, initialDate, initialDate,
-                0., new ArrayList<>()
+                0., 0
         );
     }
 
     public MessageItem(User owner, List<HistoryItem> history, LocalDateTime initialDate) {
         this(0, owner, null, null,
                 new ArrayList<>(), history, initialDate, initialDate,
-                0., new ArrayList<>()
+                0., 0
         );
     }
 
@@ -170,12 +166,12 @@ public class MessageItem {
         this.averageRating = averageRating;
     }
 
-    public List<Rating> getRatings() {
-        return ratings;
+    public int getRated() {
+        return rated;
     }
 
-    public void setRatings(List<Rating> ratings) {
-        this.ratings = ratings;
+    public void setRated(int rated) {
+        this.rated = rated;
     }
 
     @Override
@@ -185,20 +181,20 @@ public class MessageItem {
         MessageItem item = (MessageItem) o;
         return id == item.id &&
                 averageRating == item.averageRating &&
+                rated == item.rated &&
                 Objects.equals(owner, item.owner) &&
                 Objects.equals(messageTree, item.messageTree) &&
                 Objects.equals(parentMessage, item.parentMessage) &&
                 Objects.equals(childrenComments, item.childrenComments) &&
                 Objects.equals(history, item.history) &&
                 Objects.equals(createdAt, item.createdAt) &&
-                Objects.equals(updatedAt, item.updatedAt) &&
-                Objects.equals(ratings, item.ratings);
+                Objects.equals(updatedAt, item.updatedAt);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(id, owner, messageTree, parentMessage,
-                childrenComments, history, createdAt, updatedAt, averageRating
+                childrenComments, history, createdAt, updatedAt, averageRating, rated
         );
     }
 
@@ -207,14 +203,14 @@ public class MessageItem {
         return "MessageItem{" +
                 "id=" + id +
                 ", owner=" + owner +
-                ", messageTree.id=" + messageTree.getId() +
+                ", messageTree.id=" + getMessageTree().getId() +
                 ", parentMessage=" + parentMessage +
                 ", childrenComments=" + childrenComments +
                 ", history=" + history +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
                 ", averageRating=" + averageRating +
-                ", ratings=" + ratings +
+                ", rated=" + rated +
                 '}';
     }
 }

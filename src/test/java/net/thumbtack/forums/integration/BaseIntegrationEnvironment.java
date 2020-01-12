@@ -6,14 +6,12 @@ import net.thumbtack.forums.dto.requests.user.RegisterUserDtoRequest;
 import net.thumbtack.forums.dto.requests.forum.CreateForumDtoRequest;
 import net.thumbtack.forums.dto.requests.user.UpdatePasswordDtoRequest;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoListDtoResponse;
-import net.thumbtack.forums.dto.responses.message.EditMessageOrCommentDtoResponse;
-import net.thumbtack.forums.dto.responses.message.MadeBranchFromCommentDtoResponse;
-import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
+import net.thumbtack.forums.dto.responses.message.*;
+import net.thumbtack.forums.dto.responses.statistic.*;
 import net.thumbtack.forums.dto.responses.user.UserDtoResponse;
 import net.thumbtack.forums.dto.responses.user.UserDetailsListDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumDtoResponse;
 import net.thumbtack.forums.dto.responses.forum.ForumInfoDtoResponse;
-import net.thumbtack.forums.dto.responses.message.MessageDtoResponse;
 import net.thumbtack.forums.dto.responses.EmptyDtoResponse;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class BaseIntegrationEnvironment {
@@ -217,7 +216,7 @@ public class BaseIntegrationEnvironment {
         return executeRequest(
                 String.format(SERVER_URL + "/messages/%d/rating", messageId),
                 HttpMethod.POST, token,
-                null, EmptyDtoResponse.class
+                rateMessageDtoRequest, EmptyDtoResponse.class
         );
     }
 
@@ -236,18 +235,87 @@ public class BaseIntegrationEnvironment {
         httpHeaders.add(HttpHeaders.COOKIE, token);
         HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
 
-        Map<String, Object> params = new HashMap<>();
-        params.put("allversions", allVersions);
-        params.put("nocomments", noComments);
-        params.put("unpublished", unpublished);
-        params.put("order", order);
-
         return restTemplate.exchange(
                 SERVER_URL + "/messages/{id}?allversions={av}&nocomments={nc}&unpublished={up}&order={o}",
                 HttpMethod.GET,
                 httpEntity,
                 MessageInfoDtoResponse.class,
-                params
+                messageId, allVersions, noComments, unpublished, order
+        );
+    }
+
+    protected ResponseEntity<ListMessageInfoDtoResponse> getMessageList(
+            String token, int forumId, Boolean allVersions, Boolean noComments, Boolean unpublished, String order,
+            List<String> tags, int limit, int offset) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/forums/{id}/messages?allversions={av}&nocomments={nc}&unpublished={up}" +
+                        "&order={o}&limit={lim}&offset={off}&tags={tag}",
+                HttpMethod.GET,
+                httpEntity,
+                ListMessageInfoDtoResponse.class,
+                forumId, allVersions, noComments, unpublished, order,
+                limit, offset, tags == null ? null : tags.toArray()
+        );
+    }
+
+    protected ResponseEntity<MessageRatingListDtoResponse> getMessagesRatings(
+            String token, Integer forumId, Integer limit, Integer offset) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/messages/ratings?forum-id={forum}&limit={lim}&offset={off}",
+                HttpMethod.GET,
+                httpEntity, MessageRatingListDtoResponse.class,
+                forumId, limit, offset
+        );
+    }
+
+    protected ResponseEntity<UserRatingListDtoResponse> getUsersRatings(
+            String token, Integer forumId, Integer limit, Integer offset) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/users/ratings?forum-id={forum}&limit={lim}&offset={off}",
+                HttpMethod.GET,
+                httpEntity, UserRatingListDtoResponse.class,
+                forumId, limit, offset
+        );
+    }
+
+    protected ResponseEntity<MessagesCountDtoResponse> getMessagesCount(String token, Integer forumId) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/messages/count?forum-id={forum}",
+                HttpMethod.GET, httpEntity,
+                MessagesCountDtoResponse.class, forumId
+        );
+    }
+
+    protected ResponseEntity<CommentsCountDtoResponse> getCommentsCount(String token, Integer forumId) {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        httpHeaders.add(HttpHeaders.COOKIE, token);
+        HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
+
+        return restTemplate.exchange(
+                SERVER_URL + "/statistics/comments/count?forum-id={forum}",
+                HttpMethod.GET, httpEntity,
+                CommentsCountDtoResponse.class, forumId
         );
     }
 }

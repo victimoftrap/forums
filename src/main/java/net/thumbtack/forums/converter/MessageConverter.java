@@ -30,7 +30,7 @@ public class MessageConverter {
                 tagsResponse,
                 message.getCreatedAt(),
                 message.getAverageRating(),
-                message.getRatings().size(),
+                message.getRated(),
                 commentsResponse
         );
     }
@@ -60,7 +60,7 @@ public class MessageConverter {
                             tagsResponse,
                             root.getCreatedAt(),
                             root.getAverageRating(),
-                            root.getRatings().size(),
+                            root.getRated(),
                             commentsResponse
                     )
             );

@@ -466,19 +466,22 @@ class ForumControllerTest {
 
     static Stream<Arguments> createMessageInvalidParams() {
         return Stream.of(
-                Arguments.arguments(null, "Body", MessagePriority.NORMAL.name(),
+                Arguments.arguments(null, "Body", MessagePriority.NORMAL.name(), Collections.emptyList(),
                         ValidatedRequestFieldName.MESSAGE_SUBJECT
                 ),
-                Arguments.arguments("", "Body", MessagePriority.NORMAL.name(),
+                Arguments.arguments("", "Body", MessagePriority.NORMAL.name(), Collections.emptyList(),
                         ValidatedRequestFieldName.MESSAGE_SUBJECT
                 ),
-                Arguments.arguments("Subject", null, MessagePriority.NORMAL.name(),
+                Arguments.arguments("Subject", null, MessagePriority.NORMAL.name(), null,
                         ValidatedRequestFieldName.MESSAGE_BODY
                 ),
-                Arguments.arguments("Subject", "", MessagePriority.NORMAL.name(),
+                Arguments.arguments("Subject", "", MessagePriority.NORMAL.name(), Collections.emptyList(),
                         ValidatedRequestFieldName.MESSAGE_BODY
                 ),
-                Arguments.arguments("Subject", "Body", "EXTRA-HIGH",
+                Arguments.arguments("Subject", "Body", "", Collections.emptyList(),
+                        ValidatedRequestFieldName.MESSAGE_PRIORITY
+                ),
+                Arguments.arguments("Subject", "Body", "EXTRA-HIGH", Collections.emptyList(),
                         ValidatedRequestFieldName.MESSAGE_PRIORITY
                 )
         );
@@ -487,10 +490,10 @@ class ForumControllerTest {
     @ParameterizedTest
     @MethodSource("createMessageInvalidParams")
     void testCreateMessage_invalidRequestParams_shouldReturnExceptionDto(
-            String subject, String body, String priority, ValidatedRequestFieldName errorFieldName
+            String subject, String body, String priority, List<String> tags, ValidatedRequestFieldName errorFieldName
     ) throws Exception {
         final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
-                subject, body, priority, Collections.emptyList()
+                subject, body, priority, tags
         );
 
         mvc.perform(
@@ -505,6 +508,31 @@ class ForumControllerTest {
                 .andExpect(jsonPath("$.errors", hasSize(1)))
                 .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
                 .andExpect(jsonPath("$.errors[0].field").value(errorFieldName.getName()))
+                .andExpect(jsonPath("$.errors[0].message").exists());
+
+        verify(mockMessageService, never())
+                .addMessage(anyString(), anyInt(), any(CreateMessageDtoRequest.class));
+    }
+
+    @Test
+    void testCreateMessage_emptyTagNames_shouldReturnExceptionDto() throws Exception {
+        final CreateMessageDtoRequest request = new CreateMessageDtoRequest(
+                "subject", "body", MessagePriority.HIGH.name(), Arrays.asList("", "")
+        );
+
+        mvc.perform(
+                post("/api/forums/{forum_id}/messages", 123)
+                        .cookie(new Cookie(COOKIE_NAME, COOKIE_VALUE))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(request))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(cookie().doesNotExist(COOKIE_NAME))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.errors", hasSize(2)))
+                .andExpect(jsonPath("$.errors[0].errorCode").value(ErrorCode.INVALID_REQUEST_DATA.name()))
+                .andExpect(jsonPath("$.errors[0].field").value("tags[0]"))
+                .andExpect(jsonPath("$.errors[1].field").value("tags[1]"))
                 .andExpect(jsonPath("$.errors[0].message").exists());
 
         verify(mockMessageService, never())

@@ -81,7 +81,8 @@ public class MessageService extends ServiceBase {
     }
 
     private void checkIsMessagesPublished(final MessageItem message) throws ServerException {
-        if (message.getHistory().get(0).getState() == MessageState.UNPUBLISHED) {
+        if (message.getHistory().get(0).getState() == MessageState.UNPUBLISHED
+                && message.getHistory().size() == 1) {
             throw new ServerException(ErrorCode.MESSAGE_NOT_PUBLISHED);
         }
     }
@@ -105,7 +106,7 @@ public class MessageService extends ServiceBase {
 
         final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageState state = getMessageState(forum, creator);
-        final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        final LocalDateTime createdAt = LocalDateTime.now();
 
         final HistoryItem historyItem = new HistoryItem(
                 request.getBody(), state, createdAt
@@ -139,7 +140,7 @@ public class MessageService extends ServiceBase {
         checkIsForumReadOnly(forum);
 
         final MessageState state = getMessageState(forum, creator);
-        final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        final LocalDateTime createdAt = LocalDateTime.now();
 
         final HistoryItem historyItem = new HistoryItem(
                 request.getBody(), state, createdAt
@@ -202,14 +203,14 @@ public class MessageService extends ServiceBase {
             messageState = getMessageState(forum, requesterUser);
 
             final HistoryItem newVersion = new HistoryItem(
-                    request.getBody(), messageState,
-                    LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                    request.getBody(), messageState, LocalDateTime.now()
             );
             newHistory.add(0, newVersion);
             editingMessage.setHistory(newHistory);
             messageHistoryDao.saveNewVersion(editingMessage);
         } else {
             messageState = MessageState.UNPUBLISHED;
+            latestHistory.setBody(request.getBody());
             messageHistoryDao.editLatestVersion(editingMessage);
         }
         return new EditMessageOrCommentDtoResponse(messageState.name());
@@ -257,9 +258,9 @@ public class MessageService extends ServiceBase {
         final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageTree newTree = new MessageTree(
                 oldTree.getForum(), request.getSubject(), newRootMessage, priority,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
-                TagConverter.tagNamesToTagList(request.getTags())
+                LocalDateTime.now(), TagConverter.tagNamesToTagList(request.getTags())
         );
+        newRootMessage.setMessageTree(newTree);
         messageTreeDao.newBranch(newTree);
         return new MadeBranchFromCommentDtoResponse(messageId);
     }
@@ -345,14 +346,14 @@ public class MessageService extends ServiceBase {
             return false;
         }
         if (forum.getType() == ForumType.UNMODERATED) {
-             return false;
+            return false;
         }
         final User forumOwner = forum.getOwner();
         return forumOwner.equals(requesterUser);
     }
 
     private MessageOrder getMessageOrder(@Nullable final String receivedOrder) {
-        if (receivedOrder ==null) {
+        if (receivedOrder == null) {
             return MessageOrder.DESC;
         }
         return MessageOrder.valueOf(receivedOrder);
@@ -395,7 +396,7 @@ public class MessageService extends ServiceBase {
             @Nullable final Boolean receivedAllVersions,
             @Nullable final Boolean receivedNoComments,
             @Nullable final Boolean receivedUnpublished,
-            @Nullable final List<String> tags,
+            final List<String> receivedTags,
             @Nullable final String receivedOrder,
             @Nullable final Integer receivedOffset,
             @Nullable final Integer receivedLimit
@@ -409,6 +410,13 @@ public class MessageService extends ServiceBase {
         final MessageOrder order = getMessageOrder(receivedOrder);
         final int offset = getPaginationOffset(receivedOffset);
         final int limit = getPaginationLimit(receivedLimit);
+
+        final List<String> tags;
+        if (receivedTags != null && receivedTags.isEmpty()) {
+            tags = null;
+        } else {
+            tags = receivedTags;
+        }
 
         final List<MessageTree> messageTrees = messageTreeDao.getForumTrees(
                 forumId, allVersions, noComments, unpublished, tags, order, offset, limit

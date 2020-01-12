@@ -29,7 +29,7 @@ public interface ParametrizedMessageTreeMapper {
             "))",
             "</if>",
 
-            "ORDER BY priority DESC, created_at ${order}",
+            "ORDER BY priority DESC, created_at ${order}, id ${order}",
             "LIMIT #{limit} OFFSET #{offset}",
             "</script>"
     })

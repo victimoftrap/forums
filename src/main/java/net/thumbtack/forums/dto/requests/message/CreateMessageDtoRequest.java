@@ -18,7 +18,7 @@ public class CreateMessageDtoRequest {
     @AvailableMessagePriority
     private String priority;
 
-    private List<String> tags;
+    private List<@NotBlank String> tags;
 
     @JsonCreator
     public CreateMessageDtoRequest(@JsonProperty("subject") String subject,

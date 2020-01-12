@@ -923,6 +923,8 @@ class MessageServiceTest {
                 token, messageId, request
         );
         assertEquals(expectedState.name(), response.getState());
+        assertEquals(2, parentMessage.getHistory().size());
+
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockMessageDao)
@@ -935,7 +937,7 @@ class MessageServiceTest {
 
     @Test
     @DisplayName("Unublished message from regular user in moderated forum = replace message body, unpublished")
-    void testEditMessage_unpublishedMessageFromRegularUserInModeratedForum_shouldAndUnpublishedHistory()
+    void testEditMessage_unpublishedMessageFromRegularUserInModeratedForum_shouldReplaceHistory()
             throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
@@ -979,6 +981,7 @@ class MessageServiceTest {
                 token, messageId, request
         );
         assertEquals(MessageState.UNPUBLISHED.name(), response.getState());
+        assertTrue(parentHistory.getBody().contains(request.getBody()));
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockMessageDao)
@@ -1471,8 +1474,10 @@ class MessageServiceTest {
 
         final MadeBranchFromCommentDtoResponse response =
                 messageService.newBranchFromComment(token, messageId, request);
-
         assertEquals(messageId, response.getId());
+        assertEquals(newBranchId, commentMessage.getMessageTree().getId());
+        assertEquals(request.getSubject(), commentMessage.getMessageTree().getSubject());
+
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao).newBranch(any(MessageTree.class));
@@ -1539,6 +1544,8 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoResponse response =
                 messageService.newBranchFromComment(token, messageId, request);
         assertEquals(messageId, response.getId());
+        assertEquals(newBranchId, commentMessage.getMessageTree().getId());
+        assertEquals(request.getSubject(), commentMessage.getMessageTree().getSubject());
 
         final ArgumentCaptor<MessageTree> captor = ArgumentCaptor.forClass(MessageTree.class);
         verify(mockSessionDao).getUserByToken(anyString());
@@ -2569,7 +2576,7 @@ class MessageServiceTest {
         assertEquals(tree.getPriority().name(), response.getPriority());
         assertEquals(parentMessage.getCreatedAt(), response.getCreated());
         assertEquals(parentMessage.getAverageRating(), response.getRating());
-        assertEquals(parentMessage.getRatings().size(), response.getRated());
+        assertEquals(parentMessage.getRated(), response.getRated());
         assertEquals(parentHistory.getBody(), response.getBody().get(0));
         assertEquals(tree.getTags().get(0).getName(), response.getTags().get(0));
         assertEquals(tree.getTags().get(1).getName(), response.getTags().get(1));
@@ -2632,7 +2639,7 @@ class MessageServiceTest {
         assertEquals(tree.getPriority().name(), response.getPriority());
         assertEquals(parentMessage.getCreatedAt(), response.getCreated());
         assertEquals(parentMessage.getAverageRating(), response.getRating());
-        assertEquals(parentMessage.getRatings().size(), response.getRated());
+        assertEquals(parentMessage.getRated(), response.getRated());
         assertEquals(parentHistory.getBody(), response.getBody().get(0));
         assertEquals(tree.getTags().get(0).getName(), response.getTags().get(0));
         assertEquals(tree.getTags().get(1).getName(), response.getTags().get(1));
@@ -2808,7 +2815,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                        eq(null), any(MessageOrder.class), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -2819,7 +2826,7 @@ class MessageServiceTest {
                 Collections.singletonList(commentHistory1.getBody()),
                 comment1.getCreatedAt(),
                 comment1.getAverageRating(),
-                comment1.getRatings().size(),
+                comment1.getRated(),
                 new ArrayList<>()
         );
 
@@ -2837,7 +2844,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage2.getCreatedAt(),
                         parentMessage2.getAverageRating(),
-                        parentMessage2.getRatings().size(),
+                        parentMessage2.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -2854,14 +2861,14 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage1.getCreatedAt(),
                         parentMessage1.getAverageRating(),
-                        parentMessage1.getRatings().size(),
+                        parentMessage1.getRated(),
                         Collections.singletonList(commentResponse)
                 )
         );
         final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
         final ListMessageInfoDtoResponse actualResponse = messageService.getForumMessageList(
                 token, forum.getId(), true, false, true,
-                Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
+                null, MessageOrder.DESC.name(), 0, 10
         );
         assertEquals(2, actualResponse.getMessages().size());
         assertEquals(expectedResponse, actualResponse);
@@ -2873,7 +2880,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                        eq(null), any(MessageOrder.class), anyInt(), anyInt()
                 );
     }
 
@@ -2929,7 +2936,7 @@ class MessageServiceTest {
         final String token = "token";
         messageService.getForumMessageList(
                 token, 123, true, true, receivedUnpublished,
-                Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
+                Arrays.asList("Tag2"), MessageOrder.DESC.name(), 0, 10
         );
 
         verify(mockSessionDao)
@@ -2995,7 +3002,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), eq(false), eq(false), eq(false),
-                        anyList(), eq(MessageOrder.DESC), anyInt(), anyInt()
+                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -3014,7 +3021,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage2.getCreatedAt(),
                         parentMessage2.getAverageRating(),
-                        parentMessage2.getRatings().size(),
+                        parentMessage2.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -3031,7 +3038,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage1.getCreatedAt(),
                         parentMessage1.getAverageRating(),
-                        parentMessage1.getRatings().size(),
+                        parentMessage1.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -3049,7 +3056,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), eq(false), eq(false), eq(false),
-                        anyList(), eq(MessageOrder.DESC), anyInt(), anyInt()
+                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt()
                 );
     }
 
@@ -3130,7 +3137,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage2.getCreatedAt(),
                         parentMessage2.getAverageRating(),
-                        parentMessage2.getRatings().size(),
+                        parentMessage2.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -3147,14 +3154,14 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage1.getCreatedAt(),
                         parentMessage1.getAverageRating(),
-                        parentMessage1.getRatings().size(),
+                        parentMessage1.getRated(),
                         new ArrayList<>()
                 )
         );
         final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
         final ListMessageInfoDtoResponse actualResponse = messageService.getForumMessageList(
                 token, forum.getId(), true, false, true,
-                Collections.emptyList(), MessageOrder.DESC.name(), null, null
+                Arrays.asList("Tag2"), MessageOrder.DESC.name(), null, null
         );
         assertEquals(2, actualResponse.getMessages().size());
         assertEquals(expectedResponse, actualResponse);
