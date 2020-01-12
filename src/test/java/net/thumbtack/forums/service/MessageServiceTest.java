@@ -923,6 +923,8 @@ class MessageServiceTest {
                 token, messageId, request
         );
         assertEquals(expectedState.name(), response.getState());
+        assertEquals(2, parentMessage.getHistory().size());
+
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockMessageDao)
@@ -935,7 +937,7 @@ class MessageServiceTest {
 
     @Test
     @DisplayName("Unublished message from regular user in moderated forum = replace message body, unpublished")
-    void testEditMessage_unpublishedMessageFromRegularUserInModeratedForum_shouldAndUnpublishedHistory()
+    void testEditMessage_unpublishedMessageFromRegularUserInModeratedForum_shouldReplaceHistory()
             throws ServerException {
         final User forumOwner = new User(
                 "ForumOwner", "ForumOwner@email.com", "f0rUmS|r0nGPa55"
@@ -979,6 +981,7 @@ class MessageServiceTest {
                 token, messageId, request
         );
         assertEquals(MessageState.UNPUBLISHED.name(), response.getState());
+        assertTrue(parentHistory.getBody().contains(request.getBody()));
         verify(mockSessionDao)
                 .getUserByToken(anyString());
         verify(mockMessageDao)
@@ -2812,7 +2815,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                        eq(null), any(MessageOrder.class), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -2865,7 +2868,7 @@ class MessageServiceTest {
         final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
         final ListMessageInfoDtoResponse actualResponse = messageService.getForumMessageList(
                 token, forum.getId(), true, false, true,
-                Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
+                null, MessageOrder.DESC.name(), 0, 10
         );
         assertEquals(2, actualResponse.getMessages().size());
         assertEquals(expectedResponse, actualResponse);
@@ -2877,7 +2880,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                        eq(null), any(MessageOrder.class), anyInt(), anyInt()
                 );
     }
 
@@ -2933,7 +2936,7 @@ class MessageServiceTest {
         final String token = "token";
         messageService.getForumMessageList(
                 token, 123, true, true, receivedUnpublished,
-                Collections.emptyList(), MessageOrder.DESC.name(), 0, 10
+                Arrays.asList("Tag2"), MessageOrder.DESC.name(), 0, 10
         );
 
         verify(mockSessionDao)
@@ -2999,7 +3002,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), eq(false), eq(false), eq(false),
-                        anyList(), eq(MessageOrder.DESC), anyInt(), anyInt()
+                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -3053,7 +3056,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), eq(false), eq(false), eq(false),
-                        anyList(), eq(MessageOrder.DESC), anyInt(), anyInt()
+                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt()
                 );
     }
 
@@ -3158,7 +3161,7 @@ class MessageServiceTest {
         final ListMessageInfoDtoResponse expectedResponse = new ListMessageInfoDtoResponse(responses);
         final ListMessageInfoDtoResponse actualResponse = messageService.getForumMessageList(
                 token, forum.getId(), true, false, true,
-                Collections.emptyList(), MessageOrder.DESC.name(), null, null
+                Arrays.asList("Tag2"), MessageOrder.DESC.name(), null, null
         );
         assertEquals(2, actualResponse.getMessages().size());
         assertEquals(expectedResponse, actualResponse);

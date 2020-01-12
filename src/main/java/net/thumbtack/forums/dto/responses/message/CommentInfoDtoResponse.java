@@ -1,5 +1,8 @@
 package net.thumbtack.forums.dto.responses.message;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -13,8 +16,16 @@ public class CommentInfoDtoResponse {
     private int rated;
     private List<CommentInfoDtoResponse> comments;
 
-    public CommentInfoDtoResponse(int id, String creator, List<String> body, LocalDateTime created,
-                                  double rating, int rated, List<CommentInfoDtoResponse> comments) {
+    @JsonCreator
+    public CommentInfoDtoResponse(
+            @JsonProperty("id") int id,
+            @JsonProperty("creator") String creator,
+            @JsonProperty("body") List<String> body,
+            @JsonProperty("created") LocalDateTime created,
+            @JsonProperty("rating") double rating,
+            @JsonProperty("rated") int rated,
+            @JsonProperty("comments") List<CommentInfoDtoResponse> comments
+    ) {
         this.id = id;
         this.creator = creator;
         this.body = body;

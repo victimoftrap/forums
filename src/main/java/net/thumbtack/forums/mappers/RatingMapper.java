@@ -1,14 +1,9 @@
 package net.thumbtack.forums.mappers;
 
-import net.thumbtack.forums.model.Forum;
 import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.model.User;
-import net.thumbtack.forums.model.Rating;
 
 import org.apache.ibatis.annotations.*;
-import org.apache.ibatis.mapping.FetchType;
-
-import java.util.List;
 
 public interface RatingMapper {
     @Insert({"INSERT INTO message_ratings (message_id, user_id, rating)",

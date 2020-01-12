@@ -4,7 +4,6 @@ import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.message.CommentInfoDtoResponse;
-import net.thumbtack.forums.model.Rating;
 
 import java.util.List;
 import java.util.ArrayList;
