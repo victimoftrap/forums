@@ -17,7 +17,7 @@ public interface MessageHistoryMapper {
 
     @Select({"SELECT body, state, created_at",
             "FROM message_history WHERE message_id = #{id}",
-            "ORDER BY created_at DESC"
+            "ORDER BY id DESC"
     })
     @Results(id = "historyResult",
             value = {

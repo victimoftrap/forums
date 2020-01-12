@@ -1471,8 +1471,10 @@ class MessageServiceTest {
 
         final MadeBranchFromCommentDtoResponse response =
                 messageService.newBranchFromComment(token, messageId, request);
-
         assertEquals(messageId, response.getId());
+        assertEquals(newBranchId, commentMessage.getMessageTree().getId());
+        assertEquals(request.getSubject(), commentMessage.getMessageTree().getSubject());
+
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao).newBranch(any(MessageTree.class));
@@ -1539,6 +1541,8 @@ class MessageServiceTest {
         final MadeBranchFromCommentDtoResponse response =
                 messageService.newBranchFromComment(token, messageId, request);
         assertEquals(messageId, response.getId());
+        assertEquals(newBranchId, commentMessage.getMessageTree().getId());
+        assertEquals(request.getSubject(), commentMessage.getMessageTree().getSubject());
 
         final ArgumentCaptor<MessageTree> captor = ArgumentCaptor.forClass(MessageTree.class);
         verify(mockSessionDao).getUserByToken(anyString());
@@ -2569,7 +2573,7 @@ class MessageServiceTest {
         assertEquals(tree.getPriority().name(), response.getPriority());
         assertEquals(parentMessage.getCreatedAt(), response.getCreated());
         assertEquals(parentMessage.getAverageRating(), response.getRating());
-        assertEquals(parentMessage.getRatings().size(), response.getRated());
+        assertEquals(parentMessage.getRated(), response.getRated());
         assertEquals(parentHistory.getBody(), response.getBody().get(0));
         assertEquals(tree.getTags().get(0).getName(), response.getTags().get(0));
         assertEquals(tree.getTags().get(1).getName(), response.getTags().get(1));
@@ -2632,7 +2636,7 @@ class MessageServiceTest {
         assertEquals(tree.getPriority().name(), response.getPriority());
         assertEquals(parentMessage.getCreatedAt(), response.getCreated());
         assertEquals(parentMessage.getAverageRating(), response.getRating());
-        assertEquals(parentMessage.getRatings().size(), response.getRated());
+        assertEquals(parentMessage.getRated(), response.getRated());
         assertEquals(parentHistory.getBody(), response.getBody().get(0));
         assertEquals(tree.getTags().get(0).getName(), response.getTags().get(0));
         assertEquals(tree.getTags().get(1).getName(), response.getTags().get(1));
@@ -2819,7 +2823,7 @@ class MessageServiceTest {
                 Collections.singletonList(commentHistory1.getBody()),
                 comment1.getCreatedAt(),
                 comment1.getAverageRating(),
-                comment1.getRatings().size(),
+                comment1.getRated(),
                 new ArrayList<>()
         );
 
@@ -2837,7 +2841,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage2.getCreatedAt(),
                         parentMessage2.getAverageRating(),
-                        parentMessage2.getRatings().size(),
+                        parentMessage2.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -2854,7 +2858,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage1.getCreatedAt(),
                         parentMessage1.getAverageRating(),
-                        parentMessage1.getRatings().size(),
+                        parentMessage1.getRated(),
                         Collections.singletonList(commentResponse)
                 )
         );
@@ -3014,7 +3018,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage2.getCreatedAt(),
                         parentMessage2.getAverageRating(),
-                        parentMessage2.getRatings().size(),
+                        parentMessage2.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -3031,7 +3035,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage1.getCreatedAt(),
                         parentMessage1.getAverageRating(),
-                        parentMessage1.getRatings().size(),
+                        parentMessage1.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -3130,7 +3134,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage2.getCreatedAt(),
                         parentMessage2.getAverageRating(),
-                        parentMessage2.getRatings().size(),
+                        parentMessage2.getRated(),
                         new ArrayList<>()
                 )
         );
@@ -3147,7 +3151,7 @@ class MessageServiceTest {
                                 .collect(Collectors.toList()),
                         parentMessage1.getCreatedAt(),
                         parentMessage1.getAverageRating(),
-                        parentMessage1.getRatings().size(),
+                        parentMessage1.getRated(),
                         new ArrayList<>()
                 )
         );

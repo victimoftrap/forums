@@ -78,11 +78,9 @@ public interface ParametrizedMessageMapper {
                                     fetchType = FetchType.LAZY
                             )
                     ),
-                    @Result(property = "ratings",
-                            column = "id",
-                            javaType = List.class,
-                            many = @Many(
-                                    select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRatingsList",
+                    @Result(property = "rated", column = "id", javaType = int.class,
+                            one = @One(
+                                    select = "net.thumbtack.forums.mappers.RatingMapper.getMessageRatedCount",
                                     fetchType = FetchType.LAZY
                             )
                     )
@@ -131,7 +129,7 @@ public interface ParametrizedMessageMapper {
             "<if test='unpublished == false'>",
             "AND state = 'PUBLISHED'",
             "</if>",
-            "ORDER BY created_at DESC",
+            "ORDER BY id DESC",
             "<if test='allVersions == false'>",
             "LIMIT 1",
             "</if>",

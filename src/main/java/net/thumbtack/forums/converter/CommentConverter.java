@@ -16,7 +16,7 @@ public class CommentConverter {
                 history,
                 comment.getCreatedAt(),
                 comment.getAverageRating(),
-                comment.getRatings().size(),
+                comment.getRated(),
                 commentListToResponse(comment.getChildrenComments())
         );
     }

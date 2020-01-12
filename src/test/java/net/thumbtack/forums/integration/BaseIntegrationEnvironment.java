@@ -217,7 +217,7 @@ public class BaseIntegrationEnvironment {
         return executeRequest(
                 String.format(SERVER_URL + "/messages/%d/rating", messageId),
                 HttpMethod.POST, token,
-                null, EmptyDtoResponse.class
+                rateMessageDtoRequest, EmptyDtoResponse.class
         );
     }
 
@@ -237,6 +237,7 @@ public class BaseIntegrationEnvironment {
         HttpEntity<Object> httpEntity = new HttpEntity<>(httpHeaders);
 
         Map<String, Object> params = new HashMap<>();
+        params.put("id", messageId);
         params.put("allversions", allVersions);
         params.put("nocomments", noComments);
         params.put("unpublished", unpublished);

@@ -4,6 +4,7 @@ import net.thumbtack.forums.model.MessageTree;
 import net.thumbtack.forums.model.MessageItem;
 import net.thumbtack.forums.dto.responses.message.MessageInfoDtoResponse;
 import net.thumbtack.forums.dto.responses.message.CommentInfoDtoResponse;
+import net.thumbtack.forums.model.Rating;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class MessageConverter {
                 tagsResponse,
                 message.getCreatedAt(),
                 message.getAverageRating(),
-                message.getRatings().size(),
+                message.getRated(),
                 commentsResponse
         );
     }
@@ -60,7 +61,7 @@ public class MessageConverter {
                             tagsResponse,
                             root.getCreatedAt(),
                             root.getAverageRating(),
-                            root.getRatings().size(),
+                            root.getRated(),
                             commentsResponse
                     )
             );

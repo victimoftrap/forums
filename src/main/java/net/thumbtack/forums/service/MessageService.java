@@ -105,7 +105,7 @@ public class MessageService extends ServiceBase {
 
         final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageState state = getMessageState(forum, creator);
-        final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        final LocalDateTime createdAt = LocalDateTime.now();
 
         final HistoryItem historyItem = new HistoryItem(
                 request.getBody(), state, createdAt
@@ -139,7 +139,7 @@ public class MessageService extends ServiceBase {
         checkIsForumReadOnly(forum);
 
         final MessageState state = getMessageState(forum, creator);
-        final LocalDateTime createdAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        final LocalDateTime createdAt = LocalDateTime.now();
 
         final HistoryItem historyItem = new HistoryItem(
                 request.getBody(), state, createdAt
@@ -202,8 +202,7 @@ public class MessageService extends ServiceBase {
             messageState = getMessageState(forum, requesterUser);
 
             final HistoryItem newVersion = new HistoryItem(
-                    request.getBody(), messageState,
-                    LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                    request.getBody(), messageState, LocalDateTime.now()
             );
             newHistory.add(0, newVersion);
             editingMessage.setHistory(newHistory);
@@ -257,9 +256,9 @@ public class MessageService extends ServiceBase {
         final MessagePriority priority = getMessagePriority(request.getPriority());
         final MessageTree newTree = new MessageTree(
                 oldTree.getForum(), request.getSubject(), newRootMessage, priority,
-                LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
-                TagConverter.tagNamesToTagList(request.getTags())
+                LocalDateTime.now(), TagConverter.tagNamesToTagList(request.getTags())
         );
+        newRootMessage.setMessageTree(newTree);
         messageTreeDao.newBranch(newTree);
         return new MadeBranchFromCommentDtoResponse(messageId);
     }

@@ -52,42 +52,11 @@ public interface RatingMapper {
     })
     double getMessageRating(@Param("msg") int messageId);
 
-    @Select({"SELECT COUNT(*) AS rated",
+    @Select({"SELECT IFNULL(COUNT(*), 0) AS rated",
             "FROM message_ratings WHERE message_id = #{msg}"
     })
     int getMessageRatedCount(@Param("msg") int messageId);
 
-    @Select({"SELECT message_id, user_id, rating",
-            "FROM message_ratings WHERE message_id = #{msg}"
-    })
-    @Results(value = {
-            @Result(column = "user_id", property = "rater", javaType = User.class,
-                    one = @One(
-                            select = "net.thumbtack.forums.mappers.UserMapper.getById",
-                            fetchType = FetchType.LAZY
-                    )
-            )
-    })
-    List<Rating> getMessageRatingsList(@Param("msg") int messageId);
-
     @Delete("DELETE FROM message_ratings")
     void deleteAll();
-
-    @Select({"SELECT IFNULL(AVG(rating), 0) AS avg_rating",
-            "FROM message_ratings WHERE message_id IN (",
-            "SELECT id FROM messages WHERE owner_id = #{userId}",
-            ")"
-    })
-    double getUserAverageRating(@Param("userId") int userId);
-
-    @Select({"SELECT IFNULL(AVG(rating), 0) AS avg_rating",
-            "FROM message_ratings WHERE message_id IN (",
-            "SELECT id FROM messages WHERE owner_id = #{user.id} AND tree_id IN (",
-            "SELECT id FROM messages_tree WHERE forum_id = #{forum.id})",
-            ")"
-    })
-    double getUserAverageRatingInForum(
-            @Param("user") User user,
-            @Param("forum") Forum forum
-    );
 }

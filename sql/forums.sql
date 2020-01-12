@@ -68,6 +68,7 @@ CREATE TABLE messages(
 ) ENGINE = INNODB DEFAULT CHARSET = utf8;
 
 CREATE TABLE message_history(
+  id         INT           PRIMARY KEY AUTO_INCREMENT,
   message_id INT           NOT NULL,
   body       VARCHAR(4096) NOT NULL,
   state      ENUM('UNPUBLISHED', 'PUBLISHED'),
