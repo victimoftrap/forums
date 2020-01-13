@@ -15,9 +15,12 @@ public interface ParametrizedMessageTreeMapper {
             "(SELECT #{allVersions}) AS all_versions," +
             "(SELECT #{unpublished}) AS unpublished";
 
+    String CREATOR_UNPUBLISHED = ",(SELECT #{requesterId}) AS requester_id";
+
     @Select({"<script>",
             "SELECT id, forum_id, subject, priority, created_at,",
             PARAMS_INITIALIZING,
+            CREATOR_UNPUBLISHED,
             "FROM messages_tree",
             "WHERE forum_id = #{forumId}",
 
@@ -43,8 +46,8 @@ public interface ParametrizedMessageTreeMapper {
                             )
                     ),
                     @Result(property = "rootMessage",
-                            column = "{treeId = id, order = comment_order, " +
-                                    "allVersions = all_versions, unpublished = unpublished}",
+                            column = "{treeId = id, order = comment_order, allVersions = all_versions, " +
+                                    "unpublished = unpublished, requesterId = requester_id}",
                             javaType = MessageItem.class,
                             one = @One(
                                     select = "net.thumbtack.forums.mappers.ParametrizedMessageMapper.getRootByTreeId",
@@ -67,6 +70,7 @@ public interface ParametrizedMessageTreeMapper {
             @Param("order") String order,
             @Param("tags") List<String> tags,
             @Param("allVersions") boolean allVersions,
-            @Param("unpublished") boolean unpublished
+            @Param("unpublished") boolean unpublished,
+            @Param("requesterId") int requesterId
     );
 }

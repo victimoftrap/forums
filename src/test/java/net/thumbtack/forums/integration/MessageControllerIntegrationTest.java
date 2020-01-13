@@ -2516,29 +2516,27 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
                 "ForumOwner1", "fo1@email.com", "w3ryStr0nGPa55wD"
         );
         final String forumOwnerToken1 = getSessionTokenFromHeaders(registerUser(registerForumOwner1));
-
-        final RegisterUserDtoRequest registerForumOwner2 = new RegisterUserDtoRequest(
-                "ForumOwner2", "fo2@email.com", "utubfm43mWEa"
-        );
-        final String forumOwnerToken2 = getSessionTokenFromHeaders(registerUser(registerForumOwner2));
-
         final CreateForumDtoRequest createForumRequest1 = new CreateForumDtoRequest(
                 "FirstForum", ForumType.MODERATED.name()
         );
         final int forumId1 = createForum(createForumRequest1, forumOwnerToken1).getBody().getId();
 
+        final RegisterUserDtoRequest registerUser = new RegisterUserDtoRequest(
+                "user", "user@email.com", "utubfm43mWEa"
+        );
+        final String userToken = getSessionTokenFromHeaders(registerUser(registerUser));
         final CreateMessageDtoRequest createMessage = new CreateMessageDtoRequest(
                 "Subject #1", "Body #1", null, null
         );
-        final int messageId = createMessage(forumOwnerToken2, forumId1, createMessage).getBody().getId();
+        final int messageId = createMessage(userToken, forumId1, createMessage).getBody().getId();
         publishMessage(forumOwnerToken1, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
 
         final EditMessageOrCommentDtoRequest edit1 = new EditMessageOrCommentDtoRequest("Edit #1");
-        editMessage(forumOwnerToken2, messageId, edit1);
+        editMessage(userToken, messageId, edit1);
         publishMessage(forumOwnerToken1, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
 
         final EditMessageOrCommentDtoRequest edit2 = new EditMessageOrCommentDtoRequest("Edit #2");
-        editMessage(forumOwnerToken2, messageId, edit2);
+        editMessage(userToken, messageId, edit2);
 
         final ResponseEntity<MessageInfoDtoResponse> getMessageAllPublishedVersions = getMessage(
                 forumOwnerToken1, messageId,
@@ -2551,7 +2549,7 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertEquals(messageId, message.getId());
         assertEquals(createMessage.getSubject(), message.getSubject());
         assertEquals(MessagePriority.NORMAL.name(), message.getPriority());
-        assertEquals(registerForumOwner2.getName(), message.getCreator());
+        assertEquals(registerUser.getName(), message.getCreator());
         assertEquals(0, message.getRated());
         assertEquals(0, message.getRating());
         assertEquals(0, message.getComments().size());
@@ -2560,7 +2558,91 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertEquals(createMessage.getBody(), message.getBody().get(1));
 
         final ResponseEntity<MessageInfoDtoResponse> getMessageAllVersions = getMessage(
+                userToken, messageId,
+                true, true, false, MessageOrder.DESC.name()
+        );
+        assertEquals(HttpStatus.OK, getMessageAllVersions.getStatusCode());
+        assertNotNull(getMessageAllVersions.getBody());
+
+        final MessageInfoDtoResponse message1 = getMessageAllVersions.getBody();
+        assertEquals(messageId, message1.getId());
+        assertEquals(createMessage.getSubject(), message1.getSubject());
+        assertEquals(MessagePriority.NORMAL.name(), message1.getPriority());
+        assertEquals(registerUser.getName(), message1.getCreator());
+        assertEquals(0, message1.getRated());
+        assertEquals(0, message1.getRating());
+        assertEquals(0, message1.getComments().size());
+        assertEquals(3, message1.getBody().size());
+        assertTrue(message1.getBody().get(0).contains(edit2.getBody()));
+        assertEquals(edit1.getBody(), message1.getBody().get(1));
+        assertEquals(createMessage.getBody(), message1.getBody().get(2));
+
+        final RegisterUserDtoRequest registerUser1 = new RegisterUserDtoRequest(
+                "user1", "user1@email.com", "utubfm43mWEa"
+        );
+        final String userToken1 = getSessionTokenFromHeaders(registerUser(registerUser1));
+
+        final ResponseEntity<MessageInfoDtoResponse> getMessageAllVersions2 = getMessage(
+                userToken1, messageId,
+                true, true, false, MessageOrder.DESC.name()
+        );
+        assertEquals(HttpStatus.OK, getMessageAllVersions2.getStatusCode());
+        assertNotNull(getMessageAllVersions2.getBody());
+        assertEquals(2, getMessageAllVersions2.getBody().getBody().size());
+        assertEquals(edit1.getBody(), getMessageAllVersions2.getBody().getBody().get(0));
+        assertEquals(createMessage.getBody(), getMessageAllVersions2.getBody().getBody().get(1));
+    }
+
+    @Test
+    void testGetForumMessage_withAndWithoutUnpublished() {
+        final RegisterUserDtoRequest registerForumOwner1 = new RegisterUserDtoRequest(
+                "ForumOwner1", "fo1@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken1 = getSessionTokenFromHeaders(registerUser(registerForumOwner1));
+        final CreateForumDtoRequest createForumRequest1 = new CreateForumDtoRequest(
+                "FirstForum", ForumType.MODERATED.name()
+        );
+        final int forumId1 = createForum(createForumRequest1, forumOwnerToken1).getBody().getId();
+
+        final RegisterUserDtoRequest registerUser = new RegisterUserDtoRequest(
+                "user", "user@email.com", "utubfm43mWEa"
+        );
+        final String userToken = getSessionTokenFromHeaders(registerUser(registerUser));
+        final CreateMessageDtoRequest createMessage = new CreateMessageDtoRequest(
+                "Subject #1", "Body #1", null, null
+        );
+        final int messageId = createMessage(userToken, forumId1, createMessage).getBody().getId();
+        publishMessage(forumOwnerToken1, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+
+        final EditMessageOrCommentDtoRequest edit1 = new EditMessageOrCommentDtoRequest("Edit #1");
+        editMessage(userToken, messageId, edit1);
+        publishMessage(forumOwnerToken1, messageId, new PublicationDecisionDtoRequest(PublicationDecision.YES.name()));
+
+        final EditMessageOrCommentDtoRequest edit2 = new EditMessageOrCommentDtoRequest("Edit #2");
+        editMessage(userToken, messageId, edit2);
+
+        final ResponseEntity<MessageInfoDtoResponse> getMessageAllPublishedVersions = getMessage(
                 forumOwnerToken1, messageId,
+                true, true, true, MessageOrder.DESC.name()
+        );
+        assertEquals(HttpStatus.OK, getMessageAllPublishedVersions.getStatusCode());
+        assertNotNull(getMessageAllPublishedVersions.getBody());
+
+        final MessageInfoDtoResponse message = getMessageAllPublishedVersions.getBody();
+        assertEquals(messageId, message.getId());
+        assertEquals(createMessage.getSubject(), message.getSubject());
+        assertEquals(MessagePriority.NORMAL.name(), message.getPriority());
+        assertEquals(registerUser.getName(), message.getCreator());
+        assertEquals(0, message.getRated());
+        assertEquals(0, message.getRating());
+        assertEquals(0, message.getComments().size());
+        assertEquals(3, message.getBody().size());
+        assertTrue(message.getBody().get(0).contains(edit2.getBody()));
+        assertEquals(edit1.getBody(), message.getBody().get(1));
+        assertEquals(createMessage.getBody(), message.getBody().get(2));
+
+        final ResponseEntity<MessageInfoDtoResponse> getMessageAllVersions = getMessage(
+                userToken, messageId,
                 true, true, true, MessageOrder.DESC.name()
         );
         assertEquals(HttpStatus.OK, getMessageAllVersions.getStatusCode());
@@ -2570,7 +2652,7 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertEquals(messageId, message1.getId());
         assertEquals(createMessage.getSubject(), message1.getSubject());
         assertEquals(MessagePriority.NORMAL.name(), message1.getPriority());
-        assertEquals(registerForumOwner2.getName(), message1.getCreator());
+        assertEquals(registerUser.getName(), message1.getCreator());
         assertEquals(0, message1.getRated());
         assertEquals(0, message1.getRating());
         assertEquals(0, message1.getComments().size());
@@ -2578,6 +2660,21 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertTrue(message1.getBody().get(0).contains(edit2.getBody()));
         assertEquals(edit1.getBody(), message1.getBody().get(1));
         assertEquals(createMessage.getBody(), message1.getBody().get(2));
+
+        final RegisterUserDtoRequest registerUser1 = new RegisterUserDtoRequest(
+                "user1", "user1@email.com", "utubfm43mWEa"
+        );
+        final String userToken1 = getSessionTokenFromHeaders(registerUser(registerUser1));
+
+        final ResponseEntity<MessageInfoDtoResponse> getMessageAllVersions2 = getMessage(
+                userToken1, messageId,
+                true, true, true, MessageOrder.DESC.name()
+        );
+        assertEquals(HttpStatus.OK, getMessageAllVersions2.getStatusCode());
+        assertNotNull(getMessageAllVersions2.getBody());
+        assertEquals(2, getMessageAllVersions2.getBody().getBody().size());
+        assertEquals(edit1.getBody(), getMessageAllVersions2.getBody().getBody().get(0));
+        assertEquals(createMessage.getBody(), getMessageAllVersions2.getBody().getBody().get(1));
     }
 
     @Test
@@ -2728,7 +2825,7 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
     }
 
     @Test
-    void testGetMessagesList_testAllVersionsUnpublishedAndTagsParams() {
+    void testGetMessagesList_testAllVersionsAndUnpublishedParam() {
         final RegisterUserDtoRequest registerUser1 = new RegisterUserDtoRequest(
                 "user1", "user1@email.com", "utubfm43mWEa"
         );
@@ -2799,11 +2896,18 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         final List<MessageInfoDtoResponse> messages1 = messagesResponse1.getBody().getMessages();
         assertEquals(3, messages1.size());
         assertEquals(messageId1, messages1.get(0).getId());
-        assertEquals(2, messages1.get(0).getBody().size());
+        assertEquals(3, messages1.get(0).getBody().size());
+        assertTrue(messages1.get(0).getBody().get(0).contains("Edit #1.2"));
+        assertEquals("Edit #1", messages1.get(0).getBody().get(1));
+        assertEquals("Body #1", messages1.get(0).getBody().get(2));
+
         assertEquals(messageId3, messages1.get(1).getId());
         assertEquals(1, messages1.get(1).getBody().size());
+        assertEquals("Body #3", messages1.get(1).getBody().get(0));
+
         assertEquals(messageId2, messages1.get(2).getId());
         assertEquals(1, messages1.get(2).getBody().size());
+        assertEquals("Body #2", messages1.get(2).getBody().get(0));
 
         final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse2 = getMessageList(
                 userToken1, forumId1, false, false, true,
@@ -2816,10 +2920,15 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertEquals(3, messages2.size());
         assertEquals(messageId1, messages2.get(0).getId());
         assertEquals(1, messages2.get(0).getBody().size());
+        assertTrue(messages2.get(0).getBody().get(0).contains("Edit #1.2"));
+
         assertEquals(messageId3, messages2.get(1).getId());
         assertEquals(1, messages2.get(1).getBody().size());
+        assertEquals("Body #3", messages2.get(1).getBody().get(0));
+
         assertEquals(messageId2, messages2.get(2).getId());
         assertEquals(1, messages2.get(2).getBody().size());
+        assertEquals("Body #2", messages2.get(2).getBody().get(0));
 
         final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse3 = getMessageList(
                 forumOwnerToken1, forumId1, true, false, true,
@@ -2832,10 +2941,18 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertEquals(3, messages3.size());
         assertEquals(messageId1, messages3.get(0).getId());
         assertEquals(3, messages3.get(0).getBody().size());
+        assertTrue(messages3.get(0).getBody().get(0).contains("Edit #1.2"));
+        assertEquals("Edit #1", messages3.get(0).getBody().get(1));
+        assertEquals("Body #1", messages3.get(0).getBody().get(2));
+
         assertEquals(messageId3, messages3.get(1).getId());
         assertEquals(2, messages3.get(1).getBody().size());
+        assertTrue(messages3.get(1).getBody().get(0).contains("Edit #3"));
+        assertEquals("Body #3", messages3.get(1).getBody().get(1));
+
         assertEquals(messageId2, messages3.get(2).getId());
         assertEquals(1, messages3.get(2).getBody().size());
+        assertEquals("Body #2", messages3.get(2).getBody().get(0));
 
         final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse4 = getMessageList(
                 forumOwnerToken1, forumId1, false, false, true,
@@ -2848,36 +2965,179 @@ public class MessageControllerIntegrationTest extends BaseIntegrationEnvironment
         assertEquals(3, messages4.size());
         assertEquals(messageId1, messages4.get(0).getId());
         assertEquals(1, messages4.get(0).getBody().size());
+        assertTrue(messages4.get(0).getBody().get(0).contains("Edit #1.2"));
+
         assertEquals(messageId3, messages4.get(1).getId());
         assertEquals(1, messages4.get(1).getBody().size());
+        assertTrue(messages4.get(1).getBody().get(0).contains("Edit #3"));
+
         assertEquals(messageId2, messages4.get(2).getId());
         assertEquals(1, messages4.get(2).getBody().size());
+        assertEquals("Body #2", messages4.get(2).getBody().get(0));
 
         final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse5 = getMessageList(
-                forumOwnerToken1, forumId1, true, false, true,
-                MessageOrder.DESC.name(), Arrays.asList("Tag1"), 300, 0
+                forumOwnerToken1, forumId1, true, false, false,
+                MessageOrder.DESC.name(), null, 300, 0
         );
         assertEquals(HttpStatus.OK, messagesResponse5.getStatusCode());
         assertNotNull(messagesResponse5.getBody());
 
         final List<MessageInfoDtoResponse> messages5 = messagesResponse5.getBody().getMessages();
-        assertEquals(2, messages5.size());
+        assertEquals(3, messages5.size());
         assertEquals(messageId1, messages5.get(0).getId());
-        assertEquals(3, messages5.get(0).getBody().size());
-        assertEquals(messageId2, messages5.get(1).getId());
+        assertEquals(2, messages5.get(0).getBody().size());
+        assertTrue(messages5.get(0).getBody().get(0).contains("Edit #1"));
+        assertEquals("Body #1", messages5.get(0).getBody().get(1));
+
+        assertEquals(messageId3, messages5.get(1).getId());
         assertEquals(1, messages5.get(1).getBody().size());
+        assertTrue(messages5.get(1).getBody().get(0).contains("Body #3"));
+
+        assertEquals(messageId2, messages5.get(2).getId());
+        assertEquals(1, messages5.get(2).getBody().size());
+        assertEquals("Body #2", messages5.get(2).getBody().get(0));
 
         final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse6 = getMessageList(
-                forumOwnerToken1, forumId1, true, false, true,
-                MessageOrder.DESC.name(), Arrays.asList("Tag4", "TaNoTag"), 300, 0
+                userToken3, forumId1, true, false, false,
+                MessageOrder.DESC.name(), null, 300, 0
         );
         assertEquals(HttpStatus.OK, messagesResponse6.getStatusCode());
         assertNotNull(messagesResponse6.getBody());
 
         final List<MessageInfoDtoResponse> messages6 = messagesResponse6.getBody().getMessages();
-        assertEquals(1, messages6.size());
-        assertEquals(messageId3, messages6.get(0).getId());
+        assertEquals(3, messages6.size());
+        assertEquals(messageId1, messages6.get(0).getId());
         assertEquals(2, messages6.get(0).getBody().size());
+        assertTrue(messages6.get(0).getBody().get(0).contains("Edit #1"));
+        assertEquals("Body #1", messages6.get(0).getBody().get(1));
+
+        assertEquals(messageId3, messages6.get(1).getId());
+        assertEquals(2, messages6.get(1).getBody().size());
+        assertTrue(messages6.get(1).getBody().get(0).contains("Edit #3"));
+        assertTrue(messages6.get(1).getBody().get(1).contains("Body #3"));
+
+        assertEquals(messageId2, messages6.get(2).getId());
+        assertEquals(1, messages6.get(2).getBody().size());
+        assertEquals("Body #2", messages6.get(2).getBody().get(0));
+
+        final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse7 = getMessageList(
+                userToken3, forumId1, false, false, false,
+                MessageOrder.DESC.name(), null, 300, 0
+        );
+        assertEquals(HttpStatus.OK, messagesResponse7.getStatusCode());
+        assertNotNull(messagesResponse7.getBody());
+
+        final List<MessageInfoDtoResponse> messages7 = messagesResponse7.getBody().getMessages();
+        assertEquals(3, messages7.size());
+        assertEquals(messageId1, messages7.get(0).getId());
+        assertEquals(1, messages7.get(0).getBody().size());
+        assertEquals("Edit #1", messages7.get(0).getBody().get(0));
+
+        assertEquals(messageId3, messages7.get(1).getId());
+        assertEquals(1, messages7.get(1).getBody().size());
+        assertTrue(messages7.get(1).getBody().get(0).contains("Edit #3"));
+
+        assertEquals(messageId2, messages7.get(2).getId());
+        assertEquals(1, messages7.get(2).getBody().size());
+        assertEquals("Body #2", messages7.get(2).getBody().get(0));
+    }
+
+    @Test
+    void testGetMessageList_testDifferentTags() {
+        final RegisterUserDtoRequest registerUser1 = new RegisterUserDtoRequest(
+                "user1", "user1@email.com", "utubfm43mWEa"
+        );
+        final String userToken1 = getSessionTokenFromHeaders(registerUser(registerUser1));
+
+        final RegisterUserDtoRequest registerForumOwner1 = new RegisterUserDtoRequest(
+                "ForumOwner1", "fo1@email.com", "w3ryStr0nGPa55wD"
+        );
+        final String forumOwnerToken1 = getSessionTokenFromHeaders(registerUser(registerForumOwner1));
+        final CreateForumDtoRequest createForumRequest1 = new CreateForumDtoRequest(
+                "FirstForum", ForumType.MODERATED.name()
+        );
+        final int forumId1 = createForum(createForumRequest1, forumOwnerToken1).getBody().getId();
+
+        final CreateMessageDtoRequest createMessage1 = new CreateMessageDtoRequest(
+                "Subject #1", "Body #1",
+                MessagePriority.HIGH.name(), Arrays.asList("Tag1")
+        );
+        final int messageId1 = createMessage(userToken1, forumId1, createMessage1).getBody().getId();
+        publishMessage(forumOwnerToken1, messageId1, new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        ));
+        editMessage(userToken1, messageId1, new EditMessageOrCommentDtoRequest("Edit #1"));
+        publishMessage(forumOwnerToken1, messageId1, new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        ));
+        editMessage(userToken1, messageId1, new EditMessageOrCommentDtoRequest("Edit #1.2"));
+
+        final RegisterUserDtoRequest registerUser2 = new RegisterUserDtoRequest(
+                "user2", "user2@email.com", "utubfm43mWEa"
+        );
+        final String userToken2 = getSessionTokenFromHeaders(registerUser(registerUser2));
+        final CreateMessageDtoRequest createMessage2 = new CreateMessageDtoRequest(
+                "Subject #2", "Body #2",
+                null, Arrays.asList("Tag2", "Tag1")
+        );
+        final int messageId2 = createMessage(userToken2, forumId1, createMessage2).getBody().getId();
+        publishMessage(forumOwnerToken1, messageId2, new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        ));
+        final int commentId1 = createComment(userToken2, messageId1,
+                new CreateCommentDtoRequest("Comment #1")).getBody().getId();
+        publishMessage(forumOwnerToken1, commentId1, new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        ));
+
+        final RegisterUserDtoRequest registerUser3 = new RegisterUserDtoRequest(
+                "user3", "user3@email.com", "utubfm43mWEa"
+        );
+        final String userToken3 = getSessionTokenFromHeaders(registerUser(registerUser3));
+        final CreateMessageDtoRequest createMessage3 = new CreateMessageDtoRequest(
+                "Subject #3", "Body #3",
+                MessagePriority.NORMAL.name(), Arrays.asList("Tag4")
+        );
+        final int messageId3 = createMessage(userToken3, forumId1, createMessage3).getBody().getId();
+        publishMessage(forumOwnerToken1, messageId3, new PublicationDecisionDtoRequest(
+                PublicationDecision.YES.name()
+        ));
+        editMessage(userToken3, messageId3, new EditMessageOrCommentDtoRequest("Edit #3"));
+
+        final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse1 = getMessageList(
+                userToken2, forumId1, true, false, true,
+                MessageOrder.DESC.name(), Arrays.asList("Tag1"), 300, 0
+        );
+        assertEquals(HttpStatus.OK, messagesResponse1.getStatusCode());
+        assertNotNull(messagesResponse1.getBody());
+
+        final List<MessageInfoDtoResponse> messages1 = messagesResponse1.getBody().getMessages();
+        assertEquals(2, messages1.size());
+        assertEquals(messageId1, messages1.get(0).getId());
+        assertEquals(2, messages1.get(0).getBody().size());
+        assertEquals(messageId2, messages1.get(1).getId());
+        assertEquals(1, messages1.get(1).getBody().size());
+
+        final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse2 = getMessageList(
+                userToken2, forumId1, true, false, true,
+                MessageOrder.DESC.name(), Arrays.asList("Tag4", "TaNoTag"), 300, 0
+        );
+        assertEquals(HttpStatus.OK, messagesResponse2.getStatusCode());
+        assertNotNull(messagesResponse2.getBody());
+
+        final List<MessageInfoDtoResponse> messages2 = messagesResponse2.getBody().getMessages();
+        assertEquals(1, messages2.size());
+        assertEquals(messageId3, messages2.get(0).getId());
+        assertEquals(1, messages2.get(0).getBody().size());
+
+        final ResponseEntity<ListMessageInfoDtoResponse> messagesResponse3 = getMessageList(
+                userToken2, forumId1, true, false, true,
+                MessageOrder.DESC.name(), Arrays.asList("NotExists", "StillNotExists"), 300, 0
+        );
+        assertEquals(HttpStatus.OK, messagesResponse3.getStatusCode());
+        assertNotNull(messagesResponse3.getBody());
+        final List<MessageInfoDtoResponse> messages3 = messagesResponse3.getBody().getMessages();
+        assertEquals(0, messages3.size());
     }
 
     @Test

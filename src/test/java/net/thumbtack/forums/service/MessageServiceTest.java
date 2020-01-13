@@ -2561,7 +2561,9 @@ class MessageServiceTest {
         when(mockSessionDao.getUserByToken(anyString())).thenReturn(requesterUser);
         when(mockMessageDao.getMessageById(anyInt())).thenReturn(parentMessage);
         when(mockMessageTreeDao
-                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), eq(actualUnpublished))
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class),
+                        anyBoolean(), anyBoolean(), eq(actualUnpublished), anyInt()
+                )
         )
                 .thenReturn(parentMessage);
 
@@ -2585,7 +2587,9 @@ class MessageServiceTest {
         verify(mockSessionDao).getUserByToken(anyString());
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao)
-                .getTreeRootMessage(anyInt(), any(MessageOrder.class), anyBoolean(), anyBoolean(), eq(actualUnpublished));
+                .getTreeRootMessage(anyInt(), any(MessageOrder.class),
+                        anyBoolean(), anyBoolean(), eq(actualUnpublished), anyInt()
+                );
     }
 
     @Test
@@ -2624,7 +2628,8 @@ class MessageServiceTest {
         when(mockMessageDao.getMessageById(anyInt())).thenReturn(parentMessage);
         when(mockMessageTreeDao
                 .getTreeRootMessage(
-                        anyInt(), eq(MessageOrder.DESC), eq(false), eq(false), eq(false)
+                        anyInt(), eq(MessageOrder.DESC),
+                        eq(false), eq(false), eq(false), anyInt()
                 )
         )
                 .thenReturn(parentMessage);
@@ -2653,7 +2658,8 @@ class MessageServiceTest {
         verify(mockMessageDao).getMessageById(anyInt());
         verify(mockMessageTreeDao)
                 .getTreeRootMessage(
-                        anyInt(), eq(MessageOrder.DESC), eq(false), eq(false), eq(false)
+                        anyInt(), eq(MessageOrder.DESC),
+                        eq(false), eq(false), eq(false), anyInt()
                 );
     }
 
@@ -2815,7 +2821,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        eq(null), any(MessageOrder.class), anyInt(), anyInt()
+                        eq(null), any(MessageOrder.class), anyInt(), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -2880,7 +2886,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        eq(null), any(MessageOrder.class), anyInt(), anyInt()
+                        eq(null), any(MessageOrder.class), anyInt(), anyInt(), anyInt()
                 );
     }
 
@@ -2928,7 +2934,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), eq(actualUnpublished),
-                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -2946,7 +2952,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), eq(actualUnpublished),
-                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt(), anyInt()
                 );
     }
 
@@ -3002,7 +3008,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), eq(false), eq(false), eq(false),
-                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt()
+                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -3056,7 +3062,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), eq(false), eq(false), eq(false),
-                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt()
+                        eq(null), eq(MessageOrder.DESC), anyInt(), anyInt(), anyInt()
                 );
     }
 
@@ -3118,7 +3124,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        anyList(), any(MessageOrder.class), eq(defaultOffset), eq(defaultLimit)
+                        anyList(), any(MessageOrder.class), eq(defaultOffset), eq(defaultLimit), anyInt()
                 )
         )
                 .thenReturn(Arrays.asList(tree2, tree1));
@@ -3177,7 +3183,7 @@ class MessageServiceTest {
         verify(mockMessageTreeDao)
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        anyList(), any(MessageOrder.class), eq(defaultOffset), eq(defaultLimit)
+                        anyList(), any(MessageOrder.class), eq(defaultOffset), eq(defaultLimit), anyInt()
                 );
     }
 
@@ -3203,7 +3209,7 @@ class MessageServiceTest {
         when(mockMessageTreeDao
                 .getForumTrees(
                         anyInt(), anyBoolean(), anyBoolean(), anyBoolean(),
-                        anyList(), any(MessageOrder.class), anyInt(), anyInt()
+                        anyList(), any(MessageOrder.class), anyInt(), anyInt(), anyInt()
                 )
         )
                 .thenReturn(Collections.emptyList());

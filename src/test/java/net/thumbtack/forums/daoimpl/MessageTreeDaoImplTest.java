@@ -272,7 +272,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
                 messageItem.getId(),
                 MessageOrder.DESC,
-                false, true, true
+                false, true, true, commentMaker.getId()
         );
         assertMessageEquals(messageItem, selectedRootDesc);
         final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
@@ -291,7 +291,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedRootAsc = messageTreeDao.getTreeRootMessage(
                 messageItem.getId(),
                 MessageOrder.ASC,
-                false, true, true
+                false, true, true, commentMaker.getId()
         );
         assertMessageEquals(messageItem, selectedRootAsc);
         final List<MessageItem> selectedCommentsAsc = selectedRootAsc.getChildrenComments();
@@ -355,7 +355,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedRoot = messageTreeDao.getTreeRootMessage(
                 messageItem.getId(),
                 MessageOrder.DESC,
-                true, true, true
+                true, true, true, commentMaker.getId()
         );
         assertMessageEquals(messageItem, selectedRoot);
         final List<MessageItem> selectedComments = selectedRoot.getChildrenComments();
@@ -409,7 +409,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
                 messageItem.getId(),
                 MessageOrder.DESC,
-                false, false, true
+                false, false, true, commentMaker.getId()
         );
         assertMessageEquals(messageItem, selectedRootDesc);
         final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
@@ -431,10 +431,49 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<HistoryItem> selectedComments2 = selectedCommentsDesc.get(1).getHistory();
         assertEquals(1, selectedComments2.size());
         assertTrue(selectedComments2.get(0).getBody().contains(commentHistory1.getBody()));
+
+        final MessageItem rootDescFromForumOwner = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, false, true, creator.getId()
+        );
+        assertMessageEquals(messageItem, rootDescFromForumOwner);
+        final List<MessageItem> commentsDescFromForumOwner = rootDescFromForumOwner.getChildrenComments();
+        assertEquals(2, commentsDescFromForumOwner.size());
+
+        final List<HistoryItem> firstCommentHistory2 = commentsDescFromForumOwner.get(0).getHistory();
+        assertEquals(1, firstCommentHistory2.size());
+        assertTrue(firstCommentHistory2.get(0).getBody().contains(commentHistory21.getBody()));
+
+        final List<HistoryItem> secondCommentHistory2 = commentsDescFromForumOwner.get(1).getHistory();
+        assertEquals(1, secondCommentHistory2.size());
+        assertTrue(secondCommentHistory2.get(0).getBody().contains(commentHistory1.getBody()));
+
+        final User otherUser = new User(
+                "otherUser", "user@gmail.com", "passwd"
+        );
+        userDao.save(otherUser);
+
+        final MessageItem rootDescFromOtherUser = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, false, true, otherUser.getId()
+        );
+        assertMessageEquals(messageItem, rootDescFromOtherUser);
+        final List<MessageItem> commentsDescFromOtherUser = rootDescFromOtherUser.getChildrenComments();
+        assertEquals(2, commentsDescFromOtherUser.size());
+
+        final List<HistoryItem> firstCommentHistory3 = commentsDescFromOtherUser.get(0).getHistory();
+        assertEquals(1, firstCommentHistory3.size());
+        assertTrue(firstCommentHistory3.get(0).getBody().contains(commentHistory2.getBody()));
+
+        final List<HistoryItem> secondCommentHistory3 = commentsDescFromOtherUser.get(1).getHistory();
+        assertEquals(1, secondCommentHistory3.size());
+        assertTrue(secondCommentHistory3.get(0).getBody().contains(commentHistory1.getBody()));
     }
 
     @Test
-    void testGetRootMessage_onlyPublishedHistory() throws ServerException {
+    void testGetRootMessage_allHistoryVersions() throws ServerException {
         final User commentMaker = new User(
                 "commentMaker", "user@gmail.com", "passwd"
         );
@@ -486,31 +525,92 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         commentItem2.setHistory(Arrays.asList(commentHistory22, commentHistory21, commentHistory2));
         messageHistoryDao.saveNewVersion(commentItem2);
 
-        final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
+        final MessageItem rootDescFromCreator = messageTreeDao.getTreeRootMessage(
                 messageItem.getId(),
                 MessageOrder.DESC,
-                false, true, false
+                false, true, false, commentMaker.getId()
         );
-        assertMessageEquals(messageItem, selectedRootDesc);
-        final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
-        assertEquals(2, selectedCommentsDesc.size());
+        assertMessageEquals(messageItem, rootDescFromCreator);
+        final List<MessageItem> commentsDescFromCreator = rootDescFromCreator.getChildrenComments();
+        assertEquals(2, commentsDescFromCreator.size());
 
-        assertEquals(commentItem2.getId(), selectedCommentsDesc.get(0).getId());
-        assertEquals(commentItem2.getOwner(), selectedCommentsDesc.get(0).getOwner());
-        assertEquals(commentItem2.getCreatedAt(), selectedCommentsDesc.get(0).getCreatedAt());
+        assertEquals(commentItem2.getId(), commentsDescFromCreator.get(0).getId());
+        assertEquals(commentItem2.getOwner(), commentsDescFromCreator.get(0).getOwner());
+        assertEquals(commentItem2.getCreatedAt(), commentsDescFromCreator.get(0).getCreatedAt());
 
-        final List<HistoryItem> selectedComments1 = selectedCommentsDesc.get(0).getHistory();
-        assertEquals(2, selectedComments1.size());
-        assertTrue(selectedComments1.get(0).getBody().contains(commentHistory21.getBody()));
-        assertTrue(selectedComments1.get(0).getBody().contains(commentHistory2.getBody()));
+        final List<HistoryItem> firstCommentHistory1 = commentsDescFromCreator.get(0).getHistory();
+        assertEquals(3, firstCommentHistory1.size());
+        assertTrue(firstCommentHistory1.get(0).getBody().contains(commentHistory22.getBody()));
+        assertTrue(firstCommentHistory1.get(1).getBody().contains(commentHistory21.getBody()));
+        assertTrue(firstCommentHistory1.get(2).getBody().contains(commentHistory2.getBody()));
 
-        assertEquals(commentItem1.getId(), selectedCommentsDesc.get(1).getId());
-        assertEquals(commentItem1.getOwner(), selectedCommentsDesc.get(1).getOwner());
-        assertEquals(commentItem1.getCreatedAt(), selectedCommentsDesc.get(1).getCreatedAt());
+        assertEquals(commentItem1.getId(), commentsDescFromCreator.get(1).getId());
+        assertEquals(commentItem1.getOwner(), commentsDescFromCreator.get(1).getOwner());
+        assertEquals(commentItem1.getCreatedAt(), commentsDescFromCreator.get(1).getCreatedAt());
 
-        final List<HistoryItem> selectedComments2 = selectedCommentsDesc.get(1).getHistory();
-        assertEquals(1, selectedComments2.size());
-        assertTrue(selectedComments2.get(0).getBody().contains(commentHistory1.getBody()));
+        final List<HistoryItem> secondCommentHistory1 = commentsDescFromCreator.get(1).getHistory();
+        assertEquals(1, secondCommentHistory1.size());
+        assertTrue(secondCommentHistory1.get(0).getBody().contains(commentHistory1.getBody()));
+
+        final MessageItem rootDescFromForumOwner = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, true, false, creator.getId()
+        );
+        assertMessageEquals(messageItem, rootDescFromForumOwner);
+        final List<MessageItem> commentsDescFromForumOwner = rootDescFromForumOwner.getChildrenComments();
+        assertEquals(2, commentsDescFromForumOwner.size());
+
+        final List<HistoryItem> firstCommentHistory2 = commentsDescFromForumOwner.get(0).getHistory();
+        assertEquals(2, firstCommentHistory2.size());
+        assertTrue(firstCommentHistory2.get(0).getBody().contains(commentHistory21.getBody()));
+        assertTrue(firstCommentHistory2.get(1).getBody().contains(commentHistory2.getBody()));
+
+        final List<HistoryItem> secondCommentHistory2 = commentsDescFromForumOwner.get(1).getHistory();
+        assertEquals(1, secondCommentHistory2.size());
+        assertTrue(secondCommentHistory2.get(0).getBody().contains(commentHistory1.getBody()));
+
+        final MessageItem rootDescFromForumOwner2 = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, true, true, creator.getId()
+        );
+        assertMessageEquals(messageItem, rootDescFromForumOwner2);
+        final List<MessageItem> commentsDescFromForumOwner2 = rootDescFromForumOwner2.getChildrenComments();
+        assertEquals(2, commentsDescFromForumOwner2.size());
+
+        final List<HistoryItem> firstCommentHistory3 = commentsDescFromForumOwner2.get(0).getHistory();
+        assertEquals(3, firstCommentHistory3.size());
+        assertTrue(firstCommentHistory3.get(0).getBody().contains(commentHistory22.getBody()));
+        assertTrue(firstCommentHistory3.get(1).getBody().contains(commentHistory21.getBody()));
+        assertTrue(firstCommentHistory3.get(2).getBody().contains(commentHistory2.getBody()));
+
+        final List<HistoryItem> secondCommentHistory3 = commentsDescFromForumOwner2.get(1).getHistory();
+        assertEquals(1, secondCommentHistory3.size());
+        assertTrue(secondCommentHistory3.get(0).getBody().contains(commentHistory1.getBody()));
+
+        final User otherUser = new User(
+                "otherUser", "user@gmail.com", "passwd"
+        );
+        userDao.save(otherUser);
+
+        final MessageItem rootDescFromOtherUser = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, true, false, otherUser.getId()
+        );
+        assertMessageEquals(messageItem, rootDescFromOtherUser);
+        final List<MessageItem> commentsDescFromOtherUser = rootDescFromOtherUser.getChildrenComments();
+        assertEquals(2, commentsDescFromOtherUser.size());
+
+        final List<HistoryItem> firstCommentHistory4 = commentsDescFromOtherUser.get(0).getHistory();
+        assertEquals(2, firstCommentHistory4.size());
+        assertTrue(firstCommentHistory4.get(0).getBody().contains(commentHistory21.getBody()));
+        assertTrue(firstCommentHistory4.get(1).getBody().contains(commentHistory2.getBody()));
+
+        final List<HistoryItem> secondCommentHistory4 = commentsDescFromOtherUser.get(1).getHistory();
+        assertEquals(1, secondCommentHistory4.size());
+        assertTrue(secondCommentHistory4.get(0).getBody().contains(commentHistory1.getBody()));
     }
 
     @Test
@@ -560,7 +660,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final MessageItem selectedRootDesc = messageTreeDao.getTreeRootMessage(
                 messageItem.getId(),
                 MessageOrder.DESC,
-                false, false, false
+                false, false, false, commentMaker.getId()
         );
         assertMessageEquals(messageItem, selectedRootDesc);
         final List<MessageItem> selectedCommentsDesc = selectedRootDesc.getChildrenComments();
@@ -581,6 +681,23 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<HistoryItem> selectedComments2 = selectedCommentsDesc.get(1).getHistory();
         assertEquals(1, selectedComments2.size());
         assertTrue(selectedComments2.get(0).getBody().contains(commentHistory1.getBody()));
+
+        final MessageItem rootDescFromForumOwner = messageTreeDao.getTreeRootMessage(
+                messageItem.getId(),
+                MessageOrder.DESC,
+                false, false, false, creator.getId()
+        );
+        assertMessageEquals(messageItem, rootDescFromForumOwner);
+        final List<MessageItem> commentsDescFromForumOwner = rootDescFromForumOwner.getChildrenComments();
+        assertEquals(2, commentsDescFromForumOwner.size());
+
+        final List<HistoryItem> firstCommentHistory2 = commentsDescFromForumOwner.get(0).getHistory();
+        assertEquals(1, firstCommentHistory2.size());
+        assertTrue(firstCommentHistory2.get(0).getBody().contains(commentHistory2.getBody()));
+
+        final List<HistoryItem> secondCommentHistory2 = commentsDescFromForumOwner.get(1).getHistory();
+        assertEquals(1, secondCommentHistory2.size());
+        assertTrue(secondCommentHistory2.get(0).getBody().contains(commentHistory1.getBody()));
     }
 
     @Test
@@ -655,7 +772,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
                 true, false, true,
-                null, MessageOrder.DESC, 0, 10
+                null, MessageOrder.DESC, 0, 10, commentMaker.getId()
         );
         assertEquals(2, trees.size());
 
@@ -685,7 +802,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
                 true, false, true,
-                null, MessageOrder.DESC, 0, 10
+                null, MessageOrder.DESC, 0, 10, creator.getId()
         );
         assertTrue(trees.isEmpty());
     }
@@ -762,7 +879,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
                 true, true, true,
-                null, MessageOrder.DESC, 0, 10
+                null, MessageOrder.DESC, 0, 10, commentMaker.getId()
         );
         assertEquals(2, trees.size());
 
@@ -869,7 +986,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
                 true, true, true,
-                Arrays.asList("Tag4", "Tag_X"), MessageOrder.DESC, 0, 10
+                Arrays.asList("Tag4", "Tag_X"), MessageOrder.DESC, 0, 10, commentMaker.getId()
         );
         assertEquals(2, trees.size());
 
@@ -942,7 +1059,7 @@ class MessageTreeDaoImplTest extends DaoTestEnvironment {
         final List<MessageTree> trees = messageTreeDao.getForumTrees(
                 forum.getId(),
                 true, true, true,
-                Arrays.asList("BAD_TAG", "OTHER_BAD_TAG"), MessageOrder.DESC, 0, 10
+                Arrays.asList("BAD_TAG", "OTHER_BAD_TAG"), MessageOrder.DESC, 0, 10, commentMaker.getId()
         );
         assertTrue(trees.isEmpty());
     }

@@ -14,13 +14,13 @@ public interface MessageTreeDao {
 
     MessageItem getTreeRootMessage(
             int messageId, MessageOrder order,
-            boolean noComments, boolean allVersions, boolean unpublished
+            boolean noComments, boolean allVersions, boolean unpublished, int requesterId
     ) throws ServerException;
 
     List<MessageTree> getForumTrees(
             int forumId,
             boolean allVersions, boolean noComments, boolean unpublished,
-            List<String> tags, MessageOrder order, int offset, int limit
+            List<String> tags, MessageOrder order, int offset, int limit,  int requesterId
     ) throws ServerException;
 
     void changeBranchPriority(MessageTree tree) throws ServerException;
