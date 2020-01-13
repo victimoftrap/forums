@@ -17,8 +17,12 @@ public interface ParametrizedMessageMapper {
             "(SELECT #{allVersions}) AS all_versions," +
             "(SELECT #{unpublished}) AS unpublished";
 
+    String CREATOR_UNPUBLISHED = ", (SELECT #{requesterId}) AS requester_id," +
+            "(SELECT owner_id = #{requesterId}) AS owner_unpublished";
+
     @Select({"SELECT id, owner_id, tree_id, parent_message, created_at, updated_at,",
             PARAMS_INITIALIZING,
+            CREATOR_UNPUBLISHED,
             "FROM messages",
             "WHERE id = #{id} AND parent_message IS NULL"
     })
@@ -43,8 +47,8 @@ public interface ParametrizedMessageMapper {
                             )
                     ),
                     @Result(property = "parentMessage",
-                            column = "{id = parent_message, order = comment_order, " +
-                                    "allVersions = all_versions, unpublished = unpublished}",
+                            column = "{id = parent_message, order = comment_order, allVersions = all_versions," +
+                                    " unpublished = unpublished, requesterId = requester_id}",
                             javaType = MessageItem.class,
                             one = @One(
                                     select = "net.thumbtack.forums.mappers.ParametrizedMessageMapper.getMessage",
@@ -52,8 +56,8 @@ public interface ParametrizedMessageMapper {
                             )
                     ),
                     @Result(property = "childrenComments",
-                            column = "{parentId = id, order = comment_order, " +
-                                    "allVersions = all_versions, unpublished = unpublished}",
+                            column = "{parentId = id, order = comment_order, allVersions = all_versions, " +
+                                    "unpublished = unpublished, requesterId = requester_id}",
                             javaType = List.class,
                             many = @Many(
                                     select = "net.thumbtack.forums.mappers.ParametrizedMessageMapper.getComments",
@@ -61,7 +65,8 @@ public interface ParametrizedMessageMapper {
                             )
                     ),
                     @Result(property = "history",
-                            column = "{messageId = id, allVersions = all_versions, unpublished = unpublished}",
+                            column = "{messageId = id, allVersions = all_versions, " +
+                                    "unpublished = unpublished, ownerUnpublished = owner_unpublished}",
                             javaType = List.class,
                             many = @Many(
                                     select = "net.thumbtack.forums.mappers.ParametrizedMessageMapper.getHistory",
@@ -90,12 +95,14 @@ public interface ParametrizedMessageMapper {
             @Param("id") int id,
             @Param("order") String order,
             @Param("allVersions") boolean allVersions,
-            @Param("unpublished") boolean unpublished
+            @Param("unpublished") boolean unpublished,
+            @Param("requesterId") int requesterId
     );
 
     @Select({
             "SELECT id, owner_id, tree_id, parent_message, created_at, updated_at,",
             PARAMS_INITIALIZING,
+            CREATOR_UNPUBLISHED,
             "FROM messages",
             "WHERE parent_message = #{parentId}",
             "ORDER BY created_at ${order}"
@@ -105,12 +112,14 @@ public interface ParametrizedMessageMapper {
             @Param("parentId") int parentId,
             @Param("order") String order,
             @Param("allVersions") boolean allVersions,
-            @Param("unpublished") boolean unpublished
+            @Param("unpublished") boolean unpublished,
+            @Param("requesterId") int requesterId
     );
 
     @Select({
             "SELECT id, owner_id, tree_id, parent_message, created_at, updated_at,",
             PARAMS_INITIALIZING,
+            CREATOR_UNPUBLISHED,
             "FROM messages",
             "WHERE id = #{id}"
     })
@@ -119,14 +128,15 @@ public interface ParametrizedMessageMapper {
             @Param("id") int id,
             @Param("order") String order,
             @Param("allVersions") boolean allVersions,
-            @Param("unpublished") boolean unpublished
+            @Param("unpublished") boolean unpublished,
+            @Param("requesterId") int requesterId
     );
 
     @Select({"<script>",
             "SELECT",
             "IF(state = 'UNPUBLISHED', CONCAT('[UNPUBLISHED]', body), body) AS body, state, created_at",
             "FROM message_history WHERE message_id = #{messageId}",
-            "<if test='unpublished == false'>",
+            "<if test='unpublished == false and ownerUnpublished == false'>",
             "AND state = 'PUBLISHED'",
             "</if>",
             "ORDER BY id DESC",
@@ -145,12 +155,14 @@ public interface ParametrizedMessageMapper {
     List<HistoryItem> getHistory(
             @Param("messageId") int messageId,
             @Param("allVersions") boolean allVersions,
-            @Param("unpublished") boolean unpublished
+            @Param("unpublished") boolean unpublished,
+            @Param("ownerUnpublished") boolean ownerUnpublished
     );
 
     @Select({
             "SELECT id, owner_id, tree_id, parent_message, created_at, updated_at,",
             PARAMS_INITIALIZING,
+            CREATOR_UNPUBLISHED,
             "FROM messages",
             "WHERE tree_id = #{treeId} AND parent_message IS NULL"
     })

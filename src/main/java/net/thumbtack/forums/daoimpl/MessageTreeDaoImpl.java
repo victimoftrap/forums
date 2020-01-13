@@ -79,18 +79,18 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
 
     @Override
     public MessageItem getTreeRootMessage(
-            int messageId, MessageOrder order, boolean noComments, boolean allVersions, boolean unpublished
-    ) throws ServerException {
+            int messageId, MessageOrder order, boolean noComments,
+            boolean allVersions, boolean unpublished, int requesterId) throws ServerException {
         LOGGER.debug(
-                "Getting root message by ID {} with params: order={}, " +
+                "Getting root message for {} by ID {} with params: order={}, " +
                         "noComments={}, allVersions={}, unpublished={}",
-                messageId, order.name(), noComments, allVersions, unpublished
+                requesterId, messageId, order.name(), noComments, allVersions, unpublished
         );
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 MessageItem rootMessage = getParametrizedMessageMapper(sqlSession)
-                        .getRootMessage(messageId, order.name(), allVersions, unpublished);
+                        .getRootMessage(messageId, order.name(), allVersions, unpublished, requesterId);
                 if (noComments) {
                     rootMessage.setChildrenComments(Collections.emptyList());
                 }
@@ -104,20 +104,19 @@ public class MessageTreeDaoImpl extends MapperCreatorDao implements MessageTreeD
 
     @Override
     public List<MessageTree> getForumTrees(
-            int forumId,
-            boolean allVersions, boolean noComments, boolean unpublished,
-            List<String> tags, MessageOrder order, int offset, int limit
+            int forumId, boolean allVersions, boolean noComments, boolean unpublished,
+            List<String> tags, MessageOrder order, int offset, int limit, int requesterId
     ) throws ServerException {
         LOGGER.debug(
-                "Getting messages with params: offset={}, limit={}, order={}, " +
+                "Getting messages in forum {} with params for {}: offset={}, limit={}, order={}, " +
                         "noComments={}, allVersions={}, unpublished={}",
-                offset, limit, order.name(), noComments, allVersions, unpublished
+                forumId, requesterId, offset, limit, order.name(), noComments, allVersions, unpublished
         );
 
         try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
             try {
                 List<MessageTree> trees = getParametrizedMessageTreeMapper(sqlSession)
-                        .getTrees(forumId, offset, limit, order.name(), tags, allVersions, unpublished);
+                        .getTrees(forumId, offset, limit, order.name(), tags, allVersions, unpublished, requesterId);
                 if (noComments) {
                     trees.forEach(tree -> tree.getRootMessage()
                             .setChildrenComments(Collections.emptyList())

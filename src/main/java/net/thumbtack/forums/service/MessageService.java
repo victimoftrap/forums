@@ -382,7 +382,7 @@ public class MessageService extends ServiceBase {
         final MessageOrder order = getMessageOrder(receivedOrder);
 
         final MessageItem rootMessage = messageTreeDao.getTreeRootMessage(
-                messageId, order, noComments, allVersions, unpublished
+                messageId, order, noComments, allVersions, unpublished, requesterUser.getId()
         );
         if (rootMessage == null) {
             throw new ServerException(ErrorCode.MESSAGE_NOT_FOUND);
@@ -419,7 +419,7 @@ public class MessageService extends ServiceBase {
         }
 
         final List<MessageTree> messageTrees = messageTreeDao.getForumTrees(
-                forumId, allVersions, noComments, unpublished, tags, order, offset, limit
+                forumId, allVersions, noComments, unpublished, tags, order, offset, limit, requesterUser.getId()
         );
         return new ListMessageInfoDtoResponse(
                 MessageConverter.messageListToResponse(messageTrees)
